@@ -1,0 +1,28 @@
+### ==================================
+###        FLUJO DE AUTENTICACIÓN
+### ==================================
+
+# 1. Registrar un nuevo usuario
+# CAMBIÁ EL EMAIL si ya lo usaste. Por ejemplo, a "usuario.prueba.7@example.com"
+POST http://localhost:3001/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "usuario.prueba.7@example.com",
+  "password": "passwordFuerte123"
+}
+
+
+### ==================================
+###      PRUEBAS DE AUTORIZACIÓN
+### ==================================
+
+# 3. Obtener playlist SIN autenticación (sin token)
+GET http://localhost:3001/api/playlists?moodId=5
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IktuMnJPU0l4V2JNZ3VIZjQiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3Vqa3l6aWdia2RuZXV3Z3FqZHd2LnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI3NTA0MDBlMC0xYjk2LTRjZjktOTI2OS03NzE5NTVjNGFmY2IiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzUxNTU5NzI1LCJpYXQiOjE3NTE1NTYxMjUsImVtYWlsIjoidXN1YXJpby5wcnVlYmEuN0BleGFtcGxlLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJ1c3VhcmlvLnBydWViYS43QGV4YW1wbGUuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiNzUwNDAwZTAtMWI5Ni00Y2Y5LTkyNjktNzcxOTU1YzRhZmNiIn0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NTE1NTYxMjV9XSwic2Vzc2lvbl9pZCI6IjIzNGFiMmNjLTYzYWYtNDA0MS05MThiLTk5MTZkN2ZiZDBlOCIsImlzX2Fub255bW91cyI6ZmFsc2V9.8-fAkv5VZaW2ltj_DVa8W1O77FKerPgm9cHexH9a9-o
+###
+
+# 4. Obtener playlist CON autenticación (usando el token del login)
+# Aquí es donde se USA la variable authToken que capturamos arriba.
+GET http://localhost:3001/api/playlists?moodId=5
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IktuMnJPU0l4V2JNZ3VIZjQiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3Vqa3l6aWdia2RuZXV3Z3FqZHd2LnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI3NTA0MDBlMC0xYjk2LTRjZjktOTI2OS03NzE5NTVjNGFmY2IiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzUxNTU5NzI1LCJpYXQiOjE3NTE1NTYxMjUsImVtYWlsIjoidXN1YXJpby5wcnVlYmEuN0BleGFtcGxlLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJ1c3VhcmlvLnBydWViYS43QGV4YW1wbGUuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiNzUwNDAwZTAtMWI5Ni00Y2Y5LTkyNjktNzcxOTU1YzRhZmNiIn0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NTE1NTYxMjV9XSwic2Vzc2lvbl9pZCI6IjIzNGFiMmNjLTYzYWYtNDA0MS05MThiLTk5MTZkN2ZiZDBlOCIsImlzX2Fub255bW91cyI6ZmFsc2V9.8-fAkv5VZaW2ltj_DVa8W1O77FKerPgm9cHexH9a9-o

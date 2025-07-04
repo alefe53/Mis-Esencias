@@ -1,0 +1,42 @@
+{
+  "name": "mis-esencias",
+  "version": "2.0.0",
+  "description": "",
+  "main": "app.js",
+  "type": "module",
+  "license": "AGPL-version-3.0",
+  "private": false,
+  "engines": {
+    "node": ">= 14.0.0",
+    "npm": ">= 6.0.0"
+  },
+  "homepage": "",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "bugs": "",
+  "keywords": [],
+  "author": {
+    "name": ""
+  },
+  "contributors": [],
+  "scripts": {
+    "dev": "node --env-file=./.env --watch ./src/app.js",
+    "lint": "npx @biomejs/biome check --write ./src"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.0.6",
+    "nodemon": "3.1.10"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.50.2",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.0.1",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "rest": "^2.0.0"
+  }
+}

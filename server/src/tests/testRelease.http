@@ -1,0 +1,87 @@
+### =======================================================
+### Prueba para crear un nuevo LANZAMIENTO COMPLETO (SOLO)
+### =======================================================
+# Este es un ejemplo para un artista solista.
+# La función maestra `fn_create_full_release` se encargará de crear al artista si no existe,
+# el lanzamiento, los tracks y sus contribuidores.
+
+POST http://127.0.0.1:3001/api/releases
+Content-Type: application/json
+
+{
+  "type": "solo",
+  "artist_name": "ADF",
+  "artist_tags": ["PRUEBA rock", "PRUEBA experimental", "PRUEBA solista"],
+  "release_title": "PRUEBA Nuevo Horizonte",
+  "release_description": "PRUEBA Un EP conceptual sobre nuevos comienzos.",
+  "cover_art_url": "PRUEBA /images/new_horizon.jpg",
+  "release_year": 2025,
+  "tracks": [
+    {
+      "title": "PRUEBA Amanecer Digital",
+      "description": "PRUEBA El primer rayo de luz en un mundo nuevo.",
+      "track_number": 1,
+      "contributors": [
+        {
+          "name": "ADF",
+          "role": "PRUEBA Composición, Guitarras, Sintetizadores",
+          "tags": ["PRUEBA"]
+        },
+        {
+          "name": "PRUEBA Un Baterista Invitado",
+          "role": "PRUEBA Batería",
+          "tags": ["PRUEBA"]
+        }
+      ],
+      "links": [
+        { "platform": "PRUEBA", "url": "PRUEBA http://spotify.com/track/12345" },
+        { "platform": "PRUEBA", "url": "PRUEBA https://youtu.be/abcdefg" }
+      ]
+    },
+    {
+      "title": "PRUEBA Ciudad de Neón ",
+      "description": "PRUEBA Explorando la metrópolis nocturna.",
+      "track_number": 2,
+      "contributors": [
+        { "name": "ADF", "role": "PRUEBA" }
+      ]
+    }
+  ]
+}
+
+### ===================================================
+### Prueba para crear un lanzamiento de una BANDA
+### ===================================================
+# La función creará la banda (si no existe), sus miembros (y los artistas si no existen),
+# el lanzamiento y sus tracks.
+
+POST http://127.0.0.1:3001/api/releases
+Content-Type: application/json
+
+{
+    "type": "band",
+    "band_name": "Los Exploradores Cósmicos",
+    "band_description": "Una odisea de rock psicodélico y espacial.",
+    "band_image_url": "/images/cosmic_explorers.jpg",
+    "band_tags": ["rock psicodelico", "space rock"],
+    "main_artist_name": "ADF",
+    "members": [
+        {"name": "ADF", "role": "Guitarra Líder", "tags": ["fundador"]},
+        {"name": "Astro Kid", "role": "Bajo y Voz"},
+        {"name": "Nova", "role": "Batería y Percusión"}
+    ],
+    "release_title": "Ecos de un Agujero Negro",
+    "release_description": "Sonidos capturados desde el borde del universo.",
+    "cover_art_url": "/images/black_hole_echoes.jpg",
+    "release_year": 2026,
+    "tracks": [
+        {
+            "title": "Horizonte de Sucesos",
+            "track_number": 1,
+            "contributors": [
+                {"name": "Astro Kid", "role": "Composición, Voz"},
+                {"name": "ADF", "role": "Arreglos de Guitarra"}
+            ]
+        }
+    ]
+}

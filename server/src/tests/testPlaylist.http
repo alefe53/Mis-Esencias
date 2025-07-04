@@ -1,0 +1,44 @@
+# Variables para el entorno. Cambia el puerto si es necesario.
+@host = http://127.0.0.1:3001
+
+###
+# PRUEBA 1: Petición básica
+# Pide una playlist para un mood específico con el límite por defecto (10).
+# VERIFICAR: Debe devolver un status 200 y un array en 'data'.
+GET {{host}}/api/playlists?moodId=5
+
+###
+# PRUEBA 2: Petición con límite personalizado
+# Pide 5 canciones para un mood específico.
+# VERIFICAR: Debe devolver un status 200 y el array 'data' debe tener 5 o menos elementos.
+GET {{host}}/api/playlists?moodId=5&limit=5
+
+###
+# PRUEBA 3: Petición con un ID de track a excluir
+# Pide una playlist excluyendo la canción con id 49.
+# VERIFICAR: Debe devolver un status 200 y la canción 49 no debe estar en la lista.
+GET {{host}}/api/playlists?moodId=5&limit=15&excludeTrackIds=49
+
+###
+# PRUEBA 4: Petición con MÚLTIPLES IDs de tracks a excluir
+# Pide una playlist excluyendo las canciones 49, 52 y 73.
+# VERIFICAR: Debe devolver un status 200 y ninguna de esas canciones debe estar en la lista.
+GET {{host}}/api/playlists?moodId=5&limit=15&excludeTrackIds=49,52,73
+
+###
+# PRUEBA 5: Petición de ERROR - Falta moodId
+# La API debe rechazar la petición porque 'moodId' es obligatorio.
+# VERIFICAR: Debe devolver un status 400 (Bad Request).
+GET {{host}}/api/playlists?limit=5
+
+###
+# PRUEBA 6: Petición de ERROR - moodId inválido
+# La API debe rechazar la petición porque 'moodId' no es un número.
+# VERIFICAR: Debe devolver un status 400 (Bad Request).
+GET {{host}}/api/playlists?moodId=hola
+
+###
+# PRUEBA 7: Petición de ERROR - excludeTrackIds inválido
+# La API debe rechazar la petición porque uno de los IDs no es un número.
+# VERIFICAR: Debe devolver un status 400 (Bad Request).
+GET {{host}}/api/playlists?moodId=5&excludeTrackIds=10,veinte,30
