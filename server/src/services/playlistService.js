@@ -1,61 +1,61 @@
 import { getRandomPlaylistFromDB } from "../repositories/playlistRepository.js";
-import { supabase } from "../config/supabase.js";
+import { getPublicUrl, createPrivateUrl } from "../utils/supabaseUtils.js";
+
+const PUBLIC_BUCKET = "assets-publicos";
+const PRIVATE_BUCKET = "assets-privados";
+const FREE_TIER_ID = 1; 
 
 /**
- * Genera una URL firmada y de corta duración para un archivo de audio privado.
- * @param {string} filePath - La ruta completa al archivo dentro del bucket.
- * @returns {Promise<string|null>} - La URL firmada y temporal, o null si hay un error.
+ * Helper para transformar una canción, añadiendo la URL correcta (pública o privada).
+ * @param {object} track - La canción de la base de datos.
+ * @param {number} userTierId - El nivel de suscripción del usuario actual.
+ * @returns {Promise<object>} - La canción transformada con URLs listas para usar.
  */
-const createPrivateUrl = async (filePath) => {
-  if (!filePath) return null;
-
-  const BUCKET_NAME = 'assets-privados';
-  const EXPIRATION_IN_SECONDS = 3600; // La URL será válida por 1 hora
-
-  const { data, error } = await supabase
-    .storage
-    .from(BUCKET_NAME)
-    .createSignedUrl(filePath, EXPIRATION_IN_SECONDS);
-
-  if (error) {
-    console.error(`Error generando URL firmada para ${filePath}:`, error.message);
-    return null;
+const _transformTrackWithPlayableUrls = async (track, userTierId) => {
+  const isExclusive = track.required_subscription_tier_id > FREE_TIER_ID;
+  
+  let playableUrl;
+  
+  if (isExclusive) {
+    playableUrl = await createPrivateUrl(PRIVATE_BUCKET, track.filePath);
+  } else {
+    playableUrl = getPublicUrl(PUBLIC_BUCKET, track.filePath);
   }
 
-  return data.signedUrl;
+  const publicCoverUrl = getPublicUrl(PUBLIC_BUCKET, track.releaseInfo.coverArtUrl);
+
+  return {
+    ...track,
+    playableUrl,
+    releaseInfo: {
+      ...track.releaseInfo,
+      coverArtUrl: publicCoverUrl, 
+    },
+  };
 };
 
-/**
- * Lógica de negocio para obtener una playlist aleatoria con URLs seguras.
- */
-export const fetchRandomPlaylist = async (moodId, limit, excludeTrackIds = [], userTierId) => {
-  try {
 
-    const playlistFromDB = await getRandomPlaylistFromDB(moodId, limit, excludeTrackIds, userTierId);
+export const fetchRandomPlaylist = async (
+  moodId,
+  limit,
+  excludeTrackIds = [],
+  userTierId
+) => {
+  try {
+    const playlistFromDB = await getRandomPlaylistFromDB(
+      moodId,
+      limit,
+      excludeTrackIds,
+      userTierId
+    );
 
     if (!playlistFromDB || playlistFromDB.length === 0) {
       return [];
     }
-
-    const playlistWithSignedUrls = await Promise.all(
-      playlistFromDB.map(async (track) => {
-        const playableUrl = await createPrivateUrl(track.filePath);
-        
-        const signedCoverUrl = await createPrivateUrl(track.releaseInfo.coverArtUrl);
-
-        return {
-          ...track, 
-          playableUrl: playableUrl, 
-          releaseInfo: {
-            ...track.releaseInfo,
-            coverArtUrl: signedCoverUrl,
-          }
-        };
-      })
+    
+    return Promise.all(
+      playlistFromDB.map((track) => _transformTrackWithPlayableUrls(track, userTierId))
     );
-
-    return playlistWithSignedUrls;
-
   } catch (error) {
     console.error("Error en playlistService:", error.message);
     throw error;

@@ -5,7 +5,7 @@ export const getRandomPlaylist = async (req, res, next) => {
 
   const { moodId, limit, excludeTrackIds } = req.query;
 
-  const userTierId = req.user.subscription_tier_id;
+  const userTierId = req.user?.subscription_tier_id || 1;
 
   const pMoodId = Number(moodId);
   if (isNaN(pMoodId)) { 

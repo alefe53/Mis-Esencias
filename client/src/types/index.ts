@@ -31,6 +31,7 @@ export interface User {
   subscription_tier_id: number;
   first_name: string;
   last_name: string; 
+  birth_date: string;
 }
 
 export interface RegisterPayload {
@@ -40,4 +41,8 @@ export interface RegisterPayload {
   lastName: string;
 }
 
-
+export interface ProfileUpdatePayload {
+  firstName: string;
+  lastName: string;
+  birthDate?: string; 
+}

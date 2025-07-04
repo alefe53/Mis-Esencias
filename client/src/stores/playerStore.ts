@@ -1,15 +1,16 @@
 import { defineStore } from 'pinia';
 import type { Track, Mood } from '../types/index.ts';
 import api from '../services/api.ts';
+import apiPublic from '../services/apiPublic.ts';
 
 export const usePlayerStore = defineStore('player', {
   state: () => ({
     playlist: [] as Track[],
     currentTrackIndex: -1,
     isPlaying: false,
-    isLoading: false,
-    // Iniciamos sin un mood seleccionado para forzar la interacción del usuario
-    currentMoodId: null as number | null, 
+    isPlaylistLoading: false,
+    isMoodsLoading: false,
+    currentMoodId: null as number | null,
     availableMoods: [] as Mood[],
     isPlaylistVisible: false,
   }),
@@ -27,29 +28,49 @@ export const usePlayerStore = defineStore('player', {
   },
 
   actions: {
-    // Esta acción ahora se llamará explícitamente cuando el usuario abra la lista de moods
+
+    async ensureMoodsAvailable() {
+       console.log(`PLAYER_STORE: ensureMoodsAvailable() called. Moods count: ${this.availableMoods.length}, Is loading: ${this.isMoodsLoading}`);
+      if (this.availableMoods.length > 0 || this.isMoodsLoading) 
+        {
+          console.log('PLAYER_STORE: -> Skipping fetch, moods already exist or are loading.');
+          return;
+        }
+      await this.fetchAvailableMoods();
+    },
+    
     async fetchAvailableMoods() {
-      // Evita recargar si ya los tenemos
-      if (this.availableMoods.length > 0) return; 
-      
-      this.isLoading = true;
+      console.log('PLAYER_STORE: fetchAvailableMoods() - ACTION STARTED.');
+      if (this.isMoodsLoading) {
+        console.log('PLAYER_STORE: -> SKIPPING, fetch already in progress.');
+        return
+      };
+
+      this.isMoodsLoading = true; 
       try {
-        const response = await api.get('/moods');
-        // Asumimos que tu endpoint de moods devuelve un array en `response.data.data`
-        // Si devuelve directamente el array, cambia a: this.availableMoods = response.data;
+         console.log('PLAYER_STORE: --> Making API call with apiPublic.get("/moods")');
+        const response = await apiPublic.get('/moods');
+         console.log('PLAYER_STORE: --> API call SUCCEEDED. Response:', response.data);
+      
         this.availableMoods = response.data.data;
       } catch (error) {
+        console.error('PLAYER_STORE: --> CATCH BLOCK! API call FAILED.', error);
+        
         console.error('Error al obtener la lista de moods:', error);
+        this.availableMoods = []; 
       } finally {
-        this.isLoading = false;
+        this.isMoodsLoading = false; 
+          console.log(`PLAYER_STORE: fetchAvailableMoods() - ACTION FINISHED. Final moods count: ${this.availableMoods.length}`);
+     
       }
     },
-
+    
 
     
     async fetchAndPlayPlaylist(moodId: number) {
-      if (this.isLoading) return;
-      this.isLoading = true;
+      if (this.isPlaylistLoading) return;
+
+      this.isPlaylistLoading = true;
       this.currentMoodId = moodId; 
       try {
         const response = await api.get('/playlists', {
@@ -65,7 +86,6 @@ export const usePlayerStore = defineStore('player', {
           this.playlist = [];
           this.currentTrackIndex = -1;
           this.isPlaying = false;
-          // Aquí podrías mostrar una notificación al usuario
           return;
         }
 
@@ -76,13 +96,13 @@ export const usePlayerStore = defineStore('player', {
       } catch (error) {
         console.error('Error al obtener la playlist:', error);
       } finally {
-        this.isLoading = false;
+        this.isPlaylistLoading = false; 
       }
     },
 
     async fetchMoreTracks() {
-      if (this.isLoading || this.currentMoodId === null) return;
-      this.isLoading = true;
+      if (this.isPlaylistLoading || this.currentMoodId === null) return;
+      this.isPlaylistLoading = true;
       try {
         const excludeTrackIds = this.playlist.map(track => track.id).join(',');
         const response = await api.get('/playlists', {
@@ -100,9 +120,11 @@ export const usePlayerStore = defineStore('player', {
       } catch (error) {
         console.error('Error al obtener más canciones:', error);
       } finally {
-        this.isLoading = false;
+        this.isPlaylistLoading = false;
       }
     },
+
+    
 
     togglePlaylistVisibility() {
       this.isPlaylistVisible = !this.isPlaylistVisible;
@@ -119,7 +141,7 @@ export const usePlayerStore = defineStore('player', {
 
     playNext() {
       const remainingTracks = this.playlist.length - 1 - this.currentTrackIndex;
-      if (remainingTracks < 3 && !this.isLoading) {
+      if (remainingTracks < 3 && !this.isPlaylistLoading) {
         this.fetchMoreTracks();
       }
       if (this.hasNext) {
@@ -135,6 +157,20 @@ export const usePlayerStore = defineStore('player', {
         this.currentTrackIndex--;
         this.isPlaying = true;
       }
+    },
+
+    reset() 
+    {
+    console.log('PLAYER_STORE: reset() called');
+    this.playlist = [];
+    this.currentTrackIndex = -1;
+    this.isPlaying = false;
+    this.currentMoodId = null;
+    this.isPlaylistVisible = false;
+    this.availableMoods = []; 
+    this.isPlaylistLoading = false;
+    this.isMoodsLoading = false;
+    console.log('PLAYER_STORE: State has been completely reset.');
     },
 
     togglePlayPause() {

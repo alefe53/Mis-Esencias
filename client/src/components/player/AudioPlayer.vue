@@ -128,7 +128,8 @@ const {
   currentMoodId, 
   availableMoods,
   isPlaylistVisible,
-  playlist
+  playlist,
+  isMoodsLoading 
 } = storeToRefs(playerStore);
 
 const { 
@@ -151,14 +152,17 @@ const isMoodListVisible = ref(false);
 const isTrackDescriptionVisible = ref(false); 
 const isReleaseDescriptionVisible = ref(false); 
 
-const isAuthView = computed(() => route.path === '/auth');
+const isAuthView = computed(() => ['/auth', '/profile'].includes(route.path));
 
 const currentMoodName = computed(() => {
+  if (isMoodsLoading.value) {
+    return 'Cargando...';
+  }
   if (currentMoodId.value === null) {
     return 'Estado de Ánimo';
   }
   const mood = availableMoods.value.find(m => m.id === currentMoodId.value);
-  return mood ? mood.name : 'Cargando...';
+  return mood ? mood.name : 'Estado de Ánimo';
 });
 
 const moodButtonStyle = computed(() => {
@@ -192,14 +196,15 @@ const wrapperStyle = computed(() => {
   
   return {};
 });
+
+
+
 const getHoverColorForMood = (moodName: string) => {
   return moodColors[moodName] || '#FFFFFF';
 };
 
 const toggleMoodList = () => {
-  if (!isMoodListVisible.value && availableMoods.value.length === 0) {
-    fetchAvailableMoods();
-  }
+  playerStore.ensureMoodsAvailable();
   isMoodListVisible.value = !isMoodListVisible.value;
 };
 
@@ -242,8 +247,14 @@ watch(currentTrack, (newTrack) => {
   }
 });
 
-const handlePrimaryPlay = () => {
-  const moodToPlay = currentMoodId.value === null ? 5 : currentMoodId.value;
+const handlePrimaryPlay = async () => {
+  if (availableMoods.value.length === 0) {
+    await fetchAvailableMoods();
+  }
+
+  const moodToPlay = currentMoodId.value === null 
+    ? 5 
+    : currentMoodId.value;
   
   if (!currentTrack.value) {
     showInitialPrompt.value = false;

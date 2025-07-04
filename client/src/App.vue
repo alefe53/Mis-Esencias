@@ -37,7 +37,7 @@ const playerStore = usePlayerStore();
 const authStore = useAuthStore();
 
 onMounted(() => {
-  playerStore.fetchAvailableMoods(); 
+  playerStore.ensureMoodsAvailable(); 
   authStore.checkUserSession(); 
 });
 </script>

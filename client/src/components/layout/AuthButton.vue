@@ -44,7 +44,7 @@ const toggleMenu = () => {
 };
 
 const goToProfile = () => {
-  // router.push('/profile');
+  router.push('/profile');
   isMenuOpen.value = false;
 };
 </script>

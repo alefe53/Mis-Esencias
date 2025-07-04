@@ -6,6 +6,7 @@ export const config = {
   },
   supabase: {
     URL: process.env.SUPABASE_URL,
+    ANON_KEY: process.env.SUPABASE_ANON_KEY, 
     SERVICE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
   },
   jwt: {
