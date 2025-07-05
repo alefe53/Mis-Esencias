@@ -119,8 +119,10 @@ import { storeToRefs } from 'pinia';
 import { useAudioControls } from '../../composables/useAudioControls';
 import { moodColors } from '../../constants/moods';
 import Playlist from './Playlist.vue';
+import { useUiStore } from '../../stores/uiStore';
 
 const playerStore = usePlayerStore();
+const uiStore = useUiStore();
 const { 
   currentTrack, 
   isPlaying, 
@@ -144,7 +146,7 @@ const {
 const route = useRoute(); 
 
 const { audioRef, onTrackEnded } = useAudioControls();
-const showInitialPrompt = ref(true);
+
 const showTrackInfo = ref(false);
 let infoTimeout: number | undefined;
 
@@ -207,10 +209,12 @@ const toggleMoodList = () => {
   playerStore.ensureMoodsAvailable();
   isMoodListVisible.value = !isMoodListVisible.value;
 };
-
+const showInitialPrompt = computed(() => {
+  return !uiStore.hasShownInitialPrompt && !currentTrack.value;
+});
 const selectMood = (moodId: number) => {
-  if (showInitialPrompt.value) {
-    showInitialPrompt.value = false;
+  if (!uiStore.hasShownInitialPrompt) {
+    uiStore.setInitialPromptAsShown(); // <-- Llama a la acción del store
   }
   fetchAndPlayPlaylist(moodId);
   isMoodListVisible.value = false;
@@ -257,7 +261,7 @@ const handlePrimaryPlay = async () => {
     : currentMoodId.value;
   
   if (!currentTrack.value) {
-    showInitialPrompt.value = false;
+    uiStore.setInitialPromptAsShown();
     fetchAndPlayPlaylist(moodToPlay);
   } else {
     togglePlayPause();

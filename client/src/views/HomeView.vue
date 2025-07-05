@@ -13,5 +13,6 @@
 .home {
   padding: 2rem;
   text-align: center;
+  background-color: transparent;
 }
 </style>

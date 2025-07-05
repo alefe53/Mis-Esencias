@@ -4,6 +4,8 @@ import { useAuthStore } from '../stores/authStore'
 import HomeView from '../views/HomeView.vue'
 import AuthView from '../views/AuthView.vue'
 import ProfileView from '../views/ProfileView.vue'
+import TransitionView from '../views/TransitionView.vue' 
+import MusicView from '../views/MusicView.vue' 
 
 const routes = [
   {
@@ -21,6 +23,16 @@ const routes = [
     name: 'profile',
     component: ProfileView,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/music-intro',
+    name: 'music-intro',
+    component: TransitionView
+  },
+  {
+    path: '/music',
+    name: 'music',
+    component: MusicView
   }
 ]
 
