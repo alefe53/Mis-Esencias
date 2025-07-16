@@ -20,6 +20,39 @@ const createFullRelease = async (releaseData) => {
 	return data;
 };
 
+const getFullDetailsById = async (releaseId) => {
+	const { data, error } = await supabase
+		.rpc("get_full_release_tracks_gallery", {
+			p_release_id: releaseId,
+		})
+		.single();
+
+	if (error) {
+		if (error.code === "PGRST116") {
+			return null;
+		}
+		console.error(
+			"Error en el repositorio al llamar a get_full_release_tracks_gallery:",
+			error,
+		);
+		throw new Error(`Error de base de datos: ${error.message}`);
+	}
+
+	return data;
+};
+
+const getMySoloReleases = async () => {
+	const { data, error } = await supabase.rpc("get_my_solo_releases");
+
+	if (error) {
+		console.error("Error en el repositorio al obtener mis releases:", error);
+		throw new Error(`Error de base de datos: ${error.message}`);
+	}
+	return data;
+};
+
 export const releaseRepository = {
 	createFullRelease,
+	getFullDetailsById,
+	getMySoloReleases,
 };

@@ -4,6 +4,6 @@ import moodController from "../controllers/moodController.js";
 
 const moodRouter = Router();
 
-moodRouter.get('/', moodController.getAllMoods);
+moodRouter.get("/", moodController.getAllMoods);
 
 export default moodRouter;

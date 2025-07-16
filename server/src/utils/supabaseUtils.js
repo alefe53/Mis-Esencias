@@ -7,8 +7,8 @@ import { supabase } from "../config/supabase.js";
  * @returns {string|null} - La ruta limpia o null si la entrada es nula.
  */
 const cleanPath = (path) => {
-  if (!path) return null;
-  return path.startsWith("/") ? path.substring(1) : path;
+	if (!path) return null;
+	return path.startsWith("/") ? path.substring(1) : path;
 };
 
 /**
@@ -19,14 +19,14 @@ const cleanPath = (path) => {
  * @returns {string|null} - La URL pública directa, o null si no hay ruta.
  */
 export const getPublicUrl = (bucketName, filePath) => {
-  const cleanedFilePath = cleanPath(filePath);
-  if (!cleanedFilePath) return null;
+	const cleanedFilePath = cleanPath(filePath);
+	if (!cleanedFilePath) return null;
 
-  const { data } = supabase.storage
-    .from(bucketName)
-    .getPublicUrl(cleanedFilePath);
+	const { data } = supabase.storage
+		.from(bucketName)
+		.getPublicUrl(cleanedFilePath);
 
-  return data.publicUrl;
+	return data.publicUrl;
 };
 
 /**
@@ -36,19 +36,22 @@ export const getPublicUrl = (bucketName, filePath) => {
  * @returns {Promise<string|null>} - La URL firmada y temporal, o null si hay error.
  */
 export const createPrivateUrl = async (bucketName, filePath) => {
-  const cleanedFilePath = cleanPath(filePath);
-  if (!cleanedFilePath) return null;
+	const cleanedFilePath = cleanPath(filePath);
+	if (!cleanedFilePath) return null;
 
-  const EXPIRATION_IN_SECONDS = 3600; // 1 hora de validez
+	const EXPIRATION_IN_SECONDS = 3600; // 1 hora de validez
 
-  const { data, error } = await supabase.storage
-    .from(bucketName)
-    .createSignedUrl(cleanedFilePath, EXPIRATION_IN_SECONDS);
+	const { data, error } = await supabase.storage
+		.from(bucketName)
+		.createSignedUrl(cleanedFilePath, EXPIRATION_IN_SECONDS);
 
-  if (error) {
-    console.error(`Error generando URL firmada para ${filePath}:`, error.message);
-    return null;
-  }
+	if (error) {
+		console.error(
+			`Error generando URL firmada para ${filePath}:`,
+			error.message,
+		);
+		return null;
+	}
 
-  return data.signedUrl;
+	return data.signedUrl;
 };

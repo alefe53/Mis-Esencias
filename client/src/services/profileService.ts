@@ -11,3 +11,23 @@ export const updateProfile = async (payload: ProfileUpdatePayload) => {
   const { data } = await api.put('/profile', payload);
   return data;
 };
+
+export const getProfile = async () => {
+    const { data } = await api.get('/profile');
+    return data;
+};
+
+export const uploadAvatar = async (avatarFile: File) => {
+  const formData = new FormData();
+  formData.append('avatar', avatarFile);
+
+  const { data } = await api.post('/profile/avatar', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+
+  
+
+  return data;
+};

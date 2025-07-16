@@ -14,7 +14,7 @@ export const availableMoods: Mood[] = [
 export const moodColors: { [key: string]: string } = {
   'Apocalíptico': '#EF4444',      // Rojo
   'Pa pegarse un tiro': '#3B82F6', // Azul
-  'Surfeando la ola': '#22C55E',  // Verde
+  'Surfeando la ola': '#5A8D6B',  // Verde
   'Llevándola': '#EAB308',         // Amarillo
   'A Flashearla': '#A855F7',      // Púrpura
   'Lo que sea': '#FFFFFF',         // Blanco

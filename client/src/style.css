@@ -1,4 +1,9 @@
 /* style.css */
+@import url('https://fonts.googleapis.com/css2?family=Merriweather&family=Montserrat&family=Pacifico&family=Playfair+Display&family=Roboto+Slab&family=Source+Code+Pro&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Uncial+Antiqua&display=swap');
+
+
+
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -63,6 +68,10 @@ button:focus-visible {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
+}
+
+#app-container.allow-scroll {
+  overflow-y: auto;
 }
 
 .background-layer {

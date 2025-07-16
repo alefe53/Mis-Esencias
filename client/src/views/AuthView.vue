@@ -3,7 +3,7 @@
     <div class="auth-form-wrapper">
       <h2>{{ isRegistering ? 'Crear una Cuenta' : 'Iniciar Sesión' }}</h2>
       <p class="subtitle">
-        {{ isRegistering ? 'Ingresa tus datos para comenzar.' : 'Bienvenido de vuelta.' }}
+        {{ isRegistering ? 'Ingresa tus datos para comenzar.' : 'Entrá si te da, sino anda payá.' }}
       </p>
 
       <form @submit.prevent="handleSubmit">
@@ -23,9 +23,12 @@
         <div class="form-group">
           <label for="password">Contraseña</label>
           <input type="password" id="password" v-model="form.password" required autocomplete="current-password" />
+          <p v-if="isRegistering" class="password-hint">
+            No pierdas la contraseña, se guarda encriptada en la base de datos. Solo vos sabés cual es.
+          </p>
         </div>
 
-        <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+          <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
         <p v-if="successMessage" class="success-message">{{ successMessage }}</p>
 
         <button type="submit" class="submit-button" :disabled="isLoading">
@@ -41,7 +44,7 @@
 
       <p class="toggle-form">
         {{ isRegistering ? '¿Ya tienes una cuenta?' : '¿No tienes una cuenta?' }}
-        <a @click="toggleForm">{{ isRegistering ? 'Inicia sesión' : 'Regístrate' }}</a>
+        <a @click="toggleForm">{{ isRegistering ? 'Inicia sesión' : 'Regístrate gratis' }}</a>
       </p>
     </div>
   </div>
@@ -202,5 +205,11 @@ h2 {
 .success-message {
   color: #4ade80;
   background-color: rgba(34, 197, 94, 0.1);
+}
+.password-hint {
+  font-size: 0.8rem;
+  color: #aaa;
+  margin-top: 0.5rem;
+  margin-bottom: 0;
 }
 </style>

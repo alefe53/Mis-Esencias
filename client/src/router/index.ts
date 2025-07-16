@@ -6,33 +6,80 @@ import AuthView from '../views/AuthView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import TransitionView from '../views/TransitionView.vue' 
 import MusicView from '../views/MusicView.vue' 
+import TrabajosView from '../views/TrabajosView.vue'
+import InfoView from '../views/InfoView.vue'
+import AdminDashboardView from '../views/AdminDashboardView.vue'
 
 const routes = [
   {
     path: '/',
     name: 'home',
-    component: HomeView
+    component: HomeView,
+    meta: { scrollable: true } 
   },
   {
     path: '/auth',
     name: 'auth',
-    component: AuthView
+    component: AuthView,
+    meta: { scrollable: true } 
   },
   {
     path: '/profile',
     name: 'profile',
     component: ProfileView,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, scrollable: true }
+    
   },
   {
     path: '/music-intro',
     name: 'music-intro',
-    component: TransitionView
+    component: TransitionView,
+    meta: { scrollable: false } 
   },
   {
     path: '/music',
     name: 'music',
-    component: MusicView
+    component: MusicView,
+    meta: { scrollable: false } 
+  },
+  {
+    path: '/musica-propia', 
+    name: 'my-music',
+    component: () => import('../views/MyMusicView.vue'),
+    meta: { scrollable: false }  
+  },
+  { 
+    path: '/musica-con-ale', 
+    name: 'music-with-me',
+    component: () => import('../views/MusicWithMeView.vue') ,
+    meta: { scrollable: false } 
+  },
+  {
+    path: '/trabajos',
+    name: 'trabajos',
+    component: TrabajosView,
+    meta: { scrollable: true } 
+  },
+  {
+    path: '/trabajos/:id',
+    name: 'project-details',
+    component: () => import('../views/ProjectDetailView.vue'),
+    meta: { scrollable: true } 
+  },
+  {
+    path: '/info',
+    name: 'info',
+    component: InfoView,
+    meta: { scrollable: true } 
+  },
+  {
+    path: '/admin-dashboard',
+    name: 'admin-dashboard',
+    component: () => import('../views/AdminDashboardView.vue'),
+    meta: { 
+      requiresAuth: true,
+      requiresAdmin: true 
+    }
   }
 ]
 
@@ -42,15 +89,14 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  const authStore = useAuthStore()
+  const authStore = useAuthStore();
   
-  if (!authStore.user) {
-      authStore.checkUserSession();
-  }
-
   const isAuthenticated = authStore.isAuthenticated;
+  const isAdmin = authStore.user?.id === '132c560b-a6f7-46de-90fb-ccb90caad753'; 
 
-  if (to.meta.requiresAuth && !isAuthenticated) {
+  if (to.meta.requiresAdmin && !isAdmin) {
+    next({ name: 'home' });
+  } else if (to.meta.requiresAuth && !isAuthenticated) {
     next({ name: 'auth' });
   } else {
     next();

@@ -1,7 +1,7 @@
 // src/routers/playlistRouter.js
 import { Router } from "express";
 import { getRandomPlaylist } from "../controllers/playlistController.js";
-import { attachUserIfAuthenticated  } from "../middlewares/authMiddleware.js";
+import { attachUserIfAuthenticated } from "../middlewares/authMiddleware.js";
 
 const playlistRouter = Router();
 

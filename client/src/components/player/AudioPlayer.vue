@@ -1,5 +1,9 @@
 <template>
-  <div class="player-and-playlist-wrapper" :style="wrapperStyle" :class="{ 'is-on-auth-page': isAuthView }">
+  <div class="player-and-playlist-wrapper" ref="playerWrapperRef" :style="wrapperStyle" :class="{ 'is-on-auth-page': isAuthView }">
+    <transition name="playlist-fade">
+      <MusicCatalog v-if="isCatalogVisible" @close="isCatalogVisible = false" />
+    </transition>
+
     <transition name="playlist-fade">
       <Playlist v-if="isPlaylistVisible" />
     </transition>
@@ -8,9 +12,11 @@
       <div class="audio-player-container">
         
         <div class="side-panel-container" v-if="!isAuthView">
+
           <button @click="toggleMoodList" class="side-button" :style="moodButtonStyle">
             {{ currentMoodName }}
           </button>
+          
           <transition name="fade-up">
             <ul v-if="isMoodListVisible" class="mood-list" :class="{ 'shifted-left': showInitialPrompt }">
               <li
@@ -55,6 +61,16 @@
             </div>
           </div>
           
+          <button 
+            v-if="!isAuthView"
+            @click="toggleCatalogVisibility"
+            class="side-button catalog-toggle-btn"
+            :class="{ pressed: isCatalogVisible }"
+            aria-label="Mostrar catálogo de música"
+          >
+            C
+          </button>
+
           <button 
             v-if="!isAuthView"
             @click="togglePlaylistVisibility" 
@@ -110,59 +126,77 @@
     <audio ref="audioRef" @ended="onTrackEnded" style="display: none;"></audio>
   </div>
 </template>
-
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
-import { useRoute } from 'vue-router'; // <-- 6. IMPORTAMOS useRoute
+import { useRoute } from 'vue-router';
 import { usePlayerStore } from '../../stores/playerStore';
 import { storeToRefs } from 'pinia';
 import { useAudioControls } from '../../composables/useAudioControls';
+import { useClickOutside } from '../../composables/useClickOutside';
 import { moodColors } from '../../constants/moods';
 import Playlist from './Playlist.vue';
+import MusicCatalog from './MusicCatalog.vue';
 import { useUiStore } from '../../stores/uiStore';
+import { useMusicCatalogStore } from '../../stores/musicCatalogStore';
 
 const playerStore = usePlayerStore();
 const uiStore = useUiStore();
+const catalogStore = useMusicCatalogStore();
+
 const { 
   currentTrack, 
   isPlaying, 
   hasNext, 
   currentMoodId, 
-  availableMoods,
   isPlaylistVisible,
   playlist,
-  isMoodsLoading 
 } = storeToRefs(playerStore);
+const { availableMoods, isMoodsLoading } = storeToRefs(uiStore);
 
 const { 
   togglePlayPause, 
   playNext, 
   playPrevious, 
-  fetchAndPlayPlaylist, 
-  fetchAvailableMoods,
-  togglePlaylistVisibility
+  fetchAndPlayPlaylist,
 } = playerStore;
 
 const route = useRoute(); 
-
 const { audioRef, onTrackEnded } = useAudioControls();
 
+const playerWrapperRef = ref<HTMLElement>();
 const showTrackInfo = ref(false);
 let infoTimeout: number | undefined;
 
 const isMoodListVisible = ref(false);
 const isTrackDescriptionVisible = ref(false); 
 const isReleaseDescriptionVisible = ref(false); 
+const isCatalogVisible = ref(false);
+
+useClickOutside(playerWrapperRef, () => {
+  if (isCatalogVisible.value) isCatalogVisible.value = false;
+  if (isPlaylistVisible.value) playerStore.togglePlaylistVisibility();
+});
 
 const isAuthView = computed(() => ['/auth', '/profile'].includes(route.path));
 
+const togglePlaylistVisibility = () => {
+  playerStore.togglePlaylistVisibility();
+  if (playerStore.isPlaylistVisible && isCatalogVisible.value) {
+    isCatalogVisible.value = false;
+  }
+};
+
+const toggleCatalogVisibility = () => {
+  isCatalogVisible.value = !isCatalogVisible.value;
+  if (isCatalogVisible.value) {
+    catalogStore.fetchCatalog();
+    if (isPlaylistVisible.value) playerStore.togglePlaylistVisibility();
+  }
+};
+
 const currentMoodName = computed(() => {
-  if (isMoodsLoading.value) {
-    return 'Cargando...';
-  }
-  if (currentMoodId.value === null) {
-    return 'Estado de Ánimo';
-  }
+  if (isMoodsLoading.value) return 'Cargando...';
+  if (currentMoodId.value === null) return 'Estado de Ánimo';
   const mood = availableMoods.value.find(m => m.id === currentMoodId.value);
   return mood ? mood.name : 'Estado de Ánimo';
 });
@@ -183,38 +217,34 @@ const moodButtonStyle = computed(() => {
 
 const wrapperStyle = computed(() => {
   if (currentMoodId.value === null) return {};
-  
   const moodName = availableMoods.value.find(m => m.id === currentMoodId.value)?.name;
-  
   if (moodName && moodColors[moodName]) {
     const isLightColor = moodName === 'Lo que sea' || moodName === 'Llevándola';
-    
     return { 
       '--current-mood-color': moodColors[moodName],
       '--current-mood-text-color': isLightColor ? '#111827' : '#FFFFFF',
       '--current-mood-secondary-text-color': isLightColor ? '#374151' : '#e0e0e0',
     };
   }
-  
   return {};
 });
-
-
 
 const getHoverColorForMood = (moodName: string) => {
   return moodColors[moodName] || '#FFFFFF';
 };
 
 const toggleMoodList = () => {
-  playerStore.ensureMoodsAvailable();
+  uiStore.ensureMoodsAvailable();
   isMoodListVisible.value = !isMoodListVisible.value;
 };
+
 const showInitialPrompt = computed(() => {
   return !uiStore.hasShownInitialPrompt && !currentTrack.value;
 });
+
 const selectMood = (moodId: number) => {
   if (!uiStore.hasShownInitialPrompt) {
-    uiStore.setInitialPromptAsShown(); // <-- Llama a la acción del store
+    uiStore.setInitialPromptAsShown();
   }
   fetchAndPlayPlaylist(moodId);
   isMoodListVisible.value = false;
@@ -253,13 +283,9 @@ watch(currentTrack, (newTrack) => {
 
 const handlePrimaryPlay = async () => {
   if (availableMoods.value.length === 0) {
-    await fetchAvailableMoods();
+    await uiStore.ensureMoodsAvailable();
   }
-
-  const moodToPlay = currentMoodId.value === null 
-    ? 5 
-    : currentMoodId.value;
-  
+  const moodToPlay = currentMoodId.value === null ? 5 : currentMoodId.value;
   if (!currentTrack.value) {
     uiStore.setInitialPromptAsShown();
     fetchAndPlayPlaylist(moodToPlay);
@@ -418,10 +444,10 @@ const handlePrimaryPlay = async () => {
 .side-panel-container {
   position: relative;
   display: flex;
-  align-items: center;
-  min-height: 33px;
+  flex-direction: column; 
+  align-items: center;    
+  gap: 8px;               
   min-width: 110px;
-  justify-content: center;
 }
 .side-panel-container.placeholder {
   visibility: hidden;
@@ -562,5 +588,28 @@ const handlePrimaryPlay = async () => {
 .fade-side-left-enter-from, .fade-side-left-leave-to {
   opacity: 0;
   transform: translateX(10px);
+}
+
+.catalog-toggle-btn {
+  position: absolute;
+  top: 50%;
+  right: calc(50% + 30px); 
+  transform: translate(-50%, 20px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  font-weight: bold;
+  font-family: 'Uncial Antiqua', cursive;
+  font-size: 1.1rem;
+}
+
+.catalog-container { 
+  bottom: calc(40% + 0px);
+  left: 25%;
+  transform: translateX(-50%); 
 }
 </style>

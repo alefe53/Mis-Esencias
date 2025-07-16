@@ -1,7 +1,8 @@
+// store/playerStore.ts
 import { defineStore } from 'pinia';
-import type { Track, Mood } from '../types/index.ts';
+import type { Track } from '../types/index.ts';
 import api from '../services/api.ts';
-import apiPublic from '../services/apiPublic.ts';
+import { getPlayableUrl } from '../services/trackService'; 
 
 export const usePlayerStore = defineStore('player', {
   state: () => ({
@@ -9,9 +10,7 @@ export const usePlayerStore = defineStore('player', {
     currentTrackIndex: -1,
     isPlaying: false,
     isPlaylistLoading: false,
-    isMoodsLoading: false,
     currentMoodId: null as number | null,
-    availableMoods: [] as Mood[],
     isPlaylistVisible: false,
   }),
 
@@ -28,59 +27,77 @@ export const usePlayerStore = defineStore('player', {
   },
 
   actions: {
+    async playAlbum(tracks: Track[]) {
+      if (!tracks || tracks.length === 0) {
+        console.error("Se intentó reproducir un álbum sin tracks.");
+        return;
+      }
+      const firstTrack = tracks[0];
+      if (!firstTrack.playableUrl) {
+        firstTrack.playableUrl = await getPlayableUrl(firstTrack.filePath, firstTrack.required_subscription_tier_id || null);
+      }
+      if (!firstTrack.playableUrl) {
+        alert("No se pudo obtener la URL para el primer track del álbum.");
+        return;
+      }
+      this.playlist = tracks;
+      this.currentTrackIndex = 0;
+      this.isPlaying = true;
+      this.currentMoodId = 5; 
+    },
 
-    async ensureMoodsAvailable() {
-       console.log(`PLAYER_STORE: ensureMoodsAvailable() called. Moods count: ${this.availableMoods.length}, Is loading: ${this.isMoodsLoading}`);
-      if (this.availableMoods.length > 0 || this.isMoodsLoading) 
-        {
-          console.log('PLAYER_STORE: -> Skipping fetch, moods already exist or are loading.');
-          return;
-        }
-      await this.fetchAvailableMoods();
+    async playTrackNow(track: Track) {
+      if (!track.playableUrl) {
+        track.playableUrl = await getPlayableUrl(track.filePath, track.required_subscription_tier_id || null);
+      }
+      if (!track.playableUrl) {
+        console.error("No se pudo obtener una URL válida para el track:", track.title);
+        return; 
+      }
+      const existingIndex = this.playlist.findIndex(t => t.id === track.id);
+      if (existingIndex > -1) {
+        this.playlist.splice(existingIndex, 1);
+      }
+      this.playlist.unshift(track);
+      this.currentTrackIndex = 0;
+      if (track.moods && track.moods.length > 0) {
+        const randomMoodIndex = Math.floor(Math.random() * track.moods.length);
+        this.currentMoodId = track.moods[randomMoodIndex].id;
+      } else {
+        this.currentMoodId = 5; 
+      }
+      this.isPlaying = true;
     },
     
-    async fetchAvailableMoods() {
-      console.log('PLAYER_STORE: fetchAvailableMoods() - ACTION STARTED.');
-      if (this.isMoodsLoading) {
-        console.log('PLAYER_STORE: -> SKIPPING, fetch already in progress.');
-        return
-      };
+    async addToQueue(track: Track) {
+      if (!track.playableUrl) {
+        track.playableUrl = await getPlayableUrl(track.filePath, track.required_subscription_tier_id || null);
+      }
+      if (!track.playableUrl) {
+        console.error("No se pudo obtener URL para agregar a la cola:", track.title);
+        return;
+      }
 
-      this.isMoodsLoading = true; 
-      try {
-         console.log('PLAYER_STORE: --> Making API call with apiPublic.get("/moods")');
-        const response = await apiPublic.get('/moods');
-         console.log('PLAYER_STORE: --> API call SUCCEEDED. Response:', response.data);
-      
-        this.availableMoods = response.data.data;
-      } catch (error) {
-        console.error('PLAYER_STORE: --> CATCH BLOCK! API call FAILED.', error);
-        
-        console.error('Error al obtener la lista de moods:', error);
-        this.availableMoods = []; 
-      } finally {
-        this.isMoodsLoading = false; 
-          console.log(`PLAYER_STORE: fetchAvailableMoods() - ACTION FINISHED. Final moods count: ${this.availableMoods.length}`);
-     
+      if (this.currentTrackIndex === -1) {
+        this.playlist.push(track);
+        this.currentTrackIndex = this.playlist.length - 1;
+        this.isPlaying = true;
+      } else {
+        this.playlist.splice(this.currentTrackIndex + 1, 0, track);
       }
     },
-    
 
-    
     async fetchAndPlayPlaylist(moodId: number) {
       if (this.isPlaylistLoading) return;
-
       this.isPlaylistLoading = true;
       this.currentMoodId = moodId; 
       try {
         const response = await api.get('/playlists', {
           params: { moodId, limit: 15 },
         });
-
         const playableTracks: Track[] = response.data.data.filter(
           (track: Track) => track.playableUrl
         );
-
         if (playableTracks.length === 0) {
           console.error("No se encontraron canciones reproducibles para este mood.");
           this.playlist = [];
@@ -88,11 +105,9 @@ export const usePlayerStore = defineStore('player', {
           this.isPlaying = false;
           return;
         }
-
         this.playlist = playableTracks;
         this.currentTrackIndex = 0;
         this.isPlaying = true;
-
       } catch (error) {
         console.error('Error al obtener la playlist:', error);
       } finally {
@@ -112,7 +127,6 @@ export const usePlayerStore = defineStore('player', {
             excludeTrackIds 
           },
         });
-
         const newPlayableTracks = response.data.data.filter(
           (track: Track) => track.playableUrl
         );
@@ -123,8 +137,6 @@ export const usePlayerStore = defineStore('player', {
         this.isPlaylistLoading = false;
       }
     },
-
-    
 
     togglePlaylistVisibility() {
       this.isPlaylistVisible = !this.isPlaylistVisible;
@@ -159,18 +171,13 @@ export const usePlayerStore = defineStore('player', {
       }
     },
 
-    reset() 
-    {
-    console.log('PLAYER_STORE: reset() called');
-    this.playlist = [];
-    this.currentTrackIndex = -1;
-    this.isPlaying = false;
-    this.currentMoodId = null;
-    this.isPlaylistVisible = false;
-    this.availableMoods = []; 
-    this.isPlaylistLoading = false;
-    this.isMoodsLoading = false;
-    console.log('PLAYER_STORE: State has been completely reset.');
+    reset() {
+      this.playlist = [];
+      this.currentTrackIndex = -1;
+      this.isPlaying = false;
+      this.currentMoodId = null;
+      this.isPlaylistVisible = false;
+      this.isPlaylistLoading = false;
     },
 
     togglePlayPause() {

@@ -1,0 +1,130 @@
+# =================================================================
+# VARIABLES DE ENTORNO PARA LAS PRUEBAS
+# =================================================================
+
+# URL base de tu servidor local
+@host = http://localhost:3001
+
+# --- IMPORTANTE ---
+# 1. Ejecuta las peticiones de LOGIN de más abajo.
+# 2. Copia el token de la respuesta.
+# 3. Pega los tokens aquí antes de probar las otras rutas.
+@pepeluis_jwt = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjJjMjEzYjZmLTRhODAtNGI1NS05YjM5LTgyZGZmZWUzZjNkYiIsImVtYWlsIjoicGVwZWx1aXNAZ21haWwuY29tIiwic3Vic2NyaXB0aW9uX3RpZXJfaWQiOjEsImZpcnN0X25hbWUiOiJQZXBlIiwibGFzdF9uYW1lIjoiTHVpcyIsImlhdCI6MTc1MjI2Mzg3NSwiZXhwIjoxNzUyMjY3NDc1fQ.9_el12nce73UyEgTAVs3wY9dFaRZL0GnCGZgp7MPJ6Q
+@admin_jwt = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjEzMmM1NjBiLWE2ZjctNDZkZS05MGZiLWNjYjkwY2FhZDc1MyIsImVtYWlsIjoiYWxlZmU1M0BnbWFpbC5jb20iLCJzdWJzY3JpcHRpb25fdGllcl9pZCI6MSwiZmlyc3RfbmFtZSI6IkFsZSIsImxhc3RfbmFtZSI6IkZlIiwiaWF0IjoxNzUyMjYzODg4LCJleHAiOjE3NTIyNjc0ODh9.bUvHxPdtP4E6GiuyCiLqZ3bsXeHuCORVrvHVrzZb88c
+
+# UUIDs de los usuarios
+@pepeluis_id = 2c213b6f-4a80-4b55-9b39-82dffee3f3db
+@admin_id = 132c560b-a6f7-46de-90fb-ccb90caad753
+
+# Esta variable se llenará automáticamente si usas la extensión REST Client
+@conversationId = {{getMyConversation.response.body.data.conversationId}}
+
+
+# =================================================================
+# 1. OBTENCIÓN DE TOKENS (EJECUTAR PRIMERO)
+# =================================================================
+
+### (A) Login como "pepeluis"
+# @name loginPepeluis
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "pepeluis@gmail.com",
+  "password": "123123123"
+}
+
+### (B) Login como "admin"
+# @name loginAdmin
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "alefe53@gmail.com",
+  "password": "Wichi2025"
+}
+
+
+# =================================================================
+# 2. FLUJO DE CHAT DEL USUARIO ("pepeluis")
+# =================================================================
+
+### (A) Usuario envía el 1er mensaje
+POST {{host}}/api/chat/send-to-admin
+Content-Type: application/json
+Authorization: Bearer {{pepeluis_jwt}}
+
+{
+  "content": "Hola Ale, ¿cómo va? Soy el primer mensaje."
+}
+
+### (B) Usuario envía el 2do mensaje
+POST {{host}}/api/chat/send-to-admin
+Content-Type: application/json
+Authorization: Bearer {{pepeluis_jwt}}
+
+{
+  "content": "Quería consultarte sobre tus servicios de mezcla. Este es mi segundo mensaje."
+}
+
+### (C) Usuario envía el 3er mensaje (Este debería funcionar y bloquearlo después)
+POST {{host}}/api/chat/send-to-admin
+Content-Type: application/json
+Authorization: Bearer {{pepeluis_jwt}}
+
+{
+  "content": "Espero tu respuesta. Este es mi tercer y último mensaje por ahora."
+}
+
+### (D) Usuario intenta enviar un 4to mensaje (DEBERÍA FALLAR CON ERROR 403)
+POST {{host}}/api/chat/send-to-admin
+Content-Type: application/json
+Authorization: Bearer {{pepeluis_jwt}}
+
+{
+  "content": "Este mensaje no debería llegar."
+}
+
+### (E) Usuario obtiene su historial de chat para verificar
+# @name getMyConversation
+GET {{host}}/api/chat/my-conversation
+Authorization: Bearer {{pepeluis_jwt}}
+
+# RESPUESTA ESPERADA: Deberías ver los 3 mensajes y "isBlocked": true
+
+
+# =================================================================
+# 3. FLUJO DE RESPUESTA DEL ADMIN
+# =================================================================
+
+### (A) Admin responde al usuario (Esto debería desbloquearlo)
+# NOTA: Usamos la variable @conversationId que se obtuvo en la petición anterior.
+POST {{host}}/api/chat/admin/reply
+Content-Type: application/json
+Authorization: Bearer {{admin_jwt}}
+
+{
+  "conversationId": {{conversationId}},
+  "userIdToUnblock": "{{pepeluis_id}}",
+  "content": "¡Hola, Pepeluis! Gracias por escribir. Claro, cuéntame más sobre tu proyecto."
+}
+
+
+# =================================================================
+# 4. VERIFICACIÓN FINAL DEL USUARIO
+# =================================================================
+
+### (A) Usuario obtiene su historial de nuevo para ver la respuesta del admin
+GET {{host}}/api/chat/my-conversation
+Authorization: Bearer {{pepeluis_jwt}}
+
+# RESPUESTA ESPERADA: Deberías ver los 4 mensajes (3 tuyos, 1 del admin) y "isBlocked": false
+
+### (B) Usuario intenta enviar un nuevo mensaje (DEBERÍA FUNCIONAR)
+POST {{host}}/api/chat/send-to-admin
+Content-Type: application/json
+Authorization: Bearer {{pepeluis_jwt}}
+
+{
+  "content": "¡Genial! Este mensaje debería funcionar porque ya me respondiste."
+}

@@ -1,0 +1,55 @@
+### TESTS DEL CHAT PARA EL ADMINISTRADOR ###
+
+@host = http://localhost:3001
+@admin_id = 132c560b-a6f7-46de-90fb-ccb90caad753
+@user_pepeluis_id = 2c213b6f-4a80-4b55-9b39-82dffee3f3db
+
+#################################################################
+# PASO 1: Iniciar Sesión como Administrador y Capturar el Token
+#################################################################
+### PASO 1: Iniciar Sesión (Prueba sin captura automática)
+# @name loginAdmin
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "alefe53@gmail.com",
+  "password": "Wichi2025"
+}
+
+@admin_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjEzMmM1NjBiLWE2ZjctNDZkZS05MGZiLWNjYjkwY2FhZDc1MyIsImVtYWlsIjoiYWxlZmU1M0BnbWFpbC5jb20iLCJzdWJzY3JpcHRpb25fdGllcl9pZCI6MSwiZmlyc3RfbmFtZSI6IkFsZSIsImxhc3RfbmFtZSI6IkZlIiwiaWF0IjoxNzUyMjkwNTE2LCJleHAiOjE3NTIyOTQxMTZ9.w6ajMFf9sKBuUQIwESTrEe3Un20ux_oZuFhWMyNEqEU
+
+###
+#################################################################
+# PASO 2: Obtener la lista de conversaciones (Dashboard del Admin)
+#################################################################
+# Esta petición ahora usará automáticamente el token capturado en el paso anterior.
+# @name getAdminDashboard
+GET {{host}}/api/chat/admin/dashboard
+Authorization: Bearer {{admin_jwt}}
+
+###
+#################################################################
+# PASO 3: Obtener los mensajes de una conversación específica
+#################################################################
+# Primero, ejecuta el PASO 2 y copia un 'conversation_id' de la respuesta aquí.
+@conversationId = 1
+
+# @name getSpecificConversation
+GET {{host}}/api/chat/admin/conversation/{{conversationId}}
+Authorization: Bearer {{admin_jwt}}
+
+###
+#################################################################
+# PASO 4: Responder a una conversación
+#################################################################
+# @name replyToConversation
+POST {{host}}/api/chat/admin/reply
+Content-Type: application/json
+Authorization: Bearer {{admin_jwt}}
+
+{
+  "conversationId": {{conversationId}},
+  "userIdToUnblock": "{{user_pepeluis_id}}",
+  "content": "Hola Pepeluis, soy Ale. Respuesta desde el test."
+}

@@ -13,9 +13,15 @@ export interface ReleaseInfo {
   description?: string;
 }
 
+export interface TrackLink {
+  platform: string;
+  url: string;
+}
+
 export interface Track {
   id: number;
   title: string;
+  trackNumber?: number;
   description?: string;
   filePath: string;
   playableUrl?: string | null;
@@ -23,6 +29,8 @@ export interface Track {
   moods?: Mood[]; 
   releaseInfo?: ReleaseInfo;
   duration_seconds?: number; 
+  required_subscription_tier_id?: number | null;
+  links?: TrackLink[]; 
 }
 
 export interface User {
@@ -30,8 +38,9 @@ export interface User {
   email: string;
   subscription_tier_id: number;
   first_name: string;
-  last_name: string; 
+  last_name: string;
   birth_date: string;
+  avatar_url: string | null; 
 }
 
 export interface RegisterPayload {
@@ -45,4 +54,72 @@ export interface ProfileUpdatePayload {
   firstName: string;
   lastName: string;
   birthDate?: string; 
+}
+
+export interface ReleaseSummary {
+  id: number;
+  title: string;
+  coverArtUrl: string;
+  releaseYear: number;
+}
+
+export interface GalleryImage {
+  id: number;
+  imageUrl: string;
+  description: string | null;
+  trackId: number | null;
+}
+
+export interface ReleaseDetails extends ReleaseSummary {
+  description: string | null;
+  artistName: string;
+  tracks: Track[]; 
+  gallery: GalleryImage[];
+  featuredVideoUrl?: string | null; 
+}
+
+export interface BandReleaseSummary {
+	id: number;
+	title: string;
+	coverArtUrl: string;
+	releaseYear: number;
+}
+
+export interface Band {
+	id: number;
+	name: string;
+	description: string | null;
+	image_url: string;
+	roles_summary: string | null;
+	releases: BandReleaseSummary[];
+}
+
+export interface EngineeringProjectSummary {
+  id: number;
+  artist_or_band_name: string;
+  description: string | null;
+  cover_art_url: string;
+  latest_year?: number; 
+}
+
+export interface EngineeringProjectDetails extends EngineeringProjectSummary {
+  releases: ReleaseSummary[];
+}
+
+export interface ChatMessage {
+  id: number;
+  sender_id: string;
+  content: string;
+  created_at: string;
+  is_admin: boolean;
+}
+
+export interface AdminConversationSummary {
+  conversation_id: number;
+  user_id: string;
+  user_full_name: string;
+  user_avatar_url: string | null;
+  last_message_content: string;
+  last_message_at: string;
+  is_user_blocked: boolean;
 }

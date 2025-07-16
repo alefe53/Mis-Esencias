@@ -11,10 +11,14 @@
 import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { usePlayerStore } from '../../stores/playerStore';
+import { useUiStore } from '../../stores/uiStore';
 import { moodColors } from '../../constants/moods';
 
 const playerStore = usePlayerStore();
-const { currentMoodId, availableMoods } = storeToRefs(playerStore);
+const uiStore = useUiStore();
+
+const { currentMoodId } = storeToRefs(playerStore);
+const { availableMoods } = storeToRefs(uiStore);
 
 const currentColor = computed(() => {
   if (currentMoodId.value === null) {
