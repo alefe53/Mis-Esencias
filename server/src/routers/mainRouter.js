@@ -9,6 +9,9 @@ import playlistRouter from "./playlistRouter.js";
 import profileRouter from "./profileRouter.js";
 import releaseRouter from "./releaseRouter.js";
 import trackRouter from "./trackRouter.js";
+import subscriptionRouter from "./subscriptionRouter.js";
+import imageRouter from "./imageRouter.js";
+import adminRouter from "./adminRouter.js"; 
 
 const mainRouter = Router();
 
@@ -21,5 +24,8 @@ mainRouter.use("/tracks", trackRouter);
 mainRouter.use("/bands", bandRouter);
 mainRouter.use("/engineering", engineeringRouter);
 mainRouter.use("/chat", chatRouter);
+mainRouter.use("/public/subscriptions", subscriptionRouter); 
+mainRouter.use("/images", imageRouter);
+mainRouter.use("/admin", adminRouter); 
 
 export default mainRouter;

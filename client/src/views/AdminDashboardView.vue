@@ -1,6 +1,5 @@
 <template>
   <div class="dashboard-container">
-    <h1>Panel de Chat</h1>
     <div class="dashboard-layout">
       <div class="conversations-panel">
         <div v-if="isLoading" class="loader">Cargando...</div>
@@ -8,9 +7,9 @@
           v-for="convo in conversations"
           :key="convo.conversation_id"
           class="chat-item"
-          :class="{ 
-            'blocked': convo.is_user_blocked,
-            'active': selectedConversation?.conversation_id === convo.conversation_id
+          :class="{
+            blocked: convo.is_user_blocked,
+            active: selectedConversation?.conversation_id === convo.conversation_id,
           }"
           @click="store.selectConversation(convo)"
         >
@@ -19,8 +18,13 @@
             <p class="last-message">{{ convo.last_message_content }}</p>
           </div>
           <div class="meta-info">
-            <span class="timestamp">{{ formatTimestamp(convo.last_message_at) }}</span>
-            <span v-if="convo.is_user_blocked" class="blocked-badge">Bloqueado</span>
+            <span class="timestamp">{{ convo.last_message_formatted }}</span>
+            <div class="meta-actions">
+                <span v-if="convo.is_user_blocked" class="blocked-badge">Bloqueado</span>
+                <button @click.stop="store.deleteConversation(convo.conversation_id)" class="delete-btn convo-delete-btn" title="Borrar conversación">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                </button>
+            </div>
           </div>
         </div>
       </div>
@@ -31,11 +35,14 @@
         </div>
         <div v-else>
           <div class="messages-area" ref="messagesContainerRef">
-             <div v-for="msg in currentMessages" :key="msg.id" class="message-wrapper" :class="{ 'admin-message': msg.is_admin, 'user-message': !msg.is_admin }">
-               <div class="message-bubble">
-                 <p>{{ msg.content }}</p>
-               </div>
-             </div>
+            <div v-for="msg in currentMessages" :key="msg.id" class="message-wrapper" :class="{ 'admin-message': msg.is_admin, 'user-message': !msg.is_admin }">
+              <div class="message-bubble">
+                <p>{{ msg.content }}</p>
+                <button @click="store.deleteMessage(msg.id)" class="delete-btn msg-delete-btn" title="Borrar mensaje">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+              </div>
+            </div>
           </div>
           <div class="reply-area">
             <textarea v-model="replyContent" placeholder="Escribe tu respuesta..."></textarea>
@@ -56,12 +63,12 @@ import { useAdminChatStore } from '../stores/adminChatStore';
 
 const store = useAdminChatStore();
 
-const { 
-  conversations, 
-  currentMessages, 
-  selectedConversation, 
-  isLoading, 
-  isReplying 
+const {
+  conversations,
+  currentMessages,
+  selectedConversation,
+  isLoading,
+  isReplying,
 } = storeToRefs(store);
 
 const replyContent = ref('');
@@ -81,25 +88,6 @@ const onReply = () => {
   replyContent.value = '';
 };
 
-const formatTimestamp = (dateString: string): string => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  const now = new Date();
-  
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-
-  if (date >= startOfToday) {
-    return date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
-  } else if (date >= startOfYesterday) {
-    return 'Ayer';
-  } else if (date.getFullYear() === now.getFullYear()) {
-    return date.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
-  } else {
-    return date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  }
-};
-
 watch(currentMessages, async () => {
   await nextTick();
   const container = messagesContainerRef.value;
@@ -112,14 +100,14 @@ watch(currentMessages, async () => {
 <style scoped>
 .dashboard-container {
   max-width: 1200px;
-  margin: 2rem auto;
+  margin: 0 auto;
   color: #fff;
 }
 .dashboard-layout {
   display: flex;
   gap: 1rem;
   height: 75vh;
-  background-color: rgba(0,0,0,0.2);
+  background-color: rgba(0, 0, 0, 0.2);
   padding: 1rem;
   border-radius: 8px;
 }
@@ -143,35 +131,37 @@ watch(currentMessages, async () => {
   flex-direction: column;
   gap: 0.75rem;
 }
-.message-wrapper { 
-  display: flex; 
-  max-width: 80%; 
+.message-wrapper {
+  display: flex;
+  max-width: 80%;
 }
-.user-message { 
-  align-self: flex-end; 
+.user-message {
+  align-self: flex-end;
 }
-.admin-message { 
-  align-self: flex-start; 
+.admin-message {
+  align-self: flex-start;
 }
-.message-bubble { 
-  padding: 0.5rem 0.9rem; 
-  border-radius: 18px; 
-  color: white; 
+.message-bubble {
+  padding: 0.5rem 0.9rem;
+  border-radius: 18px;
+  color: white;
+  position: relative;
 }
-.user-message .message-bubble { 
-  background-color: #525252; 
-  border-bottom-right-radius: 4px; 
+.user-message .message-bubble {
+  background-color: #525252;
+  border-bottom-right-radius: 4px;
 }
-.admin-message .message-bubble { 
-  background-color: #3b82f6; 
-  border-bottom-left-radius: 4px; 
+.admin-message .message-bubble {
+  background-color: #3b82f6;
+  border-bottom-left-radius: 4px;
 }
-.message-bubble p { 
-  margin: 0; 
+.message-bubble p {
+  margin: 0;
+  padding-right: 20px;
 }
-.reply-area { 
-  padding-top: 1rem; 
-  border-top: 1px solid #444; 
+.reply-area {
+  padding-top: 1rem;
+  border-top: 1px solid #444;
 }
 .reply-area textarea {
   box-sizing: border-box;
@@ -197,57 +187,62 @@ watch(currentMessages, async () => {
   cursor: not-allowed;
 }
 .chat-item {
-  display: flex; 
-  justify-content: space-between; 
-  align-items: center; 
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 1rem;
-  background-color: rgba(255, 255, 255, 0.05); 
+  background-color: rgba(255, 255, 255, 0.05);
   border-radius: 6px;
-  border-left: 4px solid #3b82f6; 
-  cursor: pointer; 
+  border-left: 4px solid #3b82f6;
+  cursor: pointer;
   transition: background-color 0.2s;
   margin-bottom: 0.5rem;
 }
-.chat-item.active { 
-  background-color: rgba(59, 130, 246, 0.3); 
+.chat-item.active {
+  background-color: rgba(59, 130, 246, 0.3);
 }
-.chat-item:hover { 
-  background-color: rgba(255, 255, 255, 0.1); 
+.chat-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
 }
-.chat-item.blocked { 
-  border-left-color: #ef4444; 
+.chat-item.blocked {
+  border-left-color: #ef4444;
 }
 .user-info {
   overflow: hidden;
 }
-.user-name { 
-  font-weight: bold; 
-  font-size: 1.1rem; 
+.user-name {
+  font-weight: bold;
+  font-size: 1.1rem;
   color: #f5f5f5;
 }
-.last-message { 
-  margin: 0.25rem 0 0; 
-  color: #a0a0a0; 
-  white-space: nowrap; 
-  overflow: hidden; 
-  text-overflow: ellipsis; 
+.last-message {
+  margin: 0.25rem 0 0;
+  color: #a0a0a0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.meta-info { 
-  display: flex; 
-  flex-direction: column; 
-  align-items: flex-end; 
-  font-size: 0.8rem; 
+.meta-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 0.8rem;
   color: #a0a0a0;
   flex-shrink: 0;
   margin-left: 0.5rem;
 }
-.blocked-badge { 
-  background-color: #ef4444; 
-  color: white; 
-  padding: 2px 6px; 
-  border-radius: 10px; 
-  font-size: 0.7rem; 
-  margin-top: 0.5rem; 
+.meta-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+.blocked-badge {
+  background-color: #ef4444;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 0.7rem;
   font-weight: bold;
 }
 .empty-state {
@@ -258,5 +253,33 @@ watch(currentMessages, async () => {
   color: #777;
   font-style: italic;
   font-size: 1.2rem;
+}
+.delete-btn {
+    background: none;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: color 0.2s, background-color 0.2s;
+}
+.delete-btn:hover {
+    color: #ef4444;
+    background-color: rgba(239, 68, 68, 0.1);
+}
+.convo-delete-btn {
+    padding: 4px;
+}
+.msg-delete-btn {
+    position: absolute;
+    top: 2px;
+    right: 5px;
+    opacity: 0;
+}
+.message-bubble:hover .msg-delete-btn {
+    opacity: 1;
 }
 </style>

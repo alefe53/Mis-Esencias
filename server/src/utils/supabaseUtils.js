@@ -1,4 +1,6 @@
 // src/utils/supabaseUtils.js
+import { createClient } from "@supabase/supabase-js";
+import { config } from "../config/config.js";
 import { supabase } from "../config/supabase.js";
 
 /**
@@ -54,4 +56,46 @@ export const createPrivateUrl = async (bucketName, filePath) => {
 	}
 
 	return data.signedUrl;
+};
+
+/**
+ * Genera múltiples URLs firmadas para un array de rutas de archivo.
+ * Usada específicamente por servicios que manejan galerías o listas de archivos privados.
+ * @param {string} bucketName - El nombre del bucket privado.
+ * @param {string[]} filePaths - Un array de rutas a los archivos.
+ * @returns {Promise<object[]|null>} Un array de objetos { path, signedUrl }, o null si hay error.
+ */
+export const createMultipleSignedUrls = async (bucketName, filePaths) => {
+    if (!filePaths || filePaths.length === 0) return [];
+    
+    // Usamos el cliente 'supabase' principal con la SERVICE_KEY para firmar
+    const { data, error } = await supabase.storage
+        .from(bucketName)
+        .createSignedUrls(filePaths, 300); // 5 minutos de validez
+
+    if (error) {
+        console.error(`Error generando múltiples URLs firmadas para ${bucketName}:`, error.message);
+        return null;
+    }
+    return data;
+};
+
+/**
+ * Crea un cliente de Supabase temporal que actúa en nombre de un usuario específico.
+ * Esencial para que las RLS se apliquen correctamente en las llamadas desde el backend.
+ * @param {string} userAuthToken - El token JWT del usuario.
+ * @returns Un nuevo cliente de Supabase autenticado como el usuario.
+ */
+export const createScopedClient = (userAuthToken) => {
+    if (!userAuthToken) {
+        throw new Error("Se requiere un token de autenticación de usuario para crear un cliente enfocado.");
+    }
+    return createClient(
+        config.supabase.URL,
+        config.supabase.ANON_KEY,
+        {
+            global: { headers: { Authorization: `Bearer ${userAuthToken}` } },
+            db: { schema: 'api' }
+        }
+    );
 };

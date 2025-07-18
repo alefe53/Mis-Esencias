@@ -80,28 +80,34 @@ const showChatWidget = computed(() => {
 
 const appContainerClass = computed(() => {
   const classes = [];
-  switch (route.name) {
-    case 'home':
-      classes.push('home-background');
-      break;
-    case 'music-intro':
-    case 'music':
-    case 'my-music':
-    case 'music-with-me':
-      classes.push('music-background');
-      break;
-    case 'auth':
-    case 'profile':
-      classes.push('login-background');
-      break;
-    case 'info':
-      classes.push('info-background');
-      break;
-    case 'trabajos':
-    case 'project-details':
-      classes.push('works-background');
-      break;
+
+  if (route.path.startsWith('/admin')) {
+    classes.push('admin-background');
+  } else {
+    switch (route.name) {
+      case 'home':
+        classes.push('home-background');
+        break;
+      case 'music-intro':
+      case 'music':
+      case 'my-music':
+      case 'music-with-me':
+        classes.push('music-background');
+        break;
+      case 'auth':
+      case 'profile':
+        classes.push('login-background');
+        break;
+      case 'info':
+        classes.push('info-background');
+        break;
+      case 'trabajos':
+      case 'project-details':
+        classes.push('works-background');
+        break;
+    }
   }
+
   if (route.meta.scrollable) {
     classes.push('allow-scroll');
   }
@@ -281,5 +287,10 @@ footer {
   background-image: url('/fondoInfo.jpg');
   opacity: 1;
   filter: brightness(0.7);
+}
+.admin-background .background-layer::before {
+  background-image: url('/adminFondo.jpg');
+  opacity: 1;
+  filter: brightness(0.2);
 }
 </style>

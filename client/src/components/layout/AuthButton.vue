@@ -111,7 +111,7 @@ const goToProfile = () => {
 };
 
 const goToAdminDashboard = () => {
-  router.push('/admin-dashboard');
+  router.push('/admin');
   isMenuOpen.value = false;
 };
 </script>

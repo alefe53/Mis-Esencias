@@ -30,7 +30,7 @@ export const useAdminChatStore = defineStore('adminChat', () => {
 
   async function selectConversation(convo: AdminConversationSummary) {
     selectedConversation.value = convo;
-    currentMessages.value = []; // Limpiar mensajes anteriores
+    currentMessages.value = []; 
     try {
       currentMessages.value = await adminService.getConversationDetailsAsAdmin(convo.conversation_id);
     } catch (error) {
@@ -47,17 +47,14 @@ export const useAdminChatStore = defineStore('adminChat', () => {
         userIdToUnblock: selectedConversation.value.user_id,
         content,
       };
-      // La respuesta del admin no se añade por real-time, la añadimos manualmente
       const newAdminMessage = await adminService.replyToConversation(payload);
       currentMessages.value.push({ ...newAdminMessage, is_admin: true });
 
-      // Actualización optimista de la lista de la izquierda
       const convoInList = conversations.value.find(c => c.conversation_id === payload.conversationId);
       if (convoInList) {
         convoInList.is_user_blocked = false;
         convoInList.last_message_content = content;
         convoInList.last_message_at = new Date().toISOString();
-        // Mover al principio de la lista
         conversations.value = [convoInList, ...conversations.value.filter(c => c.conversation_id !== payload.conversationId)];
       }
 
@@ -69,7 +66,7 @@ export const useAdminChatStore = defineStore('adminChat', () => {
   }
 
   function setupRealtimeListeners() {
-    if (realtimeChannel) return; // Evitar duplicados
+    if (realtimeChannel) return; 
 
     realtimeChannel = supabase
       .channel('public:chat_messages')
@@ -82,20 +79,16 @@ export const useAdminChatStore = defineStore('adminChat', () => {
           console.log('Nuevo mensaje recibido en el dashboard admin!', payload);
           const newMessage = payload.new as ChatMessage;
 
-          // Actualizar el panel de la derecha si es la conversación activa
           if (newMessage.id === selectedConversation.value?.conversation_id) {
             currentMessages.value.push(newMessage);
           }
 
-          // Actualizar la lista de la izquierda
           const convoInList = conversations.value.find(c => c.conversation_id === newMessage.id);
           if (convoInList) {
             convoInList.last_message_content = newMessage.content;
             convoInList.last_message_at = newMessage.created_at;
-            // Mover al principio de la lista
             conversations.value = [convoInList, ...conversations.value.filter(c => c.conversation_id !== newMessage.id)];
           } else {
-            // Es una conversación completamente nueva, recargamos el dashboard
             fetchDashboard();
           }
         }
@@ -110,6 +103,36 @@ export const useAdminChatStore = defineStore('adminChat', () => {
     }
   }
 
+  async function deleteConversation(conversationId: number) {
+    const confirmation = window.confirm("¿Estás seguro de que quieres borrar esta conversación PERMANENTEMENTE?");
+    if (!confirmation) return;
+
+    try {
+      await adminService.deleteConversationById(conversationId);
+      conversations.value = conversations.value.filter(c => c.conversation_id !== conversationId);
+      if (selectedConversation.value?.conversation_id === conversationId) {
+        selectedConversation.value = null;
+        currentMessages.value = [];
+      }
+      useUiStore().showToast({ message: "Conversación borrada.", color: '#4ade80' });
+    } catch (error) {
+      console.error("Error al borrar la conversación:", error);
+      useUiStore().showToast({ message: "No se pudo borrar la conversación." });
+    }
+  }
+
+  async function deleteMessage(messageId: number) {
+    const confirmation = window.confirm("¿Estás seguro de que quieres borrar este mensaje?");
+    if (!confirmation) return;
+
+    try {
+      await adminService.deleteMessageById(messageId);
+      currentMessages.value = currentMessages.value.filter(m => m.id !== messageId);
+    } catch (error) {
+      console.error("Error al borrar el mensaje:", error);
+    }
+  }
+
   return {
     conversations,
     currentMessages,
@@ -121,5 +144,7 @@ export const useAdminChatStore = defineStore('adminChat', () => {
     handleReply,
     setupRealtimeListeners,
     cleanupRealtimeListeners,
+    deleteConversation,
+    deleteMessage,
   };
 });

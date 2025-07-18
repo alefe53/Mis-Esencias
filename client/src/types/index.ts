@@ -122,4 +122,32 @@ export interface AdminConversationSummary {
   last_message_content: string;
   last_message_at: string;
   is_user_blocked: boolean;
+  last_message_formatted: string; 
 }
+
+export interface SubscriptionTier {
+  id: number;
+  name: string;
+  price: number;
+  description: string | null;
+  features: {
+    items: string[];
+  } | null;
+}
+
+export interface PrivateGalleryImage {
+  signedUrl: string | null;
+  title: string | null;
+  description: string | null;
+  file_path: string;
+}
+
+export interface AdminUser {
+  user_id: string;
+  email: string;
+  full_name: string;
+  avatar_url: string | null;
+  subscription_tier_id: number;
+  subscription_name: string;
+}
+

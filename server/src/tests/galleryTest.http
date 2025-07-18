@@ -1,0 +1,8 @@
+# Variables para las pruebas de la galería
+@baseUrl = http://localhost:3001/api
+@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYwZDk0ZTYwLWQ1YTUtNDU0Zi04ZWUxLWE1MDMxOWE5YmY4OSIsImVtYWlsIjoicmFyQGdtYWlsLmNvbSIsInN1YnNjcmlwdGlvbl90aWVyX2lkIjozLCJmaXJzdF9uYW1lIjoicmFyYSIsImxhc3RfbmFtZSI6InJhciIsImlhdCI6MTc1Mjc4MTg4MywiZXhwIjoxNzUyNzg1NDgzfQ.5RLqNBWPrj9tq7oDJN3EsxaVzRZ7Zq6V4cEC39Yn5is
+
+### Obtener la galería privada (requiere autenticación y suscripción)
+# @name getPrivateGallery
+GET {{baseUrl}}/images/private-gallery
+Authorization: Bearer {{authToken}}

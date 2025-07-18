@@ -8,7 +8,9 @@ import TransitionView from '../views/TransitionView.vue'
 import MusicView from '../views/MusicView.vue' 
 import TrabajosView from '../views/TrabajosView.vue'
 import InfoView from '../views/InfoView.vue'
-import AdminDashboardView from '../views/AdminDashboardView.vue'
+import AdminMenuView from '../views/AdminMenuView.vue'
+import AdminChatDashboard from '../views/AdminDashboardView.vue'
+import AdminUserListView from '../views/AdminUserListView.vue'
 
 const routes = [
   {
@@ -73,13 +75,25 @@ const routes = [
     meta: { scrollable: true } 
   },
   {
-    path: '/admin-dashboard',
-    name: 'admin-dashboard',
-    component: () => import('../views/AdminDashboardView.vue'),
-    meta: { 
-      requiresAuth: true,
-      requiresAdmin: true 
-    }
+    path: '/admin',
+    component: AdminMenuView, 
+    meta: { requiresAuth: true, requiresAdmin: true, scrollable: true },
+    children: [
+      {
+        path: '', 
+        redirect: '/admin/chats'
+      },
+      {
+        path: 'chats',
+        name: 'admin-chats',
+        component: AdminChatDashboard
+      },
+      {
+        path: 'users',
+        name: 'admin-users',
+        component: AdminUserListView
+      }
+    ]
   }
 ]
 

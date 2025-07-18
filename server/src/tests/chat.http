@@ -30,7 +30,7 @@ POST {{host}}/api/auth/login
 Content-Type: application/json
 
 {
-  "email": "pepeluis@gmail.com",
+  "email": "rar@gmail.com",
   "password": "123123123"
 }
 

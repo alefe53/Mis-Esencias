@@ -177,8 +177,10 @@ useClickOutside(playerWrapperRef, () => {
   if (isPlaylistVisible.value) playerStore.togglePlaylistVisibility();
 });
 
-const isAuthView = computed(() => ['/auth', '/profile'].includes(route.path));
-
+const isAuthView = computed(() => {
+  const authPaths = ['/auth', '/profile', '/info', '/admin'];
+  return authPaths.some(basePath => route.path.startsWith(basePath));
+});
 const togglePlaylistVisibility = () => {
   playerStore.togglePlaylistVisibility();
   if (playerStore.isPlaylistVisible && isCatalogVisible.value) {

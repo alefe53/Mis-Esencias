@@ -17,11 +17,6 @@ const handleSendToAdmin = async (req, res, next) => {
 	}
 };
 
-// --- ✨ NUEVOS HANDLERS AÑADIDOS ---
-
-/**
- * Maneja la petición para obtener la conversación del usuario logueado.
- */
 const handleGetMyConversation = async (req, res, next) => {
 	try {
 		const userId = req.user.id;
@@ -35,9 +30,6 @@ const handleGetMyConversation = async (req, res, next) => {
 	}
 };
 
-/**
- * Maneja la petición del admin para responder a un chat.
- */
 const handleAdminReply = async (req, res, next) => {
 	try {
 		const adminId = req.user.id;
