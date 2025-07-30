@@ -4,7 +4,11 @@
 
     <div v-else-if="project" class="content">
       <div class="project-header">
-        <img :src="project.cover_art_url" :alt="project.artist_or_band_name" class="project-cover-large" />
+        <img
+          :src="project.cover_art_url"
+          :alt="project.artist_or_band_name"
+          class="project-cover-large"
+        />
         <h1>{{ project.artist_or_band_name }}</h1>
         <p v-if="project.description">{{ project.description }}</p>
       </div>
@@ -28,7 +32,6 @@
       <h2>Proyecto no encontrado</h2>
       <router-link to="/trabajos">Volver a Trabajos</router-link>
     </div>
-    <div class="scroll-spacer"></div>
   </div>
 
   <ReleaseDetailModal
@@ -40,44 +43,47 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
-import { useRoute } from 'vue-router';
-import { storeToRefs } from 'pinia';
-import { useEngineeringStore } from '../stores/engineeringStore';
-import { useReleaseStore } from '../stores/releaseStore';
-import ReleaseCard from '../components/releases/ReleaseCard.vue';
-import ReleaseDetailModal from '../components/releases/ReleaseDetailModal.vue';
+import { onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
+import { storeToRefs } from 'pinia'
+import { useEngineeringStore } from '../stores/engineeringStore'
+import { useReleaseStore } from '../stores/releaseStore'
+import ReleaseCard from '../components/releases/ReleaseCard.vue'
+import ReleaseDetailModal from '../components/releases/ReleaseDetailModal.vue'
 
-const route = useRoute();
-const engineeringStore = useEngineeringStore();
-const releaseStore = useReleaseStore();
+const route = useRoute()
+const engineeringStore = useEngineeringStore()
+const releaseStore = useReleaseStore()
 
-const { currentProjectDetails: project, isLoadingDetails } = storeToRefs(engineeringStore);
-const { currentReleaseDetails, isLoadingDetails: isLoadingReleaseDetails } = storeToRefs(releaseStore);
+const { currentProjectDetails: project, isLoadingDetails } =
+  storeToRefs(engineeringStore)
+const { currentReleaseDetails, isLoadingDetails: isLoadingReleaseDetails } =
+  storeToRefs(releaseStore)
 
-const isModalVisible = ref(false);
+const isModalVisible = ref(false)
 
 const openReleaseModal = (releaseId: number) => {
-  releaseStore.fetchReleaseDetails(releaseId);
-  isModalVisible.value = true;
-};
+  releaseStore.fetchReleaseDetails(releaseId)
+  isModalVisible.value = true
+}
 
 const closeReleaseModal = () => {
-  isModalVisible.value = false;
-  releaseStore.clearReleaseDetails();
-};
+  isModalVisible.value = false
+  releaseStore.clearReleaseDetails()
+}
 
 onMounted(() => {
-  const projectId = Number(route.params.id);
+  const projectId = Number(route.params.id)
   if (projectId) {
-    engineeringStore.fetchProjectDetails(projectId);
+    engineeringStore.fetchProjectDetails(projectId)
   }
-});
+})
 </script>
 
 <style scoped>
 .project-detail-view {
   padding: 4rem 2rem;
+  padding-bottom: 250px;
   max-width: 1100px;
   margin: 0 auto;
   color: #fff;
@@ -85,9 +91,6 @@ onMounted(() => {
 .project-header {
   text-align: center;
   margin-bottom: 4rem;
-}
-.scroll-spacer {
-  height: 250px;
 }
 .project-cover-large {
   width: 200px;
@@ -117,21 +120,17 @@ onMounted(() => {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 2rem; 
+  gap: 2rem;
 }
-
-
 .release-item-wrapper {
   width: 420px;
 }
-
 .releases-grid :deep(img) {
   width: 100%;
   aspect-ratio: 1 / 1;
   object-fit: cover;
   border-radius: 4px;
 }
-
 .loader,
 .not-found {
   text-align: center;

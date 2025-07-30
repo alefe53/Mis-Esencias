@@ -9,7 +9,8 @@
           class="chat-item"
           :class="{
             blocked: convo.is_user_blocked,
-            active: selectedConversation?.conversation_id === convo.conversation_id,
+            active:
+              selectedConversation?.conversation_id === convo.conversation_id,
           }"
           @click="store.selectConversation(convo)"
         >
@@ -20,10 +21,33 @@
           <div class="meta-info">
             <span class="timestamp">{{ convo.last_message_formatted }}</span>
             <div class="meta-actions">
-                <span v-if="convo.is_user_blocked" class="blocked-badge">Bloqueado</span>
-                <button @click.stop="store.deleteConversation(convo.conversation_id)" class="delete-btn convo-delete-btn" title="Borrar conversación">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                </button>
+              <span v-if="convo.is_user_blocked" class="blocked-badge"
+                >Bloqueado</span
+              >
+              <button
+                @click.stop="store.deleteConversation(convo.conversation_id)"
+                class="delete-btn convo-delete-btn"
+                title="Borrar conversación"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path
+                    d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                  ></path>
+                  <line x1="10" y1="11" x2="10" y2="17"></line>
+                  <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+              </button>
             </div>
           </div>
         </div>
@@ -35,18 +59,49 @@
         </div>
         <div v-else>
           <div class="messages-area" ref="messagesContainerRef">
-            <div v-for="msg in currentMessages" :key="msg.id" class="message-wrapper" :class="{ 'admin-message': msg.is_admin, 'user-message': !msg.is_admin }">
+            <div
+              v-for="msg in currentMessages"
+              :key="msg.id"
+              class="message-wrapper"
+              :class="{
+                'admin-message': msg.is_admin,
+                'user-message': !msg.is_admin,
+              }"
+            >
               <div class="message-bubble">
                 <p>{{ msg.content }}</p>
-                <button @click="store.deleteMessage(msg.id)" class="delete-btn msg-delete-btn" title="Borrar mensaje">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                <button
+                  @click="store.deleteMessage(msg.id)"
+                  class="delete-btn msg-delete-btn"
+                  title="Borrar mensaje"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
                 </button>
               </div>
             </div>
           </div>
           <div class="reply-area">
-            <textarea v-model="replyContent" placeholder="Escribe tu respuesta..."></textarea>
-            <button @click="onReply" :disabled="!replyContent.trim() || isReplying">
+            <textarea
+              v-model="replyContent"
+              placeholder="Escribe tu respuesta..."
+            ></textarea>
+            <button
+              @click="onReply"
+              :disabled="!replyContent.trim() || isReplying"
+            >
               {{ isReplying ? 'Enviando...' : 'Responder y Desbloquear' }}
             </button>
           </div>
@@ -57,11 +112,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
-import { storeToRefs } from 'pinia';
-import { useAdminChatStore } from '../stores/adminChatStore';
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useAdminChatStore } from '../stores/adminChatStore'
 
-const store = useAdminChatStore();
+const store = useAdminChatStore()
 
 const {
   conversations,
@@ -69,32 +124,36 @@ const {
   selectedConversation,
   isLoading,
   isReplying,
-} = storeToRefs(store);
+} = storeToRefs(store)
 
-const replyContent = ref('');
-const messagesContainerRef = ref<HTMLElement | null>(null);
+const replyContent = ref('')
+const messagesContainerRef = ref<HTMLElement | null>(null)
 
 onMounted(() => {
-  store.fetchDashboard();
-  store.setupRealtimeListeners();
-});
+  store.fetchDashboard()
+  store.setupRealtimeListeners()
+})
 
 onUnmounted(() => {
-  store.cleanupRealtimeListeners();
-});
+  store.cleanupRealtimeListeners()
+})
 
 const onReply = () => {
-  store.handleReply(replyContent.value);
-  replyContent.value = '';
-};
+  store.handleReply(replyContent.value)
+  replyContent.value = ''
+}
 
-watch(currentMessages, async () => {
-  await nextTick();
-  const container = messagesContainerRef.value;
-  if (container) {
-    container.scrollTop = container.scrollHeight;
-  }
-}, { deep: true });
+watch(
+  currentMessages,
+  async () => {
+    await nextTick()
+    const container = messagesContainerRef.value
+    if (container) {
+      container.scrollTop = container.scrollHeight
+    }
+  },
+  { deep: true },
+)
 </script>
 
 <style scoped>
@@ -232,10 +291,10 @@ watch(currentMessages, async () => {
   margin-left: 0.5rem;
 }
 .meta-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
 }
 .blocked-badge {
   background-color: #ef4444;
@@ -255,31 +314,33 @@ watch(currentMessages, async () => {
   font-size: 1.2rem;
 }
 .delete-btn {
-    background: none;
-    border: none;
-    color: #6b7280;
-    cursor: pointer;
-    padding: 2px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: color 0.2s, background-color 0.2s;
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition:
+    color 0.2s,
+    background-color 0.2s;
 }
 .delete-btn:hover {
-    color: #ef4444;
-    background-color: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.1);
 }
 .convo-delete-btn {
-    padding: 4px;
+  padding: 4px;
 }
 .msg-delete-btn {
-    position: absolute;
-    top: 2px;
-    right: 5px;
-    opacity: 0;
+  position: absolute;
+  top: 2px;
+  right: 5px;
+  opacity: 0;
 }
 .message-bubble:hover .msg-delete-btn {
-    opacity: 1;
+  opacity: 1;
 }
 </style>

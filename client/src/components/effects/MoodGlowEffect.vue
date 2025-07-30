@@ -1,5 +1,5 @@
 <template>
-  <div 
+  <div
     v-if="currentMoodId !== null"
     class="mood-glow-container"
     :style="glowStyle"
@@ -8,34 +8,34 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import { storeToRefs } from 'pinia';
-import { usePlayerStore } from '../../stores/playerStore';
-import { useUiStore } from '../../stores/uiStore';
-import { moodColors } from '../../constants/moods';
+import { computed } from 'vue'
+import { storeToRefs } from 'pinia'
+import { usePlayerStore } from '../../stores/playerStore'
+import { useUiStore } from '../../stores/uiStore'
+import { moodColors } from '../../constants/moods'
 
-const playerStore = usePlayerStore();
-const uiStore = useUiStore();
+const playerStore = usePlayerStore()
+const uiStore = useUiStore()
 
-const { currentMoodId } = storeToRefs(playerStore);
-const { availableMoods } = storeToRefs(uiStore);
+const { currentMoodId } = storeToRefs(playerStore)
+const { availableMoods } = storeToRefs(uiStore)
 
 const currentColor = computed(() => {
   if (currentMoodId.value === null) {
-    return 'transparent';
+    return 'transparent'
   }
-  const mood = availableMoods.value.find(m => m.id === currentMoodId.value);
-  return mood ? moodColors[mood.name] || 'transparent' : 'transparent';
-});
+  const mood = availableMoods.value.find((m) => m.id === currentMoodId.value)
+  return mood ? moodColors[mood.name] || 'transparent' : 'transparent'
+})
 
 const glowStyle = computed(() => {
-  const color = currentColor.value;
-  if (color === 'transparent') return {};
-  
+  const color = currentColor.value
+  if (color === 'transparent') return {}
+
   return {
     '--glow-color': color,
-  };
-});
+  }
+})
 </script>
 
 <style scoped>
@@ -56,9 +56,9 @@ const glowStyle = computed(() => {
   position: absolute;
   top: 0;
   height: 100%;
-  
-  width: 35vw; 
-  
+
+  width: 35vw;
+
   filter: blur(80px);
 
   transition: background 1.5s ease;
@@ -66,8 +66,9 @@ const glowStyle = computed(() => {
 
 .mood-glow-container::before {
   left: 0;
-  background: linear-gradient(to right, 
-    var(--glow-color, transparent), 
+  background: linear-gradient(
+    to right,
+    var(--glow-color, transparent),
     transparent 80%
   );
   animation: pulse-glow 8s infinite ease-in-out;
@@ -75,14 +76,14 @@ const glowStyle = computed(() => {
 
 .mood-glow-container::after {
   right: 0;
-  background: linear-gradient(to left, 
-    var(--glow-color, transparent), 
+  background: linear-gradient(
+    to left,
+    var(--glow-color, transparent),
     transparent 80%
   );
 
   animation: pulse-glow 8s -4s infinite ease-in-out;
 }
-
 
 @keyframes pulse-glow {
   0% {

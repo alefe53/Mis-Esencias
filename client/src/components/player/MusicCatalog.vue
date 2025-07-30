@@ -2,18 +2,20 @@
   <div class="catalog-container" @click.stop>
     <div v-if="isLoading" class="loader">Cargando catálogo...</div>
     <ul v-else-if="catalog.length > 0" class="track-list">
-      <li 
-        v-for="track in catalog" 
-        :key="track.id" 
+      <li
+        v-for="track in catalog"
+        :key="track.id"
         class="track-item"
         :style="trackItemHoverStyle(track)"
       >
         <div class="track-info">
-          <span class="track-title" :title="track.title">{{ track.title }}</span>
+          <span class="track-title" :title="track.title">{{
+            track.title
+          }}</span>
           <span class="track-artist">{{ track.artistName }}</span>
         </div>
-        <button 
-          @click="handleAddToQueue(track)" 
+        <button
+          @click="handleAddToQueue(track)"
           class="add-queue-btn"
           :class="{ 'is-added': recentlyAdded.has(track.id) }"
           title="Agregar a la cola"
@@ -29,22 +31,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import { storeToRefs } from 'pinia';
-import { useMusicCatalogStore } from '../../stores/musicCatalogStore';
-import { usePlayerStore } from '../../stores/playerStore';
-import { useUiStore } from '../../stores/uiStore';
-import type { Track } from '../../types';
-import { moodColors } from '../../constants/moods';
+import { ref } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useMusicCatalogStore } from '../../stores/musicCatalogStore'
+import { usePlayerStore } from '../../stores/playerStore'
+import { useUiStore } from '../../stores/uiStore'
+import type { Track } from '../../types'
+import { moodColors } from '../../constants/moods'
 
-defineEmits(['close']);
+defineEmits(['close'])
 
-const catalogStore = useMusicCatalogStore();
-const playerStore = usePlayerStore();
-const uiStore = useUiStore();
+const catalogStore = useMusicCatalogStore()
+const playerStore = usePlayerStore()
+const uiStore = useUiStore()
 
-const { catalog, isLoading } = storeToRefs(catalogStore);
-const recentlyAdded = ref(new Set<number>());
+const { catalog, isLoading } = storeToRefs(catalogStore)
+const recentlyAdded = ref(new Set<number>())
 
 const trackItemHoverStyle = (track: Track) => {
   if (!track.moods || track.moods.length === 0) {
@@ -52,33 +54,37 @@ const trackItemHoverStyle = (track: Track) => {
       '--track-hover-bg': 'rgba(255, 255, 255, 0.1)',
       '--track-hover-text': '#FFFFFF',
       '--track-hover-artist-color': '#a0a0a0',
-    };
+    }
   }
-  const primaryMoodName = track.moods[0].name;
-  const color = moodColors[primaryMoodName] || 'rgba(255, 255, 255, 0.1)';
-  
-  const lightColors = ["Lo que sea", "Llevándola"];
-  const textColor = lightColors.includes(primaryMoodName) ? "#111827" : "#FFFFFF";
-  const artistColor = lightColors.includes(primaryMoodName) ? "#4B5563" : "#a0a0a0";
-  
+  const primaryMoodName = track.moods[0].name
+  const color = moodColors[primaryMoodName] || 'rgba(255, 255, 255, 0.1)'
+
+  const lightColors = ['Lo que sea', 'Llevándola']
+  const textColor = lightColors.includes(primaryMoodName)
+    ? '#111827'
+    : '#FFFFFF'
+  const artistColor = lightColors.includes(primaryMoodName)
+    ? '#4B5563'
+    : '#a0a0a0'
+
   return {
     '--track-hover-bg': color,
     '--track-hover-text': textColor,
     '--track-hover-artist-color': artistColor,
-  };
-};
+  }
+}
 
 const handleAddToQueue = (track: Track) => {
-  if (recentlyAdded.value.has(track.id)) return;
+  if (recentlyAdded.value.has(track.id)) return
 
-  playerStore.addToQueue(track);
-  uiStore.showToast({ message: `'${track.title}' se agregó a la cola` });
-  
-  recentlyAdded.value.add(track.id);
+  playerStore.addToQueue(track)
+  uiStore.showToast({ message: `'${track.title}' se agregó a la cola` })
+
+  recentlyAdded.value.add(track.id)
   setTimeout(() => {
-    recentlyAdded.value.delete(track.id);
-  }, 1500);
-};
+    recentlyAdded.value.delete(track.id)
+  }, 1500)
+}
 </script>
 
 <style scoped>
@@ -86,9 +92,9 @@ const handleAddToQueue = (track: Track) => {
   pointer-events: auto;
   position: absolute;
   bottom: 0;
-  right: calc(100% + 12px); 
+  right: calc(100% + 12px);
   z-index: 10;
-  width: 250px; 
+  width: 250px;
   max-height: 300px;
   background-color: rgba(25, 25, 25, 0.95);
   backdrop-filter: blur(8px);
@@ -116,7 +122,7 @@ const handleAddToQueue = (track: Track) => {
   padding: 0.4rem 0.5rem;
   border-radius: 5px;
   margin-bottom: 4px;
-  background-color: transparent; 
+  background-color: transparent;
   transition: background-color 0.2s ease;
 }
 
@@ -158,17 +164,19 @@ const handleAddToQueue = (track: Track) => {
 .add-queue-btn {
   background-color: transparent;
   border: none;
-  padding: 0.25rem 0.5rem; 
+  padding: 0.25rem 0.5rem;
   margin: -0.25rem -0.5rem;
   cursor: pointer;
   flex-shrink: 0;
-  
-  font-size: 1.6rem;      
-  font-weight: 300;       
-  line-height: 1;
-  color: #888;           
 
-  transition: color 0.2s ease, transform 0.2s ease;
+  font-size: 1.6rem;
+  font-weight: 300;
+  line-height: 1;
+  color: #888;
+
+  transition:
+    color 0.2s ease,
+    transform 0.2s ease;
   text-shadow: 0px 1px 4px rgba(0, 0, 0, 0.5);
 }
 

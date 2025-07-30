@@ -1,125 +1,167 @@
 <template>
   <div class="auth-container" ref="containerRef">
-    
     <transition name="bubble-fade">
-      <GreetingWidget v-if="isAuthenticated && user?.first_name" :name="user.first_name" />
+      <GreetingWidget
+        v-if="isAuthenticated && user?.first_name"
+        :name="user.first_name"
+      />
     </transition>
 
     <transition name="toast-fade">
-      <div 
-        v-if="!isAuthenticated && !uiStore.loginToastDismissed && route.name === 'home'" 
+      <div
+        v-if="
+          !isAuthenticated &&
+          !uiStore.loginToastDismissed &&
+          route.name === 'home'
+        "
         class="login-toast"
       >
         ¡Entrá para más!
       </div>
     </transition>
 
-    <div class="spinning-arrows" :class="{ 'hide-animation': shouldHideAnimation }">
+    <div
+      class="spinning-arrows"
+      :class="{ 'hide-animation': shouldHideAnimation }"
+    >
       <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <path id="arrow-path" d="M 50,5 A 45,45 0 1 1 25,12" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" />
-            <polygon id="arrow-head" points="25,5 25,19 33,12" fill="white" />
-          </defs>
-          <use href="#arrow-path" />
-          <use href="#arrow-head" />
-          <use href="#arrow-path" transform="rotate(120, 50, 50)" />
-          <use href="#arrow-head" transform="rotate(120, 50, 50)" />
-          <use href="#arrow-path" transform="rotate(240, 50, 50)" />
-          <use href="#arrow-head" transform="rotate(240, 50, 50)" />
-        </svg>
+        <defs>
+          <path
+            id="arrow-path"
+            d="M 50,5 A 45,45 0 1 1 25,12"
+            fill="none"
+            stroke="white"
+            stroke-width="4"
+            stroke-linecap="round"
+          />
+          <polygon id="arrow-head" points="25,5 25,19 33,12" fill="white" />
+        </defs>
+        <use href="#arrow-path" />
+        <use href="#arrow-head" />
+        <use href="#arrow-path" transform="rotate(120, 50, 50)" />
+        <use href="#arrow-head" transform="rotate(120, 50, 50)" />
+        <use href="#arrow-path" transform="rotate(240, 50, 50)" />
+        <use href="#arrow-head" transform="rotate(240, 50, 50)" />
+      </svg>
     </div>
 
-    <button 
-      class="auth-button" 
-      :class="{ 'user-avatar': isAuthenticated }" 
+    <button
+      class="auth-button"
+      :class="{ 'user-avatar': isAuthenticated }"
       @click="handleAuthButtonClick"
     >
       <template v-if="isAuthenticated && user">
-        <img v-if="user.avatar_url" :src="fullAvatarUrl" alt="Avatar" class="avatar-image" />
+        <img
+          v-if="user.avatar_url"
+          :src="fullAvatarUrl"
+          alt="Avatar"
+          class="avatar-image"
+        />
         <span v-else class="user-initial">
-          {{ user.first_name ? user.first_name.charAt(0) : user.email.charAt(0) }}
+          {{
+            user.first_name ? user.first_name.charAt(0) : user.email.charAt(0)
+          }}
         </span>
       </template>
-      <svg v-else xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+      <svg
+        v-else
+        xmlns="http://www.w3.org/2000/svg"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+        <circle cx="12" cy="7" r="4"></circle>
+      </svg>
     </button>
 
     <transition name="fade-down">
       <ul v-if="isMenuOpen" class="dropdown-menu">
         <li @click="goToProfile">Perfil</li>
-        <li v-if="isAdmin" @click="goToAdminDashboard" class="admin-link">Panel de Admin</li>
+        <li v-if="isAdmin" @click="goToAdminDashboard" class="admin-link">
+          Panel de Admin
+        </li>
         <li @click="handleLogout">Cerrar Sesión</li>
       </ul>
     </transition>
-    
   </div>
 </template>
 
 <script setup lang="ts">
-import GreetingWidget from './GreetingWidget.vue';
-import { ref, computed } from 'vue';
-import { storeToRefs } from 'pinia';
-import { useAuthStore } from '../../stores/authStore';
-import { useUiStore } from '../../stores/uiStore'; 
-import { useRouter, useRoute } from 'vue-router';
-import { useClickOutside } from '../../composables/useClickOutside';
+import GreetingWidget from './GreetingWidget.vue'
+import { ref, computed } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useAuthStore } from '../../stores/authStore'
+import { useUiStore } from '../../stores/uiStore'
+import { useRouter, useRoute } from 'vue-router'
+import { useClickOutside } from '../../composables/useClickOutside'
 
-const authStore = useAuthStore();
-const uiStore = useUiStore(); 
-const { isAuthenticated, user, isAdmin } = storeToRefs(authStore);
-const router = useRouter();
-const route = useRoute();
+const authStore = useAuthStore()
+const uiStore = useUiStore()
+const { isAuthenticated, user, isAdmin } = storeToRefs(authStore)
+const router = useRouter()
+const route = useRoute()
 
-const isMenuOpen = ref(false);
-const containerRef = ref<HTMLElement>();
+const isMenuOpen = ref(false)
+const containerRef = ref<HTMLElement>()
 
 useClickOutside(containerRef, () => {
-    if (isMenuOpen.value) {
-        isMenuOpen.value = false;
-    }
-});
+  if (isMenuOpen.value) {
+    isMenuOpen.value = false
+  }
+})
 
 const shouldHideAnimation = computed(() => {
-  return isAuthenticated.value || route.name === 'auth';
-});
+  return isAuthenticated.value || route.name === 'auth'
+})
 
 const fullAvatarUrl = computed(() => {
-    if (!user.value?.avatar_url) return '';
-    if (user.value.avatar_url.startsWith('http')) {
-        return user.value.avatar_url;
-    }
-    return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/assets-publicos/${user.value.avatar_url}`;
-});
+  if (!user.value?.avatar_url) return ''
+  if (user.value.avatar_url.startsWith('http')) {
+    return user.value.avatar_url
+  }
+  return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/assets-publicos/${user.value.avatar_url}`
+})
 
 const handleAuthButtonClick = () => {
   if (isAuthenticated.value) {
-    isMenuOpen.value = !isMenuOpen.value;
+    isMenuOpen.value = !isMenuOpen.value
   } else {
-    uiStore.dismissLoginToast();
-    router.push('/auth');
+    uiStore.dismissLoginToast()
+    router.push('/auth')
   }
-};
+}
 
 const handleLogout = () => {
-  authStore.logout();
-  isMenuOpen.value = false;
-  router.push('/');
-};
+  authStore.logout()
+  isMenuOpen.value = false
+  router.push('/')
+}
 
 const goToProfile = () => {
-  router.push('/profile');
-  isMenuOpen.value = false;
-};
+  router.push('/profile')
+  isMenuOpen.value = false
+}
 
 const goToAdminDashboard = () => {
-  router.push('/admin');
-  isMenuOpen.value = false;
-};
+  router.push('/admin')
+  isMenuOpen.value = false
+}
 </script>
 
 <style scoped>
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .auth-container {
@@ -133,7 +175,9 @@ const goToAdminDashboard = () => {
 
 .bubble-fade-enter-active,
 .bubble-fade-leave-active {
-  transition: opacity 0.4s ease, transform 0.4s ease;
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s ease;
 }
 .bubble-fade-enter-from,
 .bubble-fade-leave-to {
@@ -152,8 +196,8 @@ const goToAdminDashboard = () => {
   font-weight: 600;
   white-space: nowrap;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  background-color: #bee3f8; 
-  color: #2a4365; 
+  background-color: #bee3f8;
+  color: #2a4365;
   z-index: 10;
   pointer-events: none;
 }
@@ -171,7 +215,9 @@ const goToAdminDashboard = () => {
 
 .toast-fade-enter-active,
 .toast-fade-leave-active {
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
 }
 .toast-fade-enter-from,
 .toast-fade-leave-to {
@@ -185,7 +231,7 @@ const goToAdminDashboard = () => {
   left: 0;
   width: 100%;
   height: 100%;
-  pointer-events: none; 
+  pointer-events: none;
   animation: spin 4s linear infinite;
   transition: opacity 0.4s ease;
 }
@@ -204,7 +250,7 @@ const goToAdminDashboard = () => {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  padding: 0; 
+  padding: 0;
   border: 2px solid #555;
   background-color: #2a2a2a;
   color: white;
@@ -215,7 +261,7 @@ const goToAdminDashboard = () => {
   transition: all 0.2s ease;
   position: relative;
   z-index: 2;
-  overflow: hidden; 
+  overflow: hidden;
 }
 
 .auth-button:hover {
@@ -281,11 +327,13 @@ const goToAdminDashboard = () => {
   color: white;
 }
 
-.fade-down-enter-active, .fade-down-leave-active {
+.fade-down-enter-active,
+.fade-down-leave-active {
   transition: all 0.2s ease;
 }
 
-.fade-down-enter-from, .fade-down-leave-to {
+.fade-down-enter-from,
+.fade-down-leave-to {
   opacity: 0;
   transform: translateY(-10px);
 }

@@ -8,7 +8,7 @@
           :src="embedData.src"
           width="100%"
           height="100%"
-          style="border-radius:12px; border: 0;"
+          style="border-radius: 12px; border: 0"
           allowfullscreen
           allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
           loading="lazy"
@@ -22,47 +22,47 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed } from 'vue'
 
 const props = defineProps<{
-  platform: string;
-  url: string;
-}>();
+  platform: string
+  url: string
+}>()
 
-defineEmits(['close']);
+defineEmits(['close'])
 
 const embedData = computed(() => {
-  if (!props.url) return { src: '', height: null };
+  if (!props.url) return { src: '', height: null }
 
   switch (props.platform.toLowerCase()) {
     case 'spotify': {
-      const srcMatch = props.url.match(/src="([^"]+)"/);
-      const heightMatch = props.url.match(/height="([^"]+)"/);
+      const srcMatch = props.url.match(/src="([^"]+)"/)
+      const heightMatch = props.url.match(/height="([^"]+)"/)
       return {
         src: srcMatch ? srcMatch[1] : '',
-        height: heightMatch ? heightMatch[1] : '352' 
-      };
+        height: heightMatch ? heightMatch[1] : '352',
+      }
     }
     case 'youtube': {
       return {
         src: `https://www.youtube.com/embed/${props.url}`,
-        height: null
-      };
+        height: null,
+      }
     }
     default:
-      return { src: '', height: null };
+      return { src: '', height: null }
   }
-});
+})
 
 const contentStyle = computed(() => {
   if (embedData.value.height) {
     return {
       height: `${embedData.value.height}px`,
-      maxHeight: `${embedData.value.height}px`
-    };
+      maxHeight: `${embedData.value.height}px`,
+    }
   }
-  return {};
-});
+  return {}
+})
 </script>
 
 <style scoped>
@@ -85,17 +85,17 @@ const contentStyle = computed(() => {
   width: 90%;
   max-width: 800px;
   height: auto;
-  max-height: 90vh; 
+  max-height: 90vh;
   background-color: #181818;
   border-radius: 12px;
-  padding: 0; 
-  display: flex; 
-  transition: height 0.3s ease; 
+  padding: 0;
+  display: flex;
+  transition: height 0.3s ease;
 }
 
-.embed-content:has(iframe[src*="youtube.com"]) {
+.embed-content:has(iframe[src*='youtube.com']) {
   aspect-ratio: 16 / 9;
-  height: auto; 
+  height: auto;
 }
 
 .embed-close-button {

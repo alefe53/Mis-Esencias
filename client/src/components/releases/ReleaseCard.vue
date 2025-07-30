@@ -1,10 +1,10 @@
 <template>
   <div class="release-card">
-    <img 
-      v-if="release.coverArtUrl" 
-      :src="release.coverArtUrl" 
-      :alt="release.title" 
-      class="release-cover" 
+    <img
+      v-if="release.coverArtUrl"
+      :src="release.coverArtUrl"
+      :alt="release.title"
+      class="release-cover"
     />
     <div v-else class="release-cover placeholder-cover"></div>
     <div class="release-info">
@@ -15,11 +15,11 @@
 </template>
 
 <script setup lang="ts">
-import type { ReleaseSummary } from '../../types';
+import type { ReleaseSummary } from '../../types'
 
 defineProps<{
   release: ReleaseSummary
-}>();
+}>()
 </script>
 
 <style scoped>
@@ -34,20 +34,20 @@ defineProps<{
   aspect-ratio: 1 / 1;
   object-fit: cover;
   border-radius: 8px;
-  background-color: #333; 
+  background-color: #333;
 
-  border: 2px solid transparent; 
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); 
-  transition: all 0.3s ease; 
+  border: 2px solid transparent;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s ease;
   /*border: 2px solid #a7e4ff; */
-  
 }
 
 .release-card:hover .release-cover {
   transform: translateY(-8px);
   border-color: #a7e4ff;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4),
-              0 0 25px rgba(167, 228, 255, 0.7);
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.4),
+    0 0 25px rgba(167, 228, 255, 0.7);
 }
 
 .release-info {

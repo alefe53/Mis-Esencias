@@ -11,13 +11,20 @@ import InfoView from '../views/InfoView.vue'
 import AdminMenuView from '../views/AdminMenuView.vue'
 import AdminChatDashboard from '../views/AdminDashboardView.vue'
 import AdminUserListView from '../views/AdminUserListView.vue'
+import SocialFeedView from '../views/SocialFeedView.vue' 
 
 const routes = [
   {
     path: '/',
-    name: 'home',
+    name: 'home', 
     component: HomeView,
     meta: { scrollable: true } 
+  },
+  {
+    path: '/feed', 
+    name: 'social-feed',
+    component: SocialFeedView, 
+    meta: { requiresAuth: true, scrollable: true }
   },
   {
     path: '/auth',
@@ -92,6 +99,11 @@ const routes = [
         path: 'users',
         name: 'admin-users',
         component: AdminUserListView
+      },
+      {
+        path: 'crear-publicacion', 
+        name: 'admin-create-post',
+        component: () => import('../views/AdminCreatePostView.vue')
       }
     ]
   }
@@ -104,17 +116,25 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore();
-  
   const isAuthenticated = authStore.isAuthenticated;
-  const isAdmin = authStore.user?.id === '132c560b-a6f7-46de-90fb-ccb90caad753'; 
 
-  if (to.meta.requiresAdmin && !isAdmin) {
-    next({ name: 'home' });
-  } else if (to.meta.requiresAuth && !isAuthenticated) {
-    next({ name: 'auth' });
-  } else {
-    next();
+  // Lógica de redirección del Home
+  if (to.name === 'home' && isAuthenticated) {
+    return next({ name: 'social-feed' });
+  } 
+  if (to.name === 'social-feed' && !isAuthenticated) {
+    return next({ name: 'home' });
   }
+
+  // Lógica de seguridad para rutas protegidas
+  if (to.meta.requiresAdmin && !authStore.isAdmin) {
+    return next({ name: 'home' });
+  }
+  if (to.meta.requiresAuth && !isAuthenticated) {
+    return next({ name: 'auth' });
+  }
+
+  return next();
 });
 
 

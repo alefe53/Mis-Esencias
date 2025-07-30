@@ -19,3 +19,12 @@ export async function updateAvatar(userId, avatarUrl) {
   const updatedProfile = await profileRepository.updateAvatar(userId, avatarUrl);
   return updatedProfile;
 }
+
+export const updateUserPassword = async (userId, newPassword) => {
+    if (!newPassword || newPassword.length < 6) {
+        const error = new Error("La contraseña debe tener al menos 6 caracteres.");
+        error.statusCode = 400;
+        throw error;
+    }
+    return profileRepository.updatePasswordInDB(userId, newPassword);
+};

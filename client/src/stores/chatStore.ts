@@ -1,3 +1,4 @@
+// chatStore.ts
 import { defineStore } from 'pinia';
 import { ref, watch } from 'vue';
 import type { RealtimeChannel } from '@supabase/supabase-js';

@@ -27,3 +27,16 @@ export const deleteConversation = async (conversationId) => {
 export const deleteMessage = async (messageId) => {
 	await chatRepository.deleteMessageAsAdmin(messageId);
 };
+
+
+export const toggleUserMute = (authToken, userId, isMuted) => {
+    return adminRepository.toggleUserMuteInDB(authToken, userId, isMuted);
+};
+
+export const deleteGlobalMessage = (authToken, messageId) => {
+    return adminRepository.deleteGlobalMessageInDB(authToken, messageId);
+};
+
+export const pinGlobalMessage = (authToken, messageId, unpin) => {
+    return adminRepository.pinGlobalMessageInDB(authToken, messageId, unpin);
+};

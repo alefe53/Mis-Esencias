@@ -12,16 +12,16 @@
 
 <script setup lang="ts">
 defineProps<{
-  visible: boolean;
-  message: string;
-  backgroundColor: string;
-}>();
+  visible: boolean
+  message: string
+  backgroundColor: string
+}>()
 </script>
 
 <style scoped>
 .toast-notification {
   position: fixed;
-  bottom: 120px; 
+  bottom: 120px;
   left: 50%;
   transform: translateX(-50%);
   color: white;
@@ -31,7 +31,7 @@ defineProps<{
   z-index: 9999;
   font-size: 0.9rem;
   font-weight: 500;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .toast-fade-enter-active,

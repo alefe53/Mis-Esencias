@@ -111,3 +111,17 @@ export async function updateCurrentUserProfile(req, res, next) {
 
 
 }
+
+
+export const handleUpdatePassword = async (req, res, next) => {
+    try {
+        const { newPassword } = req.body;
+        const userId = req.user.id; 
+        
+        await profileService.updateUserPassword(userId, newPassword);
+        
+        res.status(200).json({ success: true, message: 'Contraseña actualizada exitosamente.' });
+    } catch (error) {
+        next(error);
+    }
+};

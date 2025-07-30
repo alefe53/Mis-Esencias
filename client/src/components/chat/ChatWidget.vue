@@ -10,9 +10,21 @@
         <div class="messages-area" ref="messagesContainerRef">
           <div v-if="isLoading" class="loader">Cargando...</div>
           <div v-else-if="messages.length === 0" class="welcome-message">
-            <p>No soy un chatbot, puedo tardar en contestar pero siempre contesto.</p>
+            <p>
+              No soy un chatbot, puedo tardar en contestar pero siempre
+              contesto.
+            </p>
           </div>
-          <div v-else v-for="msg in messages" :key="msg.id" class="message-wrapper" :class="{ 'admin-message': msg.is_admin, 'user-message': !msg.is_admin }">
+          <div
+            v-else
+            v-for="msg in messages"
+            :key="msg.id"
+            class="message-wrapper"
+            :class="{
+              'admin-message': msg.is_admin,
+              'user-message': !msg.is_admin,
+            }"
+          >
             <div class="message-bubble">
               <p>{{ msg.content }}</p>
               <span class="timestamp">{{ formatTime(msg.created_at) }}</span>
@@ -34,15 +46,37 @@
           ></textarea>
           <div class="input-footer">
             <span class="char-counter">{{ newMessage.length }} / 400</span>
-            <button @click="handleSendMessage" :disabled="isBlocked || !newMessage.trim()">Enviar</button>
+            <button
+              @click="handleSendMessage"
+              :disabled="isBlocked || !newMessage.trim()"
+            >
+              Enviar
+            </button>
           </div>
         </div>
       </div>
     </transition>
 
     <transition name="chat-bubble-fade">
-      <button v-if="!isChatOpen" @click="toggleChat(true)" class="chat-bubble" :style="bubbleStyle">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"></path></svg>
+      <button
+        v-if="!isChatOpen"
+        @click="toggleChat(true)"
+        class="chat-bubble"
+        :style="bubbleStyle"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"></path>
+        </svg>
         <span>Chatea conmigo</span>
       </button>
     </transition>
@@ -50,77 +84,84 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, onUnmounted, computed } from 'vue';
-import { storeToRefs } from 'pinia';
-import { useChatStore } from '../../stores/chatStore';
-import { usePlayerStore } from '../../stores/playerStore';
-import { useUiStore } from '../../stores/uiStore';
-import { moodColors } from '../../constants/moods';
+import { ref, watch, nextTick, onUnmounted, computed } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useChatStore } from '../../stores/chatStore'
+import { usePlayerStore } from '../../stores/playerStore'
+import { useUiStore } from '../../stores/uiStore'
+import { moodColors } from '../../constants/moods'
 
-const chatStore = useChatStore();
-const playerStore = usePlayerStore();
-const uiStore = useUiStore();
+const chatStore = useChatStore()
+const playerStore = usePlayerStore()
+const uiStore = useUiStore()
 
-const { messages, isBlocked, isLoading, isChatOpen } = storeToRefs(chatStore);
-const { currentMoodId } = storeToRefs(playerStore);
-const { availableMoods } = storeToRefs(uiStore);
-const { toggleChat, sendMessage, cleanupRealtimeSubscription } = chatStore;
+const { messages, isBlocked, isLoading, isChatOpen } = storeToRefs(chatStore)
+const { currentMoodId } = storeToRefs(playerStore)
+const { availableMoods } = storeToRefs(uiStore)
+const { toggleChat, sendMessage, cleanupRealtimeSubscription } = chatStore
 
-const newMessage = ref('');
-const messagesContainerRef = ref<HTMLElement | null>(null);
+const newMessage = ref('')
+const messagesContainerRef = ref<HTMLElement | null>(null)
 
 const bubbleStyle = computed(() => {
-  if (currentMoodId.value === null) return {};
-  
-  const mood = availableMoods.value.find(m => m.id === currentMoodId.value);
-  if (!mood) return {};
+  if (currentMoodId.value === null) return {}
 
-  const color = moodColors[mood.name];
-  const textColor = (mood.name === 'Lo que sea' || mood.name === 'Llevándola') 
-    ? '#111827' 
-    : '#FFFFFF';
-  
+  const mood = availableMoods.value.find((m) => m.id === currentMoodId.value)
+  if (!mood) return {}
+
+  const color = moodColors[mood.name]
+  const textColor =
+    mood.name === 'Lo que sea' || mood.name === 'Llevándola'
+      ? '#111827'
+      : '#FFFFFF'
+
   return {
     backgroundColor: color,
     color: textColor,
-  };
-});
+  }
+})
 
 const handleSendMessage = () => {
   if (newMessage.value.trim()) {
-    sendMessage(newMessage.value);
-    newMessage.value = '';
+    sendMessage(newMessage.value)
+    newMessage.value = ''
   }
-};
+}
 
 const scrollToBottom = () => {
   nextTick(() => {
-    const container = messagesContainerRef.value;
+    const container = messagesContainerRef.value
     if (container) {
-      container.scrollTop = container.scrollHeight;
+      container.scrollTop = container.scrollHeight
     }
-  });
-};
-
-const formatTime = (isoString: string) => {
-    const date = new Date(isoString);
-    return date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  })
 }
 
-watch(messages, () => {
-  scrollToBottom();
-}, { deep: true });
+const formatTime = (isoString: string) => {
+  const date = new Date(isoString)
+  return date.toLocaleTimeString('es-AR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+watch(
+  messages,
+  () => {
+    scrollToBottom()
+  },
+  { deep: true },
+)
 
 watch(isChatOpen, (isOpen) => {
-    if(isOpen) {
-        scrollToBottom();
-    }
+  if (isOpen) {
+    scrollToBottom()
+  }
 })
 
 onUnmounted(() => {
-    cleanupRealtimeSubscription();
-});
-
+  cleanupRealtimeSubscription()
+})
 </script>
 
 <style scoped>
@@ -143,7 +184,10 @@ onUnmounted(() => {
   font-weight: 600;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.5s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.5s ease;
 }
 .chat-bubble:hover {
   transform: scale(1.05);
@@ -194,8 +238,12 @@ onUnmounted(() => {
   display: flex;
   max-width: 80%;
 }
-.user-message { align-self: flex-end; }
-.admin-message { align-self: flex-start; }
+.user-message {
+  align-self: flex-end;
+}
+.admin-message {
+  align-self: flex-start;
+}
 .message-bubble {
   padding: 0.5rem 0.9rem;
   border-radius: 18px;
@@ -215,12 +263,12 @@ onUnmounted(() => {
   word-wrap: break-word;
 }
 .timestamp {
-    display: block;
-    font-size: 0.7rem;
-    color: #e0e0e0;
-    opacity: 0.8;
-    text-align: right;
-    margin-top: 4px;
+  display: block;
+  font-size: 0.7rem;
+  color: #e0e0e0;
+  opacity: 0.8;
+  text-align: right;
+  margin-top: 4px;
 }
 .chat-input-area {
   padding: 1rem;
@@ -229,8 +277,10 @@ onUnmounted(() => {
 }
 .blocked-overlay {
   position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background-color: rgba(40, 40, 40, 0.8);
   backdrop-filter: blur(2px);
   display: flex;
@@ -260,15 +310,19 @@ textarea {
   font-size: 0.8rem;
   color: #a3a3a3;
 }
-.chat-window-fade-enter-active, .chat-window-fade-leave-active,
-.chat-bubble-fade-enter-active, .chat-bubble-fade-leave-active {
+.chat-window-fade-enter-active,
+.chat-window-fade-leave-active,
+.chat-bubble-fade-enter-active,
+.chat-bubble-fade-leave-active {
   transition: all 0.3s ease;
 }
-.chat-window-fade-enter-from, .chat-window-fade-leave-to {
+.chat-window-fade-enter-from,
+.chat-window-fade-leave-to {
   opacity: 0;
   transform: translateY(20px) scale(0.95);
 }
-.chat-bubble-fade-enter-from, .chat-bubble-fade-leave-to {
+.chat-bubble-fade-enter-from,
+.chat-bubble-fade-leave-to {
   opacity: 0;
   transform: scale(0.9);
 }
@@ -278,7 +332,7 @@ textarea {
   color: #a3a3a3;
   font-style: italic;
   font-size: 0.9rem;
-  background-color: rgba(0,0,0,0.1);
+  background-color: rgba(0, 0, 0, 0.1);
   border-radius: 8px;
   margin: auto 1rem;
 }

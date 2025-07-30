@@ -8,10 +8,13 @@
       <router-link to="/admin/users" class="nav-button">
         Gestionar Usuarios
       </router-link>
+
+      <router-link to="/admin/crear-publicacion" class="nav-button">
+        Crear Publicación
+      </router-link>
     </div>
 
     <router-view />
-
   </div>
 </template>
 
@@ -26,7 +29,7 @@
   justify-content: center;
   gap: 1.5rem;
   margin-top: 2rem;
-  margin-bottom: 2rem; 
+  margin-bottom: 2rem;
 }
 .nav-button {
   padding: 0.8rem 1.5rem;

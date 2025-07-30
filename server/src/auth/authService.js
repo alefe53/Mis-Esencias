@@ -76,6 +76,7 @@ class AuthService {
 		}
 
 		const userPayload = {
+			sub: profile.id,
 			id: profile.id,
 			email: authData.user.email,
 			subscription_tier_id: profile.subscription_tier_id,

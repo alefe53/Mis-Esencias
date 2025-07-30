@@ -1,16 +1,31 @@
 <template>
   <div id="app-container" :class="appContainerClass">
-    
     <div class="background-layer"></div>
 
     <MoodGlowEffect />
 
     <transition name="fade">
-      <header class="floating-nav-bar" v-if="!uiStore.isGlobalTransitionActive" :style="dynamicNavStyle">
+      <header
+        class="floating-nav-bar"
+        v-if="!uiStore.isGlobalTransitionActive"
+        :style="dynamicNavStyle"
+      >
         <nav>
-          <router-link to="/">Home</router-link>
-          <router-link to="/music-intro" :class="{ 'router-link-exact-active': isMusicRouteActive }">Música</router-link> 
-          <router-link to="/trabajos" :class="{ 'router-link-exact-active': isTrabajosRouteActive }">Trabajos</router-link>
+          <router-link
+            to="/"
+            :class="{ 'router-link-exact-active': isHomeRouteActive }"
+            >Home</router-link
+          >
+          <router-link
+            to="/music-intro"
+            :class="{ 'router-link-exact-active': isMusicRouteActive }"
+            >Música</router-link
+          >
+          <router-link
+            to="/trabajos"
+            :class="{ 'router-link-exact-active': isTrabajosRouteActive }"
+            >Trabajos</router-link
+          >
           <router-link to="/info">Info</router-link>
         </nav>
       </header>
@@ -19,7 +34,7 @@
     <main>
       <router-view />
     </main>
-    
+
     <transition name="fade">
       <div class="auth-widget" v-if="!uiStore.isGlobalTransitionActive">
         <AuthButton />
@@ -31,129 +46,151 @@
         <AudioPlayer />
       </footer>
     </transition>
-    
-    <Toast 
+
+    <Toast
       :visible="isToastVisible"
       :message="toastMessage"
       :backgroundColor="toastBackgroundColor"
     />
 
     <ChatWidget v-if="showChatWidget" />
-    
+    <LightboxModal />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
-import { storeToRefs } from 'pinia';
-import { moodColors } from './constants/moods';
-import AudioPlayer from './components/player/AudioPlayer.vue';
-import AuthButton from './components/layout/AuthButton.vue';
-import MoodGlowEffect from './components/effects/MoodGlowEffect.vue';
-import Toast from './components/common/Toast.vue';
-import ChatWidget from './components/chat/ChatWidget.vue'; 
-import { usePlayerStore } from './stores/playerStore';
-import { useAuthStore } from './stores/authStore';
-import { useUiStore } from './stores/uiStore';
-import { useChatStore } from './stores/chatStore';
+import { computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+import { storeToRefs } from 'pinia'
+import { moodColors } from './constants/moods'
+import AudioPlayer from './components/player/AudioPlayer.vue'
+import AuthButton from './components/layout/AuthButton.vue'
+import MoodGlowEffect from './components/effects/MoodGlowEffect.vue'
+import Toast from './components/common/Toast.vue'
+import ChatWidget from './components/chat/ChatWidget.vue'
+import LightboxModal from './components/gallery/LightboxModal.vue'
+import { usePlayerStore } from './stores/playerStore'
+import { useAuthStore } from './stores/authStore'
+import { useUiStore } from './stores/uiStore'
+import { useChatStore } from './stores/chatStore'
 
-const route = useRoute();
-const uiStore = useUiStore();
-const playerStore = usePlayerStore();
-const authStore = useAuthStore(); 
-const chatStore = useChatStore();
+const route = useRoute()
+const uiStore = useUiStore()
+const playerStore = usePlayerStore()
+const authStore = useAuthStore()
+const chatStore = useChatStore()
 
-const { isChatActivated } = storeToRefs(chatStore);
-const { currentMoodId } = storeToRefs(playerStore);
-const { isToastVisible, toastMessage, toastBackgroundColor, availableMoods } = storeToRefs(uiStore);
+const { isChatActivated } = storeToRefs(chatStore)
+const { currentMoodId } = storeToRefs(playerStore)
+const { isToastVisible, toastMessage, toastBackgroundColor, availableMoods } =
+  storeToRefs(uiStore)
 
 const showChatWidget = computed(() => {
   if (uiStore.isGlobalTransitionActive) {
-    return false;
+    return false
   }
   if (!authStore.isAuthenticated) {
-    return false;
+    return false
   }
-  return isChatActivated.value || route.name === 'info';
-});
+  return isChatActivated.value || route.name === 'info'
+})
 
 const appContainerClass = computed(() => {
-  const classes = [];
+  const classes = []
 
   if (route.path.startsWith('/admin')) {
-    classes.push('admin-background');
+    classes.push('admin-background')
   } else {
     switch (route.name) {
       case 'home':
-        classes.push('home-background');
-        break;
+        classes.push('home-background')
+        break
       case 'music-intro':
       case 'music':
       case 'my-music':
       case 'music-with-me':
-        classes.push('music-background');
-        break;
+        classes.push('music-background')
+        break
       case 'auth':
       case 'profile':
-        classes.push('login-background');
-        break;
+        classes.push('login-background')
+        break
       case 'info':
-        classes.push('info-background');
-        break;
+        classes.push('info-background')
+        break
       case 'trabajos':
       case 'project-details':
-        classes.push('works-background');
-        break;
+        classes.push('works-background')
+        break
+      case 'social-feed':
+        classes.push('feed-background')
+        break
     }
   }
 
   if (route.meta.scrollable) {
-    classes.push('allow-scroll');
+    classes.push('allow-scroll')
   }
-  return classes;
-});
+  return classes
+})
+
+const isHomeRouteActive = computed(() => {
+  return route.name === 'home' || route.name === 'social-feed'
+})
 
 const isMusicRouteActive = computed(() => {
-  const musicRoutes = ['music-intro', 'music', 'my-music', 'music-with-me'];
-  return musicRoutes.includes(route.name as string);
-});
+  const musicRoutes = ['music-intro', 'music', 'my-music', 'music-with-me']
+  return musicRoutes.includes(route.name as string)
+})
 
 const isTrabajosRouteActive = computed(() => {
-  const trabajosRoutes = ['trabajos', 'project-details'];
-  return trabajosRoutes.includes(route.name as string);
-});
+  const trabajosRoutes = ['trabajos', 'project-details']
+  return trabajosRoutes.includes(route.name as string)
+})
 
 const dynamicNavStyle = computed(() => {
-  const defaultColor = '#FFFFFF';
+  const defaultColor = '#FFFFFF'
   if (!currentMoodId.value || availableMoods.value.length === 0) {
-    return { '--active-nav-link-color': defaultColor };
+    return { '--active-nav-link-color': defaultColor }
   }
-  
-  const currentMood = availableMoods.value.find(m => m.id === currentMoodId.value);
-  const color = currentMood ? moodColors[currentMood.name] : defaultColor;
+
+  const currentMood = availableMoods.value.find(
+    (m) => m.id === currentMoodId.value,
+  )
+  const color = currentMood ? moodColors[currentMood.name] : defaultColor
 
   return {
     '--active-nav-link-color': color || defaultColor,
-  };
-});
+  }
+})
 
 onMounted(() => {
-  uiStore.ensureMoodsAvailable();
-  authStore.checkUserSession();
-  chatStore.checkChatActivationStatus();
-});
+  uiStore.ensureMoodsAvailable()
+  authStore.checkUserSession()
+  chatStore.checkChatActivationStatus()
+})
 </script>
 
 <style>
 @keyframes floatAnimation {
-  0% { transform: translateY(-50%); }
-  50% { transform: translateY(calc(-50% - 8px)); }
-  100% { transform: translateY(-50%); }
+  0% {
+    transform: translateY(-50%);
+  }
+  50% {
+    transform: translateY(calc(-50% - 8px));
+  }
+  100% {
+    transform: translateY(-50%);
+  }
 }
 @keyframes fadeInOut {
-  0%, 100% { opacity: 0; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 .floating-nav-bar {
   position: fixed;
@@ -198,7 +235,9 @@ nav a {
   margin: 0;
   width: auto;
   transform: scale(1);
-  transition: color 0.3s ease, transform 0.3s ease;
+  transition:
+    color 0.3s ease,
+    transform 0.3s ease;
 }
 nav a:not(.router-link-exact-active):hover {
   transform: scale(1.1);
@@ -236,15 +275,21 @@ footer {
   height: 100vh;
   position: relative;
   z-index: 1;
+}
+
+#app-container:not(.feed-background) {
   overflow: hidden;
 }
+
 #app-container.allow-scroll {
   overflow-y: auto;
 }
 .background-layer {
   position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background-color: #111827;
   z-index: -1;
 }
@@ -252,18 +297,22 @@ footer {
 .background-layer::after {
   content: '';
   position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background-size: cover;
   background-position: center center;
   z-index: 1;
   opacity: 0;
-  transition: opacity 1.5s ease-in-out, filter 1.5s ease-in-out;
+  transition:
+    opacity 1.5s ease-in-out,
+    filter 1.5s ease-in-out;
 }
 .home-background .background-layer::before {
   background-image: url('/fondoHome.jpg');
   opacity: 1;
-  filter:brightness(0.7);
+  filter: brightness(0.7);
 }
 .music-background .background-layer::before {
   background-image: url('/fondomusic1.jpg');
@@ -290,6 +339,11 @@ footer {
 }
 .admin-background .background-layer::before {
   background-image: url('/adminFondo.jpg');
+  opacity: 1;
+  filter: brightness(0.2);
+}
+.feed-background .background-layer::before {
+  background-image: url('/fondoFeed.jpg');
   opacity: 1;
   filter: brightness(0.2);
 }

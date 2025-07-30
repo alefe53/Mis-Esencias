@@ -1,0 +1,89 @@
+### TESTS DEL MURO SOCIAL (POSTS) ###
+
+@host = http://localhost:3001
+
+# === CREDENCIALES ===
+@admin_email = alefe53@gmail.com
+@admin_password = Wichi2025
+
+@user_email = usuario.prueba@email.com
+@user_password = password123
+
+
+#################################################################
+# PASO 1: AUTENTICACIÓN
+# Inicia sesión como admin y como usuario regular para obtener sus tokens.
+# Reemplaza los tokens hardcodeados con los que obtengas de la respuesta.
+#################################################################
+
+### Iniciar Sesión como Administrador
+# @name loginAdmin
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "alefe53@gmail.com",
+  "password": "Wichi2025"
+}
+
+@admin_jwt = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjEzMmM1NjBiLWE2ZjctNDZkZS05MGZiLWNjYjkwY2FhZDc1MyIsImVtYWlsIjoiYWxlZmU1M0BnbWFpbC5jb20iLCJzdWJzY3JpcHRpb25fdGllcl9pZCI6MywiZmlyc3RfbmFtZSI6IkFsZSIsImxhc3RfbmFtZSI6IkZlIiwiaWF0IjoxNzUzNDYwMDM0LCJleHAiOjE3NTM0NjM2MzR9.Aie5Kkj55_THAXKbMNOPIfpN7w6zJ2AwXZ6uualsR8g
+
+### Iniciar Sesión como Usuario Regular
+# @name loginUser
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{user_email}}",
+  "password": "{{user_password}}"
+}
+
+@user_jwt = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjEzMmM1NjBiLWE2ZjctNDZkZS05MGZiLWNjYjkwY2FhZDc1MyIsImVtYWlsIjoiYWxlZmU1M0BnbWFpbC5jb20iLCJzdWJzY3JpcHRpb25fdGllcl9pZCI6MywiZmlyc3RfbmFtZSI6IkFsZSIsImxhc3RfbmFtZSI6IkZlIiwiaWF0IjoxNzUzNDYwMDM0LCJleHAiOjE3NTM0NjM2MzR9.Aie5Kkj55_THAXKbMNOPIfpN7w6zJ2AwXZ6uualsR8g
+
+
+#################################################################
+# PASO 2: ACCIONES DE USUARIO REGULAR
+#################################################################
+
+### Obtener el Feed de Publicaciones
+# Usa el token del usuario regular para ver el muro.
+GET {{host}}/api/posts?page=1&limit=5
+Authorization: Bearer {{user_jwt}}
+
+### Dar / Quitar "Me Gusta" a un Post
+# Ejecuta el GET anterior y copia el 'id' de un post aquí.
+# Al ejecutarlo una vez se da like, al ejecutarlo de nuevo se quita.
+@postId = 1
+POST {{host}}/api/posts/{{postId}}/like
+Authorization: Bearer {{user_jwt}}
+
+
+### Añadir un comentario a un Post
+# NOTA: El usuario de prueba DEBE tener subscription_tier_id >= 2.
+# Usa el mismo 'postId' de la prueba anterior.
+POST {{host}}/api/posts/{{postId}}/comments
+Content-Type: application/json
+Authorization: Bearer {{user_jwt}}
+
+{
+    "content": "¡Qué buena foto! Comentario desde el test HTTP."
+}
+
+
+#################################################################
+# PASO 3: ACCIONES DE ADMINISTRADOR
+#################################################################
+
+### Borrar un comentario (Como Admin)
+# Ejecuta la prueba de añadir comentario y copia el 'id' del nuevo comentario aquí.
+@commentId = 1
+DELETE {{host}}/api/posts/comments/{{commentId}}
+Authorization: Bearer {{admin_jwt}}
+
+
+### Borrar un post entero (Como Admin)
+# Copia aquí el 'id' del post que quieres borrar.
+# ¡CUIDADO! Esta acción es destructiva y borrará el post y todos sus likes/comentarios.
+@postIdToDelete = 2
+DELETE {{host}}/api/posts/{{postIdToDelete}}
+Authorization: Bearer {{admin_jwt}}

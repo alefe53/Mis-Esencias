@@ -92,10 +92,26 @@ export const createScopedClient = (userAuthToken) => {
     }
     return createClient(
         config.supabase.URL,
-        config.supabase.ANON_KEY,
-        {
+         config.supabase.SERVICE_KEY,
+       {
             global: { headers: { Authorization: `Bearer ${userAuthToken}` } },
             db: { schema: 'api' }
         }
     );
+};
+
+export const broadcastRealtimeEvent = async (channelName, eventName, payload) => {
+try {
+const channel = supabase.channel(channelName);
+const status = await channel.send({
+type: 'broadcast',
+event: eventName,
+payload: payload,
+});
+if (status !== 'ok') {
+console.warn(`Supabase broadcast status no fue 'ok': ${status}`);
+}
+} catch (error) {
+console.error('Error al transmitir evento de Supabase Realtime:', error);
+}
 };

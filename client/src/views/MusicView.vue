@@ -1,6 +1,5 @@
 <template>
   <div class="music-view">
-    
     <div class="logo-container">
       <img src="/adfmusiclogo.jpg" alt="ADF Music Logo" class="logo-image" />
     </div>
@@ -17,20 +16,19 @@
       </router-link>
 
       <router-link to="/musica-con-ale" class="music-card-link">
-          <div class="music-card" style="background-image: url('/ladlr.jpg')">
-              <div class="card-content">
-                  <div class="text-info">
-                      <h2>Música con Ale</h2>
-                  </div>
-              </div>
+        <div class="music-card" style="background-image: url('/ladlr.jpg')">
+          <div class="card-content">
+            <div class="text-info">
+              <h2>Música con Ale</h2>
+            </div>
           </div>
+        </div>
       </router-link>
     </div>
   </div>
 </template>
 
-<script setup lang="ts">
-</script>
+<script setup lang="ts"></script>
 
 <style scoped>
 @keyframes shimmer-text {
@@ -57,18 +55,21 @@
   width: 90%;
   max-width: 880px;
   height: 120px;
-  margin-bottom: 1.0rem;
+  margin-bottom: 1rem;
   overflow: hidden;
   filter: grayscale(100%) blur(2px);
   opacity: 0.7;
   transform: scale(0.95);
-  transition: transform 0.4s ease-out, filter 0.4s ease-out, opacity 0.4s ease-out;
+  transition:
+    transform 0.4s ease-out,
+    filter 0.4s ease-out,
+    opacity 0.4s ease-out;
 }
 
 .logo-container:hover {
-  transform: scale(1); 
-  filter: grayscale(0%) blur(0); 
-  opacity: 1; 
+  transform: scale(1);
+  filter: grayscale(0%) blur(0);
+  opacity: 1;
 }
 
 .logo-image {
@@ -80,7 +81,7 @@
 .cards-container {
   display: flex;
   justify-content: center;
-  gap: 2.5rem; 
+  gap: 2.5rem;
   flex-wrap: wrap;
   width: 100%;
 }
@@ -92,10 +93,12 @@
   background-size: cover;
   background-position: center;
   position: relative;
-  overflow: hidden; 
+  overflow: hidden;
   cursor: pointer;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-  transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+  transition:
+    transform 0.3s ease-in-out,
+    box-shadow 0.3s ease-in-out;
 }
 
 .music-card:hover {
@@ -109,7 +112,7 @@
   height: 100%;
   padding: 1rem;
   display: flex;
-  justify-content: center; 
+  justify-content: center;
   align-items: center;
 }
 

@@ -29,9 +29,38 @@ export const deleteConversationById = async (conversationId: number): Promise<vo
 export const deleteMessageById = async (messageId: number): Promise<void> => {
   await api.delete(`/admin/chats/messages/${messageId}`);
 };
-
-// --- USER ADMIN ---
+export const createPost = async (postData: any): Promise<any> => {
+  const { data } = await api.post('/admin/posts', postData);
+  return data;
+};
 export const fetchAllUsers = async (): Promise<AdminUser[]> => {
   const { data } = await api.get('/admin/users');
   return data.data;
+};
+
+
+/**
+ * Borra un mensaje del chat global. Requiere rol de admin.
+ * @param messageId - El ID del mensaje a borrar.
+ */
+export const deleteGlobalMessage = async (messageId: number): Promise<void> => {
+  await api.delete(`/admin/global-chat/${messageId}`);
+};
+
+/**
+ * Fija o desfija un mensaje en el chat global. Requiere rol de admin.
+ * @param messageId - El ID del mensaje a afectar.
+ * @param unpin - Poner en `true` para desfijar, `false` o no enviarlo para fijar.
+ */
+export const pinGlobalMessage = async (messageId: number, unpin: boolean): Promise<void> => {
+  await api.post(`/admin/global-chat/${messageId}/pin`, { unpin });
+};
+
+/**
+ * Silencia o le quita el silencio a un usuario en el chat global.
+ * @param userId - El ID del usuario a afectar.
+ * @param isMuted - `true` para silenciar, `false` para quitar el silencio.
+ */
+export const toggleUserMute = async (userId: string, isMuted: boolean): Promise<void> => {
+  await api.post(`/admin/users/${userId}/mute`, { isMuted });
 };

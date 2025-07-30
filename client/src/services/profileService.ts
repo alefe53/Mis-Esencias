@@ -31,3 +31,8 @@ export const uploadAvatar = async (avatarFile: File) => {
 
   return data;
 };
+
+export const updatePassword = async (newPassword: string) => {
+  const { data } = await api.post('/profile/password', { newPassword });
+  return data;
+};

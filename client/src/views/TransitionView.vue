@@ -1,32 +1,37 @@
 <template>
   <div class="transition-container" ref="containerRef">
-    <img src="/adflogo.png" alt="ADF Logo" class="transition-logo" ref="logoRef" />
+    <img
+      src="/adflogo.png"
+      alt="ADF Logo"
+      class="transition-logo"
+      ref="logoRef"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { useUiStore } from '../stores/uiStore';
-import gsap from 'gsap';
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useUiStore } from '../stores/uiStore'
+import gsap from 'gsap'
 
-const router = useRouter();
-const uiStore = useUiStore();
+const router = useRouter()
+const uiStore = useUiStore()
 
-const containerRef = ref<HTMLElement | null>(null);
-const logoRef = ref<HTMLImageElement | null>(null);
+const containerRef = ref<HTMLElement | null>(null)
+const logoRef = ref<HTMLImageElement | null>(null)
 
 onMounted(() => {
-  uiStore.setTransitionState(true);
+  uiStore.setTransitionState(true)
 
   const tl = gsap.timeline({
     onComplete: () => {
-      router.push({ name: 'music' });
-      uiStore.setTransitionState(false);
-    }
-  });
+      router.push({ name: 'music' })
+      uiStore.setTransitionState(false)
+    },
+  })
 
-  gsap.set(logoRef.value, { opacity: 0, scale: 0.8 });
+  gsap.set(logoRef.value, { opacity: 0, scale: 0.8 })
 
   tl.to(logoRef.value, {
     opacity: 1,
@@ -35,20 +40,24 @@ onMounted(() => {
     ease: 'power2.out',
     delay: 0.5,
   })
-  .to(logoRef.value, {
-      filter: 'drop-shadow(0 0 40px rgba(255, 255, 255, 1))',
+    .to(
+      logoRef.value,
+      {
+        filter: 'drop-shadow(0 0 40px rgba(255, 255, 255, 1))',
+        duration: 1,
+        yoyo: true,
+        repeat: 1,
+        ease: 'power1.inOut',
+      },
+      '-=0.5',
+    )
+    .to(logoRef.value, {
+      opacity: 0,
       duration: 1,
-      yoyo: true,
-      repeat: 1,
-      ease: 'power1.inOut',
-  }, "-=0.5")
-  .to(logoRef.value, {
-    opacity: 0,
-    duration: 1,
-    ease: 'power2.in',
-    delay: 0.2,
-  });
-});
+      ease: 'power2.in',
+      delay: 0.2,
+    })
+})
 </script>
 
 <style scoped>
@@ -66,7 +75,7 @@ onMounted(() => {
 }
 
 .transition-logo {
-  max-width: 600px; 
+  max-width: 600px;
   width: 50%;
   height: auto;
   opacity: 0;

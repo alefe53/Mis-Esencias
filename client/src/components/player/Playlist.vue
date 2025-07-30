@@ -1,7 +1,23 @@
 <template>
   <div class="playlist-container" @click.stop>
-    <button @click="closePlaylist" class="close-button" aria-label="Cerrar lista">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+    <button
+      @click="closePlaylist"
+      class="close-button"
+      aria-label="Cerrar lista"
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="3"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
     </button>
     <ul class="track-list">
       <li
@@ -14,8 +30,10 @@
       >
         <div class="track-details">
           <span class="track-title">
-            {{ track.title }} 
-            <span v-if="track.artistName" class="track-artist">({{ track.artistName }})</span>
+            {{ track.title }}
+            <span v-if="track.artistName" class="track-artist"
+              >({{ track.artistName }})</span
+            >
           </span>
         </div>
         <span v-if="track.duration_seconds" class="track-duration">
@@ -30,57 +48,60 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue';
-import { usePlayerStore } from '../../stores/playerStore';
-import { storeToRefs } from 'pinia';
+import { ref, watch, nextTick } from 'vue'
+import { usePlayerStore } from '../../stores/playerStore'
+import { storeToRefs } from 'pinia'
 
-const playerStore = usePlayerStore();
-const { playlist, currentTrackIndex } = storeToRefs(playerStore);
-const trackElements = ref<HTMLLIElement[]>([]);
+const playerStore = usePlayerStore()
+const { playlist, currentTrackIndex } = storeToRefs(playerStore)
+const trackElements = ref<HTMLLIElement[]>([])
 
 const closePlaylist = () => {
-  playerStore.togglePlaylistVisibility();
-};
+  playerStore.togglePlaylistVisibility()
+}
 
 const playTrack = (index: number) => {
-  playerStore.playTrackFromPlaylist(index);
-};
+  playerStore.playTrackFromPlaylist(index)
+}
 
 const formatDuration = (totalSeconds: number): string => {
-  if (isNaN(totalSeconds) || totalSeconds < 0) return '0:00';
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = Math.floor(totalSeconds % 60);
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-};
+  if (isNaN(totalSeconds) || totalSeconds < 0) return '0:00'
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = Math.floor(totalSeconds % 60)
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`
+}
 
-watch(currentTrackIndex, (newIndex) => {
-  if (newIndex === null || newIndex < 0) return;
-  nextTick(() => {
-    const el = trackElements.value[newIndex];
-    if (el) {
-      el.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center'
-      });
-    }
-  });
-}, { immediate: true });
+watch(
+  currentTrackIndex,
+  (newIndex) => {
+    if (newIndex === null || newIndex < 0) return
+    nextTick(() => {
+      const el = trackElements.value[newIndex]
+      if (el) {
+        el.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        })
+      }
+    })
+  },
+  { immediate: true },
+)
 </script>
-
 
 <style scoped>
 .playlist-container {
-  pointer-events: auto; 
+  pointer-events: auto;
   position: absolute;
   bottom: 0;
   left: 50%;
   transform: translateX(75px);
   z-index: 10;
-  
+
   width: 100%;
   max-width: 260px;
   max-height: 200px;
-  
+
   background-color: rgba(25, 25, 25, 0.9);
   backdrop-filter: blur(8px);
   border-radius: 12px;
@@ -99,7 +120,9 @@ watch(currentTrackIndex, (newIndex) => {
   color: #aaa;
   cursor: pointer;
   padding: 0.25rem;
-  transition: color 0.2s, transform 0.2s;
+  transition:
+    color 0.2s,
+    transform 0.2s;
   z-index: 5;
 }
 
@@ -119,10 +142,12 @@ watch(currentTrackIndex, (newIndex) => {
 .track-item {
   display: flex;
   justify-content: space-between;
-  padding: 0.1rem 0.55rem; 
+  padding: 0.1rem 0.55rem;
   border-radius: 5px;
   cursor: pointer;
-  transition: background-color 0.2s, color 0.2s;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
   border-bottom: 1px solid #282828;
 }
 .track-item:hover {
@@ -149,7 +174,8 @@ watch(currentTrackIndex, (newIndex) => {
   font-variant-numeric: tabular-nums;
 }
 
-.current-track, .current-track:hover {
+.current-track,
+.current-track:hover {
   background-color: var(--current-mood-color, #3b82f6);
   color: var(--current-mood-text-color, white);
 }

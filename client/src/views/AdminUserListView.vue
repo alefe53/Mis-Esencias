@@ -14,13 +14,20 @@
         <tr v-for="user in users" :key="user.user_id">
           <td>
             <div class="user-cell">
-              <img :src="user.avatar_url || '/perfildefault.jpg'" alt="avatar" class="avatar">
+              <img
+                :src="user.avatar_url || '/perfildefault.jpg'"
+                alt="avatar"
+                class="avatar"
+              />
               <span>{{ user.full_name }}</span>
             </div>
           </td>
           <td>{{ user.email }}</td>
           <td>
-            <span class="tier-badge" :class="`tier-${user.subscription_tier_id}`">
+            <span
+              class="tier-badge"
+              :class="`tier-${user.subscription_tier_id}`"
+            >
               {{ user.subscription_name }}
             </span>
           </td>
@@ -31,16 +38,16 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
-import { storeToRefs } from 'pinia';
-import { useAdminUserStore } from '../stores/adminUserStore';
+import { onMounted } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useAdminUserStore } from '../stores/adminUserStore'
 
-const store = useAdminUserStore();
-const { users, isLoading } = storeToRefs(store);
+const store = useAdminUserStore()
+const { users, isLoading } = storeToRefs(store)
 
 onMounted(() => {
-  store.fetchUsers();
-});
+  store.fetchUsers()
+})
 </script>
 
 <style scoped>
@@ -52,7 +59,8 @@ table {
   width: 100%;
   border-collapse: collapse;
 }
-th, td {
+th,
+td {
   padding: 0.8rem 1rem;
   border-bottom: 1px solid #374151;
   text-align: left;
@@ -78,7 +86,13 @@ th {
   font-weight: 600;
   color: white;
 }
-.tier-1 { background-color: #6b7280; }
-.tier-2 { background-color: #3b82f6; }
-.tier-3 { background-color: #a855f7; }
+.tier-1 {
+  background-color: #6b7280;
+}
+.tier-2 {
+  background-color: #3b82f6;
+}
+.tier-3 {
+  background-color: #a855f7;
+}
 </style>

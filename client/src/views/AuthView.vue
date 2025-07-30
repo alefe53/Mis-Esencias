@@ -3,7 +3,11 @@
     <div class="auth-form-wrapper">
       <h2>{{ isRegistering ? 'Crear una Cuenta' : 'Iniciar Sesión' }}</h2>
       <p class="subtitle">
-        {{ isRegistering ? 'Ingresa tus datos para comenzar.' : 'Entrá si te da, sino anda payá.' }}
+        {{
+          isRegistering
+            ? 'Ingresa tus datos para comenzar.'
+            : 'Entrá si te da, sino anda payá.'
+        }}
       </p>
 
       <form @submit.prevent="handleSubmit">
@@ -18,18 +22,33 @@
 
         <div class="form-group">
           <label for="email">Email</label>
-          <input type="email" id="email" v-model="form.email" required autocomplete="email" />
+          <input
+            type="email"
+            id="email"
+            v-model="form.email"
+            required
+            autocomplete="email"
+          />
         </div>
         <div class="form-group">
           <label for="password">Contraseña</label>
-          <input type="password" id="password" v-model="form.password" required autocomplete="current-password" />
+          <input
+            type="password"
+            id="password"
+            v-model="form.password"
+            required
+            autocomplete="current-password"
+          />
           <p v-if="isRegistering" class="password-hint">
-            No pierdas la contraseña, se guarda encriptada en la base de datos. Solo vos sabés cual es.
+            No pierdas la contraseña, se guarda encriptada en la base de datos.
+            Solo vos sabés cual es.
           </p>
         </div>
 
-          <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
-        <p v-if="successMessage" class="success-message">{{ successMessage }}</p>
+        <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+        <p v-if="successMessage" class="success-message">
+          {{ successMessage }}
+        </p>
 
         <button type="submit" class="submit-button" :disabled="isLoading">
           {{ buttonText }}
@@ -43,64 +62,69 @@
       </button> -->
 
       <p class="toggle-form">
-        {{ isRegistering ? '¿Ya tienes una cuenta?' : '¿No tienes una cuenta?' }}
-        <a @click="toggleForm">{{ isRegistering ? 'Inicia sesión' : 'Regístrate gratis' }}</a>
+        {{
+          isRegistering ? '¿Ya tienes una cuenta?' : '¿No tienes una cuenta?'
+        }}
+        <a @click="toggleForm">{{
+          isRegistering ? 'Inicia sesión' : 'Regístrate gratis'
+        }}</a>
       </p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive } from 'vue';
-import { useAuthStore } from '../stores/authStore.ts';
-import { useRouter } from 'vue-router';
+import { ref, computed, reactive } from 'vue'
+import { useAuthStore } from '../stores/authStore.ts'
+import { useRouter } from 'vue-router'
 
-const authStore = useAuthStore();
-const router = useRouter();
+const authStore = useAuthStore()
+const router = useRouter()
 
-const isRegistering = ref(false);
-const isLoading = ref(false);
-const errorMessage = ref('');
-const successMessage = ref('');
+const isRegistering = ref(false)
+const isLoading = ref(false)
+const errorMessage = ref('')
+const successMessage = ref('')
 
 const form = reactive({
   email: '',
   password: '',
   firstName: '',
   lastName: '',
-});
+})
 
 const buttonText = computed(() => {
-  if (isLoading.value) return 'Cargando...';
-  return isRegistering.value ? 'Registrarse' : 'Entrar';
-});
+  if (isLoading.value) return 'Cargando...'
+  return isRegistering.value ? 'Registrarse' : 'Entrar'
+})
 
 const toggleForm = () => {
-  isRegistering.value = !isRegistering.value;
-  errorMessage.value = '';
-  successMessage.value = '';
-};
+  isRegistering.value = !isRegistering.value
+  errorMessage.value = ''
+  successMessage.value = ''
+}
 
 const handleSubmit = async () => {
-  isLoading.value = true;
-  errorMessage.value = '';
-  successMessage.value = '';
+  isLoading.value = true
+  errorMessage.value = ''
+  successMessage.value = ''
 
   try {
     if (isRegistering.value) {
-      await authStore.register(form);
-      successMessage.value = '¡Registro exitoso! Ahora puedes iniciar sesión.';
-      isRegistering.value = false; 
+      await authStore.register(form)
+      successMessage.value = '¡Registro exitoso! Ahora puedes iniciar sesión.'
+      isRegistering.value = false
     } else {
-      await authStore.login(form.email, form.password);
-      router.push('/'); 
+      await authStore.login(form.email, form.password)
+      router.push('/')
     }
   } catch (error: any) {
-    errorMessage.value = error.response?.data?.message || 'Ocurrió un error. Inténtalo de nuevo.';
+    errorMessage.value =
+      error.response?.data?.message || 'Ocurrió un error. Inténtalo de nuevo.'
   } finally {
-    isLoading.value = false;
+    isLoading.value = false
   }
-};
+}
 </script>
 
 <style scoped>
@@ -148,7 +172,8 @@ h2 {
   color: white;
   font-size: 1rem;
 }
-.submit-button, .google-button {
+.submit-button,
+.google-button {
   width: 100%;
   padding: 0.8rem;
   border: none;
@@ -191,7 +216,8 @@ h2 {
   font-weight: bold;
   cursor: pointer;
 }
-.error-message, .success-message {
+.error-message,
+.success-message {
   font-size: 0.9rem;
   text-align: center;
   margin-bottom: 1rem;

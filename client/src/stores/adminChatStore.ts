@@ -1,3 +1,4 @@
+// adminChatStore.ts
 import { defineStore } from 'pinia';
 import { ref, nextTick } from 'vue';
 import type { RealtimeChannel } from '@supabase/supabase-js';

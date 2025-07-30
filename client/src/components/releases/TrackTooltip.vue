@@ -6,15 +6,15 @@
 
 <script setup lang="ts">
 defineProps<{
-  message: string;
-  color: string;
-}>();
+  message: string
+  color: string
+}>()
 </script>
 
 <style scoped>
 .track-tooltip {
   position: absolute;
-  bottom: calc(100% + 12px); 
+  bottom: calc(100% + 12px);
   left: 50%;
   transform: translateX(-50%);
   padding: 8px 12px;

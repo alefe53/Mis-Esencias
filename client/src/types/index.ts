@@ -104,6 +104,7 @@ export interface EngineeringProjectSummary {
 
 export interface EngineeringProjectDetails extends EngineeringProjectSummary {
   releases: ReleaseSummary[];
+  gallery?: GalleryImage[];
 }
 
 export interface ChatMessage {
@@ -151,3 +152,49 @@ export interface AdminUser {
   subscription_name: string;
 }
 
+export interface PostAuthor {
+  id: string;
+  fullName: string;
+  avatarUrl: string | null;
+}
+
+export interface PostStats {
+  likesCount: number;
+  commentsCount: number;
+}
+
+export interface PostComment {
+  id: number;
+  content: string;
+  imageUrl: string | null;
+  createdAt: string;
+  author: PostAuthor;
+  likesCount: number;
+  isLikedByUser: boolean;
+  parentCommentId: number | null;
+}
+
+export interface PollOption {
+  id: number;
+  text: string;
+  votes: number;
+}
+
+export interface PollData {
+  options: PollOption[];
+  userVote: number | null;
+}
+
+export interface Post {
+  id: number;
+  title: string | null;
+  content: string | null;
+  imageUrl: string | null;
+  postType: 'text' | 'poll' | 'weekly_audio' | 'weekly_quote';
+  createdAt: string;
+  author: PostAuthor;
+  stats: PostStats;
+  isLikedByUser: boolean;
+  comments: PostComment[];
+  pollData: PollData | null;
+}

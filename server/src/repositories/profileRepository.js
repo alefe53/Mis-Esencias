@@ -1,6 +1,8 @@
 // src/repositories/profileRepository.js
 
 import { supabase } from "../config/supabase.js";
+import { supabase as supabaseAdmin } from "../config/supabase.js";
+
 
 export async function getProfileById(userId) {
 	const { data, error } = await supabase.rpc("get_user_profile_by_id", {
@@ -44,3 +46,16 @@ export async function updateAvatar(userId, avatarUrl) {
     
     return data && data.length > 0 ? data[0] : null;
 }
+
+export const updatePasswordInDB = async (userId, newPassword) => {
+    const { data, error } = await supabaseAdmin.auth.admin.updateUserById(
+        userId,
+        { password: newPassword }
+    );
+
+    if (error) {
+        console.error("Error al actualizar contraseña en Supabase:", error);
+        throw new Error("No se pudo actualizar la contraseña.");
+    }
+    return data;
+};

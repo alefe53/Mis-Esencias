@@ -1,5 +1,10 @@
 <template>
-  <div class="player-and-playlist-wrapper" ref="playerWrapperRef" :style="wrapperStyle" :class="{ 'is-on-auth-page': isAuthView }">
+  <div
+    class="player-and-playlist-wrapper"
+    ref="playerWrapperRef"
+    :style="wrapperStyle"
+    :class="{ 'is-on-auth-page': isAuthView }"
+  >
     <transition name="playlist-fade">
       <MusicCatalog v-if="isCatalogVisible" @close="isCatalogVisible = false" />
     </transition>
@@ -10,15 +15,21 @@
 
     <div class="player-wrapper">
       <div class="audio-player-container">
-        
         <div class="side-panel-container" v-if="!isAuthView">
-
-          <button @click="toggleMoodList" class="side-button" :style="moodButtonStyle">
+          <button
+            @click="toggleMoodList"
+            class="side-button"
+            :style="moodButtonStyle"
+          >
             {{ currentMoodName }}
           </button>
-          
+
           <transition name="fade-up">
-            <ul v-if="isMoodListVisible" class="mood-list" :class="{ 'shifted-left': showInitialPrompt }">
+            <ul
+              v-if="isMoodListVisible"
+              class="mood-list"
+              :class="{ 'shifted-left': showInitialPrompt }"
+            >
               <li
                 v-for="mood in availableMoods"
                 :key="mood.id"
@@ -40,28 +51,90 @@
               </div>
             </transition>
             <transition name="fade-info">
-              <div v-if="showTrackInfo && currentTrack" class="track-info-toast">
+              <div
+                v-if="showTrackInfo && currentTrack"
+                class="track-info-toast"
+              >
                 <p class="track-title">{{ currentTrack.title }}</p>
-                <p v-if="currentTrack.artistName || currentTrack.releaseInfo?.year" class="artist-name">
-                  {{ currentTrack.artistName }} ({{ currentTrack.releaseInfo?.year }})
+                <p
+                  v-if="
+                    currentTrack.artistName || currentTrack.releaseInfo?.year
+                  "
+                  class="artist-name"
+                >
+                  {{ currentTrack.artistName }} ({{
+                    currentTrack.releaseInfo?.year
+                  }})
                 </p>
               </div>
             </transition>
             <div class="controls">
-              <button @click="playPrevious" :disabled="!currentTrack || playerStore.currentTrackIndex === 0" class="control-button">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5"></line></svg>
+              <button
+                @click="playPrevious"
+                :disabled="!currentTrack || playerStore.currentTrackIndex === 0"
+                class="control-button"
+              >
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polygon points="19 20 9 12 19 4 19 20"></polygon>
+                  <line x1="5" y1="19" x2="5" y2="5"></line>
+                </svg>
               </button>
-              <button @click="handlePrimaryPlay" class="control-button play-pause">
-                <svg v-if="!isPlaying" width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                <svg v-else width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+              <button
+                @click="handlePrimaryPlay"
+                class="control-button play-pause"
+              >
+                <svg
+                  v-if="!isPlaying"
+                  width="26"
+                  height="26"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                <svg
+                  v-else
+                  width="26"
+                  height="26"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <rect x="6" y="4" width="4" height="16"></rect>
+                  <rect x="14" y="4" width="4" height="16"></rect>
+                </svg>
               </button>
-              <button @click="playNext" :disabled="!currentTrack || !hasNext" class="control-button">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
+              <button
+                @click="playNext"
+                :disabled="!currentTrack || !hasNext"
+                class="control-button"
+              >
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polygon points="5 4 15 12 5 20 5 4"></polygon>
+                  <line x1="19" y1="5" x2="19" y2="19"></line>
+                </svg>
               </button>
             </div>
           </div>
-          
-          <button 
+
+          <button
             v-if="!isAuthView"
             @click="toggleCatalogVisibility"
             class="side-button catalog-toggle-btn"
@@ -71,25 +144,52 @@
             C
           </button>
 
-          <button 
+          <button
             v-if="!isAuthView"
-            @click="togglePlaylistVisibility" 
+            @click="togglePlaylistVisibility"
             :disabled="playlist.length === 0"
             class="side-button playlist-toggle-btn"
             :class="{ pressed: isPlaylistVisible }"
             aria-label="Mostrar lista de reproducción"
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line>
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="8" y1="6" x2="21" y2="6"></line>
+              <line x1="8" y1="12" x2="21" y2="12"></line>
+              <line x1="8" y1="18" x2="21" y2="18"></line>
+              <line x1="3" y1="6" x2="3.01" y2="6"></line>
+              <line x1="3" y1="12" x2="3.01" y2="12"></line>
+              <line x1="3" y1="18" x2="3.01" y2="18"></line>
             </svg>
           </button>
         </div>
 
-        <div class="side-panel-container" v-if="!isAuthView" :class="{ 'placeholder': showInitialPrompt }">
-          <button @click="toggleTrackDescription" :class="{ pressed: isTrackDescriptionVisible }" :disabled="!currentTrack?.description" class="side-button">
+        <div
+          class="side-panel-container"
+          v-if="!isAuthView"
+          :class="{ placeholder: showInitialPrompt }"
+        >
+          <button
+            @click="toggleTrackDescription"
+            :class="{ pressed: isTrackDescriptionVisible }"
+            :disabled="!currentTrack?.description"
+            class="side-button"
+          >
             Descripción
           </button>
           <transition name="fade-side">
-            <div v-if="isTrackDescriptionVisible && currentTrack?.description" class="description-panel track-desc">
+            <div
+              v-if="isTrackDescriptionVisible && currentTrack?.description"
+              class="description-panel track-desc"
+            >
               <p>{{ currentTrack.description }}</p>
             </div>
           </transition>
@@ -97,7 +197,10 @@
       </div>
 
       <transition name="fade-up">
-        <div v-if="currentTrack && currentTrack.releaseInfo && !isAuthView" class="release-info-bar">
+        <div
+          v-if="currentTrack && currentTrack.releaseInfo && !isAuthView"
+          class="release-info-bar"
+        >
           <img
             v-if="currentTrack.releaseInfo.coverArtUrl"
             :src="currentTrack.releaseInfo.coverArtUrl"
@@ -108,194 +211,207 @@
             <span
               @click="toggleReleaseDescription"
               class="release-title"
-              :class="{ 'disabled': !currentTrack.releaseInfo.description }"
+              :class="{ disabled: !currentTrack.releaseInfo.description }"
             >
               {{ currentTrack.releaseInfo.title }}
             </span>
-            <span class="release-year">{{ currentTrack.releaseInfo.year }}</span>
+            <span class="release-year">{{
+              currentTrack.releaseInfo.year
+            }}</span>
           </div>
           <transition name="fade-side-left">
-              <div v-if="isReleaseDescriptionVisible && currentTrack.releaseInfo.description" class="description-panel release-desc">
-                <p>{{ currentTrack.releaseInfo.description }}</p>
-              </div>
+            <div
+              v-if="
+                isReleaseDescriptionVisible &&
+                currentTrack.releaseInfo.description
+              "
+              class="description-panel release-desc"
+            >
+              <p>{{ currentTrack.releaseInfo.description }}</p>
+            </div>
           </transition>
         </div>
       </transition>
     </div>
 
-    <audio ref="audioRef" @ended="onTrackEnded" style="display: none;"></audio>
+    <audio ref="audioRef" @ended="onTrackEnded" style="display: none"></audio>
   </div>
 </template>
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
-import { useRoute } from 'vue-router';
-import { usePlayerStore } from '../../stores/playerStore';
-import { storeToRefs } from 'pinia';
-import { useAudioControls } from '../../composables/useAudioControls';
-import { useClickOutside } from '../../composables/useClickOutside';
-import { moodColors } from '../../constants/moods';
-import Playlist from './Playlist.vue';
-import MusicCatalog from './MusicCatalog.vue';
-import { useUiStore } from '../../stores/uiStore';
-import { useMusicCatalogStore } from '../../stores/musicCatalogStore';
+import { ref, watch, computed } from 'vue'
+import { useRoute } from 'vue-router'
+import { usePlayerStore } from '../../stores/playerStore'
+import { storeToRefs } from 'pinia'
+import { useAudioControls } from '../../composables/useAudioControls'
+import { useClickOutside } from '../../composables/useClickOutside'
+import { moodColors } from '../../constants/moods'
+import Playlist from './Playlist.vue'
+import MusicCatalog from './MusicCatalog.vue'
+import { useUiStore } from '../../stores/uiStore'
+import { useMusicCatalogStore } from '../../stores/musicCatalogStore'
 
-const playerStore = usePlayerStore();
-const uiStore = useUiStore();
-const catalogStore = useMusicCatalogStore();
+const playerStore = usePlayerStore()
+const uiStore = useUiStore()
+const catalogStore = useMusicCatalogStore()
 
-const { 
-  currentTrack, 
-  isPlaying, 
-  hasNext, 
-  currentMoodId, 
+const {
+  currentTrack,
+  isPlaying,
+  hasNext,
+  currentMoodId,
   isPlaylistVisible,
   playlist,
-} = storeToRefs(playerStore);
-const { availableMoods, isMoodsLoading } = storeToRefs(uiStore);
+} = storeToRefs(playerStore)
+const { availableMoods, isMoodsLoading } = storeToRefs(uiStore)
 
-const { 
-  togglePlayPause, 
-  playNext, 
-  playPrevious, 
-  fetchAndPlayPlaylist,
-} = playerStore;
+const { togglePlayPause, playNext, playPrevious, fetchAndPlayPlaylist } =
+  playerStore
 
-const route = useRoute(); 
-const { audioRef, onTrackEnded } = useAudioControls();
+const route = useRoute()
+const { audioRef, onTrackEnded } = useAudioControls()
 
-const playerWrapperRef = ref<HTMLElement>();
-const showTrackInfo = ref(false);
-let infoTimeout: number | undefined;
+const playerWrapperRef = ref<HTMLElement>()
+const showTrackInfo = ref(false)
+let infoTimeout: number | undefined
 
-const isMoodListVisible = ref(false);
-const isTrackDescriptionVisible = ref(false); 
-const isReleaseDescriptionVisible = ref(false); 
-const isCatalogVisible = ref(false);
+const isMoodListVisible = ref(false)
+const isTrackDescriptionVisible = ref(false)
+const isReleaseDescriptionVisible = ref(false)
+const isCatalogVisible = ref(false)
 
 useClickOutside(playerWrapperRef, () => {
-  if (isCatalogVisible.value) isCatalogVisible.value = false;
-  if (isPlaylistVisible.value) playerStore.togglePlaylistVisibility();
-});
+  if (isCatalogVisible.value) isCatalogVisible.value = false
+  if (isPlaylistVisible.value) playerStore.togglePlaylistVisibility()
+})
 
 const isAuthView = computed(() => {
-  const authPaths = ['/auth', '/profile', '/info', '/admin'];
-  return authPaths.some(basePath => route.path.startsWith(basePath));
-});
+  const authPaths = ['/auth', '/profile', '/info', '/admin']
+  return authPaths.some((basePath) => route.path.startsWith(basePath))
+})
 const togglePlaylistVisibility = () => {
-  playerStore.togglePlaylistVisibility();
+  playerStore.togglePlaylistVisibility()
   if (playerStore.isPlaylistVisible && isCatalogVisible.value) {
-    isCatalogVisible.value = false;
+    isCatalogVisible.value = false
   }
-};
+}
 
 const toggleCatalogVisibility = () => {
-  isCatalogVisible.value = !isCatalogVisible.value;
+  isCatalogVisible.value = !isCatalogVisible.value
   if (isCatalogVisible.value) {
-    catalogStore.fetchCatalog();
-    if (isPlaylistVisible.value) playerStore.togglePlaylistVisibility();
+    catalogStore.fetchCatalog()
+    if (isPlaylistVisible.value) playerStore.togglePlaylistVisibility()
   }
-};
+}
 
 const currentMoodName = computed(() => {
-  if (isMoodsLoading.value) return 'Cargando...';
-  if (currentMoodId.value === null) return 'Estado de Ánimo';
-  const mood = availableMoods.value.find(m => m.id === currentMoodId.value);
-  return mood ? mood.name : 'Estado de Ánimo';
-});
+  if (isMoodsLoading.value) return 'Cargando...'
+  if (currentMoodId.value === null) return 'Estado de Ánimo'
+  const mood = availableMoods.value.find((m) => m.id === currentMoodId.value)
+  return mood ? mood.name : 'Estado de Ánimo'
+})
 
 const moodButtonStyle = computed(() => {
-  if (currentMoodId.value === null) return {};
-  const moodName = availableMoods.value.find(m => m.id === currentMoodId.value)?.name;
+  if (currentMoodId.value === null) return {}
+  const moodName = availableMoods.value.find(
+    (m) => m.id === currentMoodId.value,
+  )?.name
   if (moodName) {
-    const color = moodColors[moodName];
+    const color = moodColors[moodName]
     return {
       backgroundColor: color,
-      color: (moodName === 'Lo que sea' || moodName === 'Llevándola') ? '#111827' : '#FFFFFF',
+      color:
+        moodName === 'Lo que sea' || moodName === 'Llevándola'
+          ? '#111827'
+          : '#FFFFFF',
       borderColor: color,
-    };
+    }
   }
-  return {};
-});
+  return {}
+})
 
 const wrapperStyle = computed(() => {
-  if (currentMoodId.value === null) return {};
-  const moodName = availableMoods.value.find(m => m.id === currentMoodId.value)?.name;
+  if (currentMoodId.value === null) return {}
+  const moodName = availableMoods.value.find(
+    (m) => m.id === currentMoodId.value,
+  )?.name
   if (moodName && moodColors[moodName]) {
-    const isLightColor = moodName === 'Lo que sea' || moodName === 'Llevándola';
-    return { 
+    const isLightColor = moodName === 'Lo que sea' || moodName === 'Llevándola'
+    return {
       '--current-mood-color': moodColors[moodName],
       '--current-mood-text-color': isLightColor ? '#111827' : '#FFFFFF',
-      '--current-mood-secondary-text-color': isLightColor ? '#374151' : '#e0e0e0',
-    };
+      '--current-mood-secondary-text-color': isLightColor
+        ? '#374151'
+        : '#e0e0e0',
+    }
   }
-  return {};
-});
+  return {}
+})
 
 const getHoverColorForMood = (moodName: string) => {
-  return moodColors[moodName] || '#FFFFFF';
-};
+  return moodColors[moodName] || '#FFFFFF'
+}
 
 const toggleMoodList = () => {
-  uiStore.ensureMoodsAvailable();
-  isMoodListVisible.value = !isMoodListVisible.value;
-};
+  uiStore.ensureMoodsAvailable()
+  isMoodListVisible.value = !isMoodListVisible.value
+}
 
 const showInitialPrompt = computed(() => {
-  return !uiStore.hasShownInitialPrompt && !currentTrack.value;
-});
+  return !uiStore.hasShownInitialPrompt && !currentTrack.value
+})
 
 const selectMood = (moodId: number) => {
   if (!uiStore.hasShownInitialPrompt) {
-    uiStore.setInitialPromptAsShown();
+    uiStore.setInitialPromptAsShown()
   }
-  fetchAndPlayPlaylist(moodId);
-  isMoodListVisible.value = false;
-};
+  fetchAndPlayPlaylist(moodId)
+  isMoodListVisible.value = false
+}
 
 const toggleTrackDescription = () => {
-  isTrackDescriptionVisible.value = !isTrackDescriptionVisible.value;
-  isReleaseDescriptionVisible.value = false; 
-};
+  isTrackDescriptionVisible.value = !isTrackDescriptionVisible.value
+  isReleaseDescriptionVisible.value = false
+}
 
 const toggleReleaseDescription = () => {
-  isReleaseDescriptionVisible.value = !isReleaseDescriptionVisible.value;
-  isTrackDescriptionVisible.value = false;
-};
+  isReleaseDescriptionVisible.value = !isReleaseDescriptionVisible.value
+  isTrackDescriptionVisible.value = false
+}
 
 const triggerTrackInfoToast = () => {
-  if (!currentTrack.value) return;
-  showTrackInfo.value = true;
-  clearTimeout(infoTimeout);
-  infoTimeout = window.setTimeout(() => { 
-    showTrackInfo.value = false;
-  }, 4000);
-};
+  if (!currentTrack.value) return
+  showTrackInfo.value = true
+  clearTimeout(infoTimeout)
+  infoTimeout = window.setTimeout(() => {
+    showTrackInfo.value = false
+  }, 4000)
+}
 
 watch(currentTrack, (newTrack) => {
   if (newTrack) {
-    triggerTrackInfoToast();
+    triggerTrackInfoToast()
   }
   if (!newTrack?.description) {
-    isTrackDescriptionVisible.value = false;
+    isTrackDescriptionVisible.value = false
   }
   if (!newTrack?.releaseInfo?.description) {
-    isReleaseDescriptionVisible.value = false;
+    isReleaseDescriptionVisible.value = false
   }
-});
+})
 
 const handlePrimaryPlay = async () => {
   if (availableMoods.value.length === 0) {
-    await uiStore.ensureMoodsAvailable();
+    await uiStore.ensureMoodsAvailable()
   }
-  const moodToPlay = currentMoodId.value === null ? 5 : currentMoodId.value;
+  const moodToPlay = currentMoodId.value === null ? 5 : currentMoodId.value
   if (!currentTrack.value) {
-    uiStore.setInitialPromptAsShown();
-    fetchAndPlayPlaylist(moodToPlay);
+    uiStore.setInitialPromptAsShown()
+    fetchAndPlayPlaylist(moodToPlay)
   } else {
-    togglePlayPause();
-    triggerTrackInfoToast();
+    togglePlayPause()
+    triggerTrackInfoToast()
   }
-};
+}
 </script>
 
 <style scoped>
@@ -341,8 +457,8 @@ const handlePrimaryPlay = async () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px; 
-  position: relative; 
+  gap: 10px;
+  position: relative;
 }
 
 .player-controls-pill {
@@ -361,7 +477,7 @@ const handlePrimaryPlay = async () => {
 .playlist-toggle-btn {
   position: absolute;
   top: 50%;
-  left: calc(50% + 60px); 
+  left: calc(50% + 60px);
   transform: translate(-50%, 20px);
   display: flex;
   justify-content: center;
@@ -446,9 +562,9 @@ const handlePrimaryPlay = async () => {
 .side-panel-container {
   position: relative;
   display: flex;
-  flex-direction: column; 
-  align-items: center;    
-  gap: 8px;               
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
   min-width: 110px;
 }
 .side-panel-container.placeholder {
@@ -505,7 +621,9 @@ const handlePrimaryPlay = async () => {
   border-radius: 6px;
   font-size: 0.75rem;
   cursor: pointer;
-  transition: background-color 0.2s, color 0.2s;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
 }
 .release-info-bar {
   display: flex;
@@ -516,7 +634,7 @@ const handlePrimaryPlay = async () => {
   border-radius: 8px;
   border: 1px solid #333;
   backdrop-filter: blur(5px);
-  position: relative; 
+  position: relative;
 }
 .release-cover-art {
   width: 40px;
@@ -563,31 +681,43 @@ const handlePrimaryPlay = async () => {
 
 .playlist-fade-enter-active,
 .playlist-fade-leave-active {
-  transition: opacity 0.4s ease, transform 0.4s ease;
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s ease;
 }
 .playlist-fade-enter-from,
 .playlist-fade-leave-to {
   opacity: 0;
   transform: translateX(20px) scale(0.95);
 }
-.fade-up-enter-active, .fade-up-leave-active,
-.fade-side-enter-active, .fade-side-leave-active,
-.fade-enter-active, .fade-leave-active,
-.fade-info-enter-active, .fade-info-leave-active,
-.fade-side-left-enter-active, .fade-side-left-leave-active {
+.fade-up-enter-active,
+.fade-up-leave-active,
+.fade-side-enter-active,
+.fade-side-leave-active,
+.fade-enter-active,
+.fade-leave-active,
+.fade-info-enter-active,
+.fade-info-leave-active,
+.fade-side-left-enter-active,
+.fade-side-left-leave-active {
   transition: all 0.3s ease;
 }
-.fade-up-enter-from, .fade-up-leave-to,
-.fade-enter-from, .fade-leave-to,
-.fade-info-enter-from, .fade-info-leave-to {
+.fade-up-enter-from,
+.fade-up-leave-to,
+.fade-enter-from,
+.fade-leave-to,
+.fade-info-enter-from,
+.fade-info-leave-to {
   opacity: 0;
   transform: translateY(10px);
 }
-.fade-side-enter-from, .fade-side-leave-to {
+.fade-side-enter-from,
+.fade-side-leave-to {
   opacity: 0;
   transform: translateX(-10px);
 }
-.fade-side-left-enter-from, .fade-side-left-leave-to {
+.fade-side-left-enter-from,
+.fade-side-left-leave-to {
   opacity: 0;
   transform: translateX(10px);
 }
@@ -595,7 +725,7 @@ const handlePrimaryPlay = async () => {
 .catalog-toggle-btn {
   position: absolute;
   top: 50%;
-  right: calc(50% + 30px); 
+  right: calc(50% + 30px);
   transform: translate(-50%, 20px);
   display: flex;
   justify-content: center;
@@ -609,9 +739,9 @@ const handlePrimaryPlay = async () => {
   font-size: 1.1rem;
 }
 
-.catalog-container { 
+.catalog-container {
   bottom: calc(40% + 0px);
   left: 25%;
-  transform: translateX(-50%); 
+  transform: translateX(-50%);
 }
 </style>

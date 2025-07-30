@@ -59,38 +59,38 @@
 
 <script setup lang="ts">
 // El <script setup> se mantiene exactamente igual
-import { ref, onMounted, computed } from "vue";
-import { useReleaseStore } from "../stores/releaseStore";
-import ReleaseCard from "../components/releases/ReleaseCard.vue";
-import ReleaseDetailModal from "../components/releases/ReleaseDetailModal.vue";
+import { ref, onMounted, computed } from 'vue'
+import { useReleaseStore } from '../stores/releaseStore'
+import ReleaseCard from '../components/releases/ReleaseCard.vue'
+import ReleaseDetailModal from '../components/releases/ReleaseDetailModal.vue'
 
-const store = useReleaseStore();
-const isHovering = ref(false);
+const store = useReleaseStore()
+const isHovering = ref(false)
 
-const isCarouselMode = computed(() => store.myReleases.length > 4);
+const isCarouselMode = computed(() => store.myReleases.length > 4)
 
 const duplicatedReleases = computed(() => {
   if (isCarouselMode.value) {
-    return [...store.myReleases, ...store.myReleases];
+    return [...store.myReleases, ...store.myReleases]
   }
-  return [];
-});
+  return []
+})
 
 const carouselStyle = computed(() => {
-  const baseSpeed = 5;
-  const duration = store.myReleases.length * baseSpeed;
+  const baseSpeed = 5
+  const duration = store.myReleases.length * baseSpeed
   return {
-    "--item-count": store.myReleases.length,
-    "animation-duration": `${duration}s`,
-  };
-});
+    '--item-count': store.myReleases.length,
+    'animation-duration': `${duration}s`,
+  }
+})
 
 onMounted(() => {
-  store.fetchMyReleases();
-});
+  store.fetchMyReleases()
+})
 
 function openDetails(id: number) {
-  store.fetchReleaseDetails(id);
+  store.fetchReleaseDetails(id)
 }
 </script>
 

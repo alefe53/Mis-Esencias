@@ -2,36 +2,57 @@
   <transition name="modal-fade">
     <div v-if="isModalOpen" class="modal-overlay" @click="closeModal">
       <div class="modal-content" @click.stop>
-        <button class="close-button" @click="closeModal" aria-label="Cerrar modal">×</button>
+        <button
+          class="close-button"
+          @click="closeModal"
+          aria-label="Cerrar modal"
+        >
+          ×
+        </button>
         <h2>Galería Privada</h2>
         <div v-if="isLoading" class="loader">Cargando imágenes...</div>
         <div v-else-if="privateGallery.length > 0" class="gallery-grid">
           <div
-            v-for="image in privateGallery"
+            v-for="(image, index) in privateGallery"
             :key="image.file_path"
             class="gallery-item"
-            @click="selectImage(image)"
+            @click="handleSelectImage(image)"
           >
-            <img v-if="image.signedUrl" :src="image.signedUrl" :alt="image.title || 'Foto de la galería'" loading="lazy" />
+            <img
+              v-if="image.signedUrl"
+              :src="image.signedUrl"
+              :alt="image.title || 'Foto de la galería'"
+              loading="lazy"
+            />
             <div class="image-info">
               <h3 v-if="image.title">{{ image.title }}</h3>
               <p v-if="image.description">{{ image.description }}</p>
             </div>
           </div>
         </div>
-        <div v-else class="empty-state">No hay imágenes disponibles en este momento.</div>
+        <div v-else class="empty-state">
+          No hay imágenes disponibles en este momento.
+        </div>
       </div>
     </div>
   </transition>
 </template>
 
 <script setup lang="ts">
-import { useImageStore } from '../../stores/imageStore';
-import { storeToRefs } from 'pinia';
+import { useImageStore } from '../../stores/imageStore'
+import { storeToRefs } from 'pinia'
+import type { PrivateGalleryImage } from '../../types' // 👈 Importa el tipo si no lo tienes
 
-const imageStore = useImageStore();
-const { isModalOpen, isLoading, privateGallery } = storeToRefs(imageStore);
-const { closeModal, selectImage } = imageStore;
+const imageStore = useImageStore()
+const { isModalOpen, isLoading, privateGallery } = storeToRefs(imageStore)
+
+// Estas funciones ahora existen en el store, así que esto funciona
+const { closeModal } = imageStore
+
+// Creamos la función para llamar al store
+const handleSelectImage = (image: PrivateGalleryImage) => {
+  imageStore.selectImage(image)
+}
 </script>
 
 <style scoped>

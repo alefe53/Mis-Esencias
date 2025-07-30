@@ -14,4 +14,6 @@ profileRouter.put("/", requireAuth, profileController.updateCurrentUserProfile);
 
 profileRouter.post('/avatar', requireAuth, upload.single('avatar'), profileController.uploadAvatar);
 
+profileRouter.post("/password", requireAuth, profileController.handleUpdatePassword);
+
 export default profileRouter;

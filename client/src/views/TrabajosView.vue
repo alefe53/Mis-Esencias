@@ -6,6 +6,7 @@
     </div>
     <p class="description">
       Proyectos Laborales, de todos los colores. Aquí algunos destacados.
+      ¡Contactame para estar entre ellos!
     </p>
 
     <div v-if="isLoadingProjects" class="loader">Cargando proyectos...</div>
@@ -18,39 +19,46 @@
         class="project-item"
         :style="{ '--animation-delay': `-${index * 0.4}s` }"
       >
-        <img :src="project.cover_art_url" :alt="project.artist_or_band_name" class="project-cover" />
+        <img
+          :src="project.cover_art_url"
+          :alt="project.artist_or_band_name"
+          class="project-cover"
+        />
         <span class="project-name">{{ project.artist_or_band_name }}</span>
       </router-link>
     </div>
 
-    <div v-else class="no-projects">
-      No se encontraron proyectos.
-    </div>
-    </div>
+    <div v-else class="no-projects">No se encontraron proyectos.</div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
-import { storeToRefs } from 'pinia';
-import { useEngineeringStore } from '../stores/engineeringStore';
+import { onMounted } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useEngineeringStore } from '../stores/engineeringStore'
 
-const engineeringStore = useEngineeringStore();
-const { projects, isLoadingProjects } = storeToRefs(engineeringStore);
+const engineeringStore = useEngineeringStore()
+const { projects, isLoadingProjects } = storeToRefs(engineeringStore)
 
 onMounted(() => {
-  engineeringStore.fetchProjects();
-});
+  engineeringStore.fetchProjects()
+})
 </script>
 
 <style scoped>
 @keyframes levitate {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2), 0 6px 6px rgba(0, 0, 0, 0.23);
+    box-shadow:
+      0 10px 20px rgba(0, 0, 0, 0.2),
+      0 6px 6px rgba(0, 0, 0, 0.23);
   }
   50% {
     transform: translateY(-10px);
-    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22);
+    box-shadow:
+      0 14px 28px rgba(0, 0, 0, 0.25),
+      0 10px 10px rgba(0, 0, 0, 0.22);
   }
 }
 
@@ -151,21 +159,38 @@ onMounted(() => {
 }
 
 @media (min-width: 901px) {
-  .projects-grid:has(.project-item:nth-child(4):last-child) .project-item:nth-child(4) {
+  .projects-grid:has(.project-item:nth-child(4):last-child)
+    .project-item:nth-child(4) {
     grid-column: 2;
   }
-  
+
   .projects-grid:has(.project-item:nth-child(5):last-child) {
     grid-template-columns: repeat(6, 1fr);
   }
-  .projects-grid:has(.project-item:nth-child(5):last-child) .project-item:nth-child(1) { grid-column: 1 / 3; }
-  .projects-grid:has(.project-item:nth-child(5):last-child) .project-item:nth-child(2) { grid-column: 3 / 5; }
-  .projects-grid:has(.project-item:nth-child(5):last-child) .project-item:nth-child(3) { grid-column: 5 / 7; }
-  .projects-grid:has(.project-item:nth-child(5):last-child) .project-item:nth-child(4) { grid-column: 2 / 4; }
-  .projects-grid:has(.project-item:nth-child(5):last-child) .project-item:nth-child(5) { grid-column: 4 / 6; }
+  .projects-grid:has(.project-item:nth-child(5):last-child)
+    .project-item:nth-child(1) {
+    grid-column: 1 / 3;
+  }
+  .projects-grid:has(.project-item:nth-child(5):last-child)
+    .project-item:nth-child(2) {
+    grid-column: 3 / 5;
+  }
+  .projects-grid:has(.project-item:nth-child(5):last-child)
+    .project-item:nth-child(3) {
+    grid-column: 5 / 7;
+  }
+  .projects-grid:has(.project-item:nth-child(5):last-child)
+    .project-item:nth-child(4) {
+    grid-column: 2 / 4;
+  }
+  .projects-grid:has(.project-item:nth-child(5):last-child)
+    .project-item:nth-child(5) {
+    grid-column: 4 / 6;
+  }
 }
 
-.loader, .no-projects {
+.loader,
+.no-projects {
   font-size: 1.5rem;
   margin-top: 5rem;
 }

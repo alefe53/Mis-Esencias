@@ -10,11 +10,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed } from 'vue'
 
-const primaryColor = '#ADD8E6'; // Celeste claro
-const secondaryColor = '#FFC0CB'; // Rosa claro
-const whiteColor = '#FFFFFF';
+const primaryColor = '#ADD8E6' // Celeste claro
+const secondaryColor = '#FFC0CB' // Rosa claro
+const whiteColor = '#FFFFFF'
 
 const gradientColors = computed(() => {
   return [
@@ -23,8 +23,8 @@ const gradientColors = computed(() => {
     secondaryColor,
     whiteColor,
     primaryColor,
-  ].join(', ');
-});
+  ].join(', ')
+})
 </script>
 <style scoped>
 /* Definimos la animación que rota el gradiente del borde */
@@ -70,10 +70,7 @@ const gradientColors = computed(() => {
   left: -50%;
   width: 200%;
   height: 200%;
-  background: conic-gradient(
-    from 180deg at 50% 50%,
-    v-bind(gradientColors)
-  );
+  background: conic-gradient(from 180deg at 50% 50%, v-bind(gradientColors));
   animation: rotate-gradient 8s linear infinite;
   z-index: -1;
 }
@@ -87,17 +84,17 @@ const gradientColors = computed(() => {
   margin: 0;
   padding: 1rem 3rem;
   border-radius: 48px;
-  
+
   /* ✨ CAMBIO: Aplicamos la imagen de fondo aquí y un velo oscuro para legibilidad */
-  background: 
-    linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), /* Velo oscuro */
-    url('/adfHeaderFondo.jpg'); /* Tu imagen de fondo */
-  
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
+    /* Velo oscuro */ url('/adfHeaderFondo.jpg'); /* Tu imagen de fondo */
+
   background-size: cover;
   background-position: center;
-  
+
   /* El efecto de brillo para el texto se vuelve más importante */
-  text-shadow: 
+  text-shadow:
     0 0 2px rgba(0, 0, 0, 0.7),
     0 0 8px rgba(255, 255, 255, 0.8),
     0 0 18px rgba(247, 149, 4, 0.6);
@@ -112,7 +109,7 @@ const gradientColors = computed(() => {
 
 .link:hover {
   color: #fff;
-  text-shadow: 
+  text-shadow:
     0 0 8px #fff,
     0 0 15px #fca311,
     0 0 25px #fca311;

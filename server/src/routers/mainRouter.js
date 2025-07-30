@@ -12,6 +12,9 @@ import trackRouter from "./trackRouter.js";
 import subscriptionRouter from "./subscriptionRouter.js";
 import imageRouter from "./imageRouter.js";
 import adminRouter from "./adminRouter.js"; 
+import postRouter from "./postRouter.js"; 
+import globalChatRouter from "./globalChatRouter.js"; 
+
 
 const mainRouter = Router();
 
@@ -27,5 +30,9 @@ mainRouter.use("/chat", chatRouter);
 mainRouter.use("/public/subscriptions", subscriptionRouter); 
 mainRouter.use("/images", imageRouter);
 mainRouter.use("/admin", adminRouter); 
+mainRouter.use("/posts", postRouter); 
+mainRouter.use("/global-chat", globalChatRouter); 
+
+
 
 export default mainRouter;
