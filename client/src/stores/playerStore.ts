@@ -1,8 +1,7 @@
-// store/playerStore.ts
 import { defineStore } from 'pinia';
 import type { Track } from '../types/index.ts';
 import api from '../services/api.ts';
-import { getPlayableUrl } from '../services/trackService'; 
+import { getPlayableUrl } from '../services/trackService';
 
 export const usePlayerStore = defineStore('player', {
   state: () => ({
@@ -12,6 +11,7 @@ export const usePlayerStore = defineStore('player', {
     isPlaylistLoading: false,
     currentMoodId: null as number | null,
     isPlaylistVisible: false,
+    playerState: 'maximized' as 'maximized' | 'docked' | 'hidden',
   }),
 
   getters: {
@@ -43,7 +43,7 @@ export const usePlayerStore = defineStore('player', {
       this.playlist = tracks;
       this.currentTrackIndex = 0;
       this.isPlaying = true;
-      this.currentMoodId = 5; 
+      this.currentMoodId = 5;
     },
 
     async playTrackNow(track: Track) {
@@ -52,7 +52,7 @@ export const usePlayerStore = defineStore('player', {
       }
       if (!track.playableUrl) {
         console.error("No se pudo obtener una URL válida para el track:", track.title);
-        return; 
+        return;
       }
       const existingIndex = this.playlist.findIndex(t => t.id === track.id);
       if (existingIndex > -1) {
@@ -64,11 +64,11 @@ export const usePlayerStore = defineStore('player', {
         const randomMoodIndex = Math.floor(Math.random() * track.moods.length);
         this.currentMoodId = track.moods[randomMoodIndex].id;
       } else {
-        this.currentMoodId = 5; 
+        this.currentMoodId = 5;
       }
       this.isPlaying = true;
     },
-    
+
     async addToQueue(track: Track) {
       if (!track.playableUrl) {
         track.playableUrl = await getPlayableUrl(track.filePath, track.required_subscription_tier_id || null);
@@ -90,7 +90,7 @@ export const usePlayerStore = defineStore('player', {
     async fetchAndPlayPlaylist(moodId: number) {
       if (this.isPlaylistLoading) return;
       this.isPlaylistLoading = true;
-      this.currentMoodId = moodId; 
+      this.currentMoodId = moodId;
       try {
         const response = await api.get('/playlists', {
           params: { moodId, limit: 15 },
@@ -111,7 +111,7 @@ export const usePlayerStore = defineStore('player', {
       } catch (error) {
         console.error('Error al obtener la playlist:', error);
       } finally {
-        this.isPlaylistLoading = false; 
+        this.isPlaylistLoading = false;
       }
     },
 
@@ -121,10 +121,10 @@ export const usePlayerStore = defineStore('player', {
       try {
         const excludeTrackIds = this.playlist.map(track => track.id).join(',');
         const response = await api.get('/playlists', {
-          params: { 
+          params: {
             moodId: this.currentMoodId,
-            limit: 5, 
-            excludeTrackIds 
+            limit: 5,
+            excludeTrackIds
           },
         });
         const newPlayableTracks = response.data.data.filter(
@@ -141,7 +141,7 @@ export const usePlayerStore = defineStore('player', {
     togglePlaylistVisibility() {
       this.isPlaylistVisible = !this.isPlaylistVisible;
     },
-    
+
     playTrackFromPlaylist(index: number) {
       if (index >= 0 && index < this.playlist.length) {
         this.currentTrackIndex = index;
@@ -178,11 +178,28 @@ export const usePlayerStore = defineStore('player', {
       this.currentMoodId = null;
       this.isPlaylistVisible = false;
       this.isPlaylistLoading = false;
+      this.playerState = 'maximized';
     },
 
     togglePlayPause() {
       if (!this.currentTrack) return;
       this.isPlaying = !this.isPlaying;
+    },
+
+    minimizePlayer() {
+      if (this.playerState === 'maximized') {
+        this.playerState = 'docked';
+      } else if (this.playerState === 'docked') {
+        this.playerState = 'hidden';
+      }
+    },
+
+    maximizePlayer() {
+      if (this.playerState === 'hidden') {
+        this.playerState = 'docked';
+      } else if (this.playerState === 'docked') {
+        this.playerState = 'maximized';
+      }
     },
   },
 });

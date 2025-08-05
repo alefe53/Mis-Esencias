@@ -10,8 +10,11 @@ const globalChatRouter = Router();
 globalChatRouter.use(requireAuth);
 
 globalChatRouter.get("/", globalChatController.getChatMessages);
-globalChatRouter.get("/:messageId", globalChatController.getSingleChatMessage); 
+globalChatRouter.get("/:messageId", globalChatController.getSingleChatMessage);
 globalChatRouter.post("/", globalChatController.postChatMessage);
-globalChatRouter.post("/:messageId/react", globalChatController.toggleMessageReaction);
+globalChatRouter.post(
+	"/:messageId/react",
+	globalChatController.toggleMessageReaction,
+);
 
 export default globalChatRouter;

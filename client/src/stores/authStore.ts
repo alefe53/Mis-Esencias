@@ -1,4 +1,5 @@
-// stores/authStore.ts
+// RUTA: client/src/stores/authStore.ts
+
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { User, RegisterPayload, ProfileUpdatePayload } from '../types/index.ts'
@@ -6,10 +7,17 @@ import api from '../services/api'
 import * as profileService from '../services/profileService.ts' 
 import { usePlayerStore } from './playerStore'
 import { useUiStore } from './uiStore'
+import { useRouter } from 'vue-router' // Importamos useRouter
+
+// --- INICIO: LÓGICA MODIFICADA ---
+
+// Helper para crear una pausa
+const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const token = ref<string | null>(null)
+  const router = useRouter() // Obtenemos la instancia del router
 
   const isAuthenticated = computed(() => !!user.value && !!token.value)
   const isAdmin = computed(() => {
@@ -19,23 +27,42 @@ export const useAuthStore = defineStore('auth', () => {
   async function login(email: string, password: string) {
     const playerStore = usePlayerStore()
     const uiStore = useUiStore()
+    
     playerStore.reset()
-    try {
-      const { data } = await api.post('/auth/login', { email, password })
-      if (data.success && data.token && data.user) {
-        token.value = data.token
-        user.value = data.user
-        
-        localStorage.setItem('authToken', data.token)
-        localStorage.setItem('authUser', JSON.stringify(data.user))
-        await fetchUserProfile()
-        await uiStore.ensureMoodsAvailable()
+
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY_MS = 3000;
+    let lastError: any = null;
+
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const { data } = await api.post('/auth/login', { email, password })
+        if (data.success && data.token && data.user) {
+          token.value = data.token
+          user.value = data.user
+          
+          localStorage.setItem('authToken', data.token)
+          localStorage.setItem('authUser', JSON.stringify(data.user))
+
+          await fetchUserProfile()
+          await uiStore.ensureMoodsAvailable()
+
+          return; // Si el login es exitoso, salimos de la función.
+        }
+      } catch (error) {
+        lastError = error;
+        console.warn(`Intento de login ${attempt}/${MAX_RETRIES} fallido. Reintentando en ${RETRY_DELAY_MS / 1000}s...`);
+        if (attempt < MAX_RETRIES) {
+          await delay(RETRY_DELAY_MS);
+        }
       }
-    } catch (error) {
-      console.error("Error en el login:", error)
-      throw error
     }
+
+    // Si el bucle termina sin éxito, lanzamos el último error capturado.
+    console.error("Error en el login después de todos los reintentos:", lastError);
+    throw lastError;
   }
+// --- FIN: LÓGICA MODIFICADA ---
 
   async function fetchUserProfile() {
       try {
@@ -46,10 +73,11 @@ export const useAuthStore = defineStore('auth', () => {
           }
       } catch (error) {
           console.error("No se pudo refrescar el perfil del usuario:", error);
+          // Si el perfil no se puede refrescar por un error 401, el interceptor se encargará
       }
   }
 
-  function logout() {
+  function logout(sessionExpired = false) { // Acepta un parámetro opcional
     const playerStore = usePlayerStore()
     const uiStore = useUiStore()
 
@@ -63,6 +91,16 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('authUser')
     
     uiStore.ensureMoodsAvailable()
+    
+    // Si la sesión expiró, mostramos un toast y redirigimos
+    if (sessionExpired) {
+        uiStore.showToast({
+            message: 'Tu sesión ha expirado. Por favor, inicia sesión de nuevo.',
+            color: '#ef4444', // Un color de error
+            duration: 5000,
+        });
+        router.push('/auth');
+    }
   }
 
   function checkUserSession() {

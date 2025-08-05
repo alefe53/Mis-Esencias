@@ -1,8 +1,8 @@
 // src/controllers/profileController.js
 
+import { config } from "../config/config.js";
+import { supabase } from "../config/supabase.js";
 import * as profileService from "../services/profileService.js";
-import { supabase } from '../config/supabase.js';
-import { config } from '../config/config.js'; 
 
 export async function getCurrentUserProfile(req, res, next) {
 	try {
@@ -19,60 +19,67 @@ export async function getCurrentUserProfile(req, res, next) {
 
 // --- FUNCIÓN COMPLETAMENTE CORREGIDA Y MEJORADA ---
 export async function uploadAvatar(req, res, next) {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No se ha subido ningún archivo.' });
-    }
+	try {
+		if (!req.file) {
+			return res
+				.status(400)
+				.json({ success: false, message: "No se ha subido ningún archivo." });
+		}
 
-    const userId = req.user.id;
-    const file = req.file;
-    const bucketName = config.supabase.buckets.PUBLIC;
+		const userId = req.user.id;
+		const file = req.file;
+		const bucketName = config.supabase.buckets.PUBLIC;
 
-    const currentProfile = await profileService.getUserProfile(userId);
-    const oldAvatarPath = currentProfile?.avatar_url;
+		const currentProfile = await profileService.getUserProfile(userId);
+		const oldAvatarPath = currentProfile?.avatar_url;
 
-    if (oldAvatarPath && oldAvatarPath !== 'perfildefault.jpg') {
-      try {
-        const { error: removeError } = await supabase.storage
-          .from(bucketName)
-          .remove([oldAvatarPath]); 
+		if (oldAvatarPath && oldAvatarPath !== "perfildefault.jpg") {
+			try {
+				const { error: removeError } = await supabase.storage
+					.from(bucketName)
+					.remove([oldAvatarPath]);
 
-        if (removeError) {
-          console.warn(`No se pudo borrar el avatar anterior: ${removeError.message}`);
-        }
-      } catch (e) {
-         console.warn(`Error al intentar borrar el avatar anterior: ${e.message}`);
-      }
-    }
+				if (removeError) {
+					console.warn(
+						`No se pudo borrar el avatar anterior: ${removeError.message}`,
+					);
+				}
+			} catch (e) {
+				console.warn(
+					`Error al intentar borrar el avatar anterior: ${e.message}`,
+				);
+			}
+		}
 
-    const fileName = `users/${userId}/avatars/avatar-${Date.now()}`; 
-    const { error: uploadError } = await supabase.storage
-      .from(bucketName)
-      .upload(fileName, file.buffer, {
-        contentType: file.mimetype,
-        cacheControl: '3600',
-        upsert: false,
-      });
+		const fileName = `users/${userId}/avatars/avatar-${Date.now()}`;
+		const { error: uploadError } = await supabase.storage
+			.from(bucketName)
+			.upload(fileName, file.buffer, {
+				contentType: file.mimetype,
+				cacheControl: "3600",
+				upsert: false,
+			});
 
-    if (uploadError) {
-      throw new Error(`Error al subir el nuevo avatar: ${uploadError.message}`);
-    }
+		if (uploadError) {
+			throw new Error(`Error al subir el nuevo avatar: ${uploadError.message}`);
+		}
 
-    const updatedProfile = await profileService.updateAvatar(userId, fileName); // Usamos 'fileName'
+		const updatedProfile = await profileService.updateAvatar(userId, fileName); // Usamos 'fileName'
 
-    const { data: publicUrlData } = supabase.storage.from(bucketName).getPublicUrl(fileName);
+		const { data: publicUrlData } = supabase.storage
+			.from(bucketName)
+			.getPublicUrl(fileName);
 
-    res.status(200).json({
-      success: true,
-      message: 'Avatar actualizado exitosamente.',
-      data: {
-        avatarUrl: publicUrlData.publicUrl
-      },
-    });
-
-  } catch (error) {
-    next(error);
-  }
+		res.status(200).json({
+			success: true,
+			message: "Avatar actualizado exitosamente.",
+			data: {
+				avatarUrl: publicUrlData.publicUrl,
+			},
+		});
+	} catch (error) {
+		next(error);
+	}
 }
 export async function updateCurrentUserProfile(req, res, next) {
 	try {
@@ -108,20 +115,19 @@ export async function updateCurrentUserProfile(req, res, next) {
 	} catch (error) {
 		next(error);
 	}
-
-
 }
 
-
 export const handleUpdatePassword = async (req, res, next) => {
-    try {
-        const { newPassword } = req.body;
-        const userId = req.user.id; 
-        
-        await profileService.updateUserPassword(userId, newPassword);
-        
-        res.status(200).json({ success: true, message: 'Contraseña actualizada exitosamente.' });
-    } catch (error) {
-        next(error);
-    }
+	try {
+		const { newPassword } = req.body;
+		const userId = req.user.id;
+
+		await profileService.updateUserPassword(userId, newPassword);
+
+		res
+			.status(200)
+			.json({ success: true, message: "Contraseña actualizada exitosamente." });
+	} catch (error) {
+		next(error);
+	}
 };

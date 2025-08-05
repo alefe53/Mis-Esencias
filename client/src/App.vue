@@ -42,9 +42,7 @@
     </transition>
 
     <transition name="fade">
-      <footer v-show="!uiStore.isGlobalTransitionActive">
-        <AudioPlayer />
-      </footer>
+      <AudioPlayer v-show="!uiStore.isGlobalTransitionActive" />
     </transition>
 
     <Toast

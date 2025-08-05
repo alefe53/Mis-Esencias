@@ -7,12 +7,14 @@ import { supabase } from "../config/supabase.js";
  * @returns {Promise<object[]>} Una promesa que resuelve a un array con los tiers.
  */
 export const getAllTiersFromDB = async () => {
-    const { data, error } = await supabase.rpc("get_all_subscription_tiers");
+	const { data, error } = await supabase.rpc("get_all_subscription_tiers");
 
-    if (error) {
-        console.error("Error en RPC (get_all_subscription_tiers):", error.message);
-        throw new Error("No se pudieron obtener los niveles de suscripción desde la base de datos.");
-    }
+	if (error) {
+		console.error("Error en RPC (get_all_subscription_tiers):", error.message);
+		throw new Error(
+			"No se pudieron obtener los niveles de suscripción desde la base de datos.",
+		);
+	}
 
-    return data;
+	return data;
 };

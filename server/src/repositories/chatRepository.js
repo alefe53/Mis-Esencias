@@ -120,24 +120,24 @@ const getAdminConversationList = async (adminId) => {
 };
 
 const deleteConversationAsAdmin = async (conversationId) => {
-        const { error } = await supabase.rpc("admin_delete_conversation", {
-            p_conversation_id: conversationId,
-        });
-        if (error) {
-            console.error("Error en RPC (admin_delete_conversation):", error);
-            throw new Error("No se pudo borrar la conversación.");
-        }
-    };
+	const { error } = await supabase.rpc("admin_delete_conversation", {
+		p_conversation_id: conversationId,
+	});
+	if (error) {
+		console.error("Error en RPC (admin_delete_conversation):", error);
+		throw new Error("No se pudo borrar la conversación.");
+	}
+};
 
 const deleteMessageAsAdmin = async (messageId) => {
-        const { error } = await supabase.rpc("admin_delete_message", {
-            p_message_id: messageId,
-        });
-        if (error) {
-            console.error("Error en RPC (admin_delete_message):", error);
-            throw new Error("No se pudo borrar el mensaje.");
-        }
-    };
+	const { error } = await supabase.rpc("admin_delete_message", {
+		p_message_id: messageId,
+	});
+	if (error) {
+		console.error("Error en RPC (admin_delete_message):", error);
+		throw new Error("No se pudo borrar el mensaje.");
+	}
+};
 
 export const chatRepository = {
 	getOrCreateConversation,

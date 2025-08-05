@@ -2,8 +2,8 @@
 
 import { Router } from "express";
 import { postController } from "../controllers/postController.js";
-import { requireAuth } from "../middlewares/authMiddleware.js";
 import { requireAdminAuth } from "../middlewares/adminMiddleware.js";
+import { requireAuth } from "../middlewares/authMiddleware.js";
 import { requireSubscription } from "../middlewares/subscriptionCheck.js";
 
 const postRouter = Router();
@@ -14,11 +14,19 @@ postRouter.use(requireAuth);
 // --- Rutas para Usuarios ---
 postRouter.get("/", postController.getSocialFeed);
 postRouter.post("/:postId/like", postController.toggleLike);
-postRouter.post("/:postId/comments", requireSubscription(2), postController.addComment); // Requiere tier 2 para comentar
-postRouter.post("/:postId/vote", postController.castVote); 
+postRouter.post(
+	"/:postId/comments",
+	requireSubscription(2),
+	postController.addComment,
+); // Requiere tier 2 para comentar
+postRouter.post("/:postId/vote", postController.castVote);
 
 // --- Rutas para Administrador ---
 postRouter.delete("/:postId", requireAdminAuth, postController.deletePost);
-postRouter.delete("/comments/:commentId", requireAdminAuth, postController.deleteComment);
+postRouter.delete(
+	"/comments/:commentId",
+	requireAdminAuth,
+	postController.deleteComment,
+);
 
 export default postRouter;

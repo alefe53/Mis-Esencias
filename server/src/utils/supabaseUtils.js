@@ -66,18 +66,21 @@ export const createPrivateUrl = async (bucketName, filePath) => {
  * @returns {Promise<object[]|null>} Un array de objetos { path, signedUrl }, o null si hay error.
  */
 export const createMultipleSignedUrls = async (bucketName, filePaths) => {
-    if (!filePaths || filePaths.length === 0) return [];
-    
-    // Usamos el cliente 'supabase' principal con la SERVICE_KEY para firmar
-    const { data, error } = await supabase.storage
-        .from(bucketName)
-        .createSignedUrls(filePaths, 300); // 5 minutos de validez
+	if (!filePaths || filePaths.length === 0) return [];
 
-    if (error) {
-        console.error(`Error generando múltiples URLs firmadas para ${bucketName}:`, error.message);
-        return null;
-    }
-    return data;
+	// Usamos el cliente 'supabase' principal con la SERVICE_KEY para firmar
+	const { data, error } = await supabase.storage
+		.from(bucketName)
+		.createSignedUrls(filePaths, 300); // 5 minutos de validez
+
+	if (error) {
+		console.error(
+			`Error generando múltiples URLs firmadas para ${bucketName}:`,
+			error.message,
+		);
+		return null;
+	}
+	return data;
 };
 
 /**
@@ -87,31 +90,33 @@ export const createMultipleSignedUrls = async (bucketName, filePaths) => {
  * @returns Un nuevo cliente de Supabase autenticado como el usuario.
  */
 export const createScopedClient = (userAuthToken) => {
-    if (!userAuthToken) {
-        throw new Error("Se requiere un token de autenticación de usuario para crear un cliente enfocado.");
-    }
-    return createClient(
-        config.supabase.URL,
-         config.supabase.SERVICE_KEY,
-       {
-            global: { headers: { Authorization: `Bearer ${userAuthToken}` } },
-            db: { schema: 'api' }
-        }
-    );
+	if (!userAuthToken) {
+		throw new Error(
+			"Se requiere un token de autenticación de usuario para crear un cliente enfocado.",
+		);
+	}
+	return createClient(config.supabase.URL, config.supabase.SERVICE_KEY, {
+		global: { headers: { Authorization: `Bearer ${userAuthToken}` } },
+		db: { schema: "api" },
+	});
 };
 
-export const broadcastRealtimeEvent = async (channelName, eventName, payload) => {
-try {
-const channel = supabase.channel(channelName);
-const status = await channel.send({
-type: 'broadcast',
-event: eventName,
-payload: payload,
-});
-if (status !== 'ok') {
-console.warn(`Supabase broadcast status no fue 'ok': ${status}`);
-}
-} catch (error) {
-console.error('Error al transmitir evento de Supabase Realtime:', error);
-}
+export const broadcastRealtimeEvent = async (
+	channelName,
+	eventName,
+	payload,
+) => {
+	try {
+		const channel = supabase.channel(channelName);
+		const status = await channel.send({
+			type: "broadcast",
+			event: eventName,
+			payload: payload,
+		});
+		if (status !== "ok") {
+			console.warn(`Supabase broadcast status no fue 'ok': ${status}`);
+		}
+	} catch (error) {
+		console.error("Error al transmitir evento de Supabase Realtime:", error);
+	}
 };

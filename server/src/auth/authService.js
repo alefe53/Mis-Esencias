@@ -1,3 +1,4 @@
+//src/auth/authService.js
 import { createClient } from "@supabase/supabase-js";
 import jwt from "jsonwebtoken";
 import { config } from "../config/config.js";

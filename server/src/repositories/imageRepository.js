@@ -7,14 +7,14 @@
  * @returns {Promise<object[]>} Una promesa que resuelve a un array de objetos de imagen.
  */
 export const getGalleryByKeyFromDB = async (galleryKey, supabaseClient) => {
-    const { data, error } = await supabaseClient.rpc("get_gallery_by_key", {
-        p_gallery_key: galleryKey,
-    });
+	const { data, error } = await supabaseClient.rpc("get_gallery_by_key", {
+		p_gallery_key: galleryKey,
+	});
 
-    if (error) {
-        console.error("Error en RPC (get_gallery_by_key):", error);
-        throw new Error("No se pudieron obtener los datos de la galería.");
-    }
+	if (error) {
+		console.error("Error en RPC (get_gallery_by_key):", error);
+		throw new Error("No se pudieron obtener los datos de la galería.");
+	}
 
-    return data;
+	return data;
 };

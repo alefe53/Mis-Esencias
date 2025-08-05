@@ -2,7 +2,7 @@
   <div class="social-feed-layout">
     <div class="feed-column">
       <div class="social-feed-container">
-        <h2 class="feed-title">Comunidad Fenicia</h2>
+        <h2 class="feed-title" :style="titleStyle">Comunidad Fenicia</h2>
         <p class="fenicia-subtitle">
           Ahora estás en mis Dominios. Yo soy el ojo
           <img src="/ojo.png" alt="Ojo que todo lo ve" class="inline-icon" />
@@ -17,22 +17,61 @@
       </div>
     </div>
     <div class="chat-column">
+      <div class="pin-banners-container">
+        <TemporaryPinBanner
+          v-for="msg in temporaryPinnedMessages"
+          :key="msg.message_id"
+          :message="msg"
+        />
+      </div>
       <GlobalChat />
     </div>
   </div>
 </template>
+
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { usePostStore } from '../stores/postStore'
+import { useGlobalChatStore } from '../stores/globalChatStore'
+import { usePlayerStore } from '../stores/playerStore'
+import { useUiStore } from '../stores/uiStore'
+import { moodColors } from '../constants/moods'
 import PostCard from '../components/posts/PostCard.vue'
 import GlobalChat from '../components/global-chat/GlobalChat.vue'
+import TemporaryPinBanner from '../components/global-chat/TemporaryPinBanner.vue'
+
 const postStore = usePostStore()
+const playerStore = usePlayerStore()
+const uiStore = useUiStore()
+const globalChatStore = useGlobalChatStore()
+
 const { posts, isLoading } = storeToRefs(postStore)
+const { currentMoodId } = storeToRefs(playerStore)
+const { availableMoods } = storeToRefs(uiStore)
+const { temporaryPinnedMessages } = storeToRefs(globalChatStore)
+
+const titleStyle = computed(() => {
+  if (!currentMoodId.value) {
+    return {}
+  }
+  const currentMood = availableMoods.value.find(
+    (m) => m.id === currentMoodId.value,
+  )
+  if (currentMood && moodColors[currentMood.name]) {
+    const color = moodColors[currentMood.name]
+    return {
+      textShadow: `0 0 15px ${color}, 0 0 25px ${color}`,
+    }
+  }
+  return {}
+})
+
 onMounted(() => {
   postStore.fetchInitialFeed()
 })
 </script>
+
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,400..900&display=swap');
 .social-feed-layout {
@@ -41,9 +80,9 @@ onMounted(() => {
   gap: 1.5rem;
   max-width: 1600px;
   margin: 0 auto;
-  padding: 0 2rem 0 12rem;
+  padding: 1rem 2rem 0 12rem;
   box-sizing: border-box;
-  height: calc(100vh - 100px);
+  height: calc(100vh - 80px);
 }
 .feed-column {
   height: 100%;
@@ -52,6 +91,25 @@ onMounted(() => {
 }
 .chat-column {
   height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+.pin-banners-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  padding: 1rem;
+  pointer-events: none;
+}
+.pin-banners-container > :deep(*) {
+  pointer-events: auto;
+}
+.chat-column > :deep(.global-chat-container) {
+  flex-grow: 1;
+  min-height: 0;
 }
 .feed-column::-webkit-scrollbar {
   width: 8px;
@@ -76,6 +134,7 @@ onMounted(() => {
   font-size: 2.5rem;
   color: #fca311;
   flex-shrink: 0;
+  transition: text-shadow 0.5s ease;
 }
 .fenicia-subtitle {
   font-family: 'Playfair Display', serif;

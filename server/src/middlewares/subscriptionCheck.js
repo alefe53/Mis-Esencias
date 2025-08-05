@@ -8,14 +8,15 @@
  * @returns Un middleware de Express.
  */
 export const requireSubscription = (requiredTier) => {
-    return (req, res, next) => {
-        if (req.user.subscription_tier_id < requiredTier) {
-            return res.status(403).json({
-                success: false,
-                message: "Acceso denegado. Se requiere un nivel de suscripción superior."
-            });
-        }
+	return (req, res, next) => {
+		if (req.user.subscription_tier_id < requiredTier) {
+			return res.status(403).json({
+				success: false,
+				message:
+					"Acceso denegado. Se requiere un nivel de suscripción superior.",
+			});
+		}
 
-        next();
-    };
+		next();
+	};
 };

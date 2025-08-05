@@ -1,20 +1,19 @@
 //src/routers/mainRouter.js
 import { Router } from "express";
+import adminRouter from "./adminRouter.js";
 import authRouter from "./authRouter.js";
 import bandRouter from "./bandRouter.js";
 import chatRouter from "./chatRouter.js";
 import engineeringRouter from "./engineeringRouter.js";
+import globalChatRouter from "./globalChatRouter.js";
+import imageRouter from "./imageRouter.js";
 import moodRouter from "./moodRouter.js";
 import playlistRouter from "./playlistRouter.js";
+import postRouter from "./postRouter.js";
 import profileRouter from "./profileRouter.js";
 import releaseRouter from "./releaseRouter.js";
-import trackRouter from "./trackRouter.js";
 import subscriptionRouter from "./subscriptionRouter.js";
-import imageRouter from "./imageRouter.js";
-import adminRouter from "./adminRouter.js"; 
-import postRouter from "./postRouter.js"; 
-import globalChatRouter from "./globalChatRouter.js"; 
-
+import trackRouter from "./trackRouter.js";
 
 const mainRouter = Router();
 
@@ -27,12 +26,10 @@ mainRouter.use("/tracks", trackRouter);
 mainRouter.use("/bands", bandRouter);
 mainRouter.use("/engineering", engineeringRouter);
 mainRouter.use("/chat", chatRouter);
-mainRouter.use("/public/subscriptions", subscriptionRouter); 
+mainRouter.use("/public/subscriptions", subscriptionRouter);
 mainRouter.use("/images", imageRouter);
-mainRouter.use("/admin", adminRouter); 
-mainRouter.use("/posts", postRouter); 
-mainRouter.use("/global-chat", globalChatRouter); 
-
-
+mainRouter.use("/admin", adminRouter);
+mainRouter.use("/posts", postRouter);
+mainRouter.use("/global-chat", globalChatRouter);
 
 export default mainRouter;

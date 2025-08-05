@@ -13,10 +13,12 @@ fullName: string;
 avatarUrl: string | null;
 subscriptionTier: number;
 }
+
 export interface ChatReaction {
 emoji: string;
 user_id: string;
 }
+
 export interface GlobalChatMessage {
 message_id: number;
 content: string;
@@ -31,100 +33,111 @@ reactions: ChatReaction[] | null;
 export const useGlobalChatStore = defineStore("globalChat", () => {
 const messages = ref<GlobalChatMessage[]>([]);
 const replyingToMessage = ref<GlobalChatMessage | null>(null);
-const isLoading = ref(false);
+const isLoadingHistory = ref(false);
+const hasMoreHistory = ref(true);
 const isConnected = ref(false);
 let realtimeChannel: RealtimeChannel | null = null;
+const vipPinCooldownEndsAt = ref<number | null>(null);
+let cooldownTimer: number | undefined;
+
+const currentTime = ref(Date.now());
+let timeInterval: number | undefined;
 
 const authStore = useAuthStore();
 const uiStore = useUiStore();
 
-const sortedMessages = computed(() => {
-return [...messages.value].sort(
-(a, b) =>
-new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
-);
+const isVipPinOnCooldown = computed(() => {
+if (!vipPinCooldownEndsAt.value) return false;
+return Date.now() < vipPinCooldownEndsAt.value;
 });
 
-const pinnedMessages = computed(() => {
-return sortedMessages.value
-.filter((m) => m.is_pinned)
-.sort((a, b) => {
-if (a.is_pinned && !a.pinned_until && (!b.is_pinned || b.pinned_until))
-return -1;
-if (b.is_pinned && !b.pinned_until && (!a.is_pinned || a.pinned_until))
-return 1;
-return (
-new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-);
-});
+const vipPinCooldownSeconds = computed(() => {
+if (!isVipPinOnCooldown.value || !vipPinCooldownEndsAt.value) return 0;
+return Math.ceil((vipPinCooldownEndsAt.value - Date.now()) / 1000);
 });
 
-const regularMessages = computed(() => {
-return sortedMessages.value.filter((m) => !m.is_pinned);
+const temporaryPinnedMessages = computed(() => {
+const now = currentTime.value;
+return messages.value
+.filter(m => m.is_pinned && m.pinned_until && new Date(m.pinned_until).getTime() > now)
+.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+.slice(0, 5);
 });
+
+const allSortedMessages = computed(() => {
+return [...messages.value].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+});
+
+async function fetchOlderMessages() {
+if (isLoadingHistory.value || !hasMoreHistory.value) return;
+isLoadingHistory.value = true;
+try {
+const oldestMessage = messages.value[0];
+const cursor = oldestMessage ? oldestMessage.created_at : new Date().toISOString();
+const olderMessages = await globalChatService.fetchHistory(50, cursor);
+if (olderMessages.length > 0) {
+messages.value = [...olderMessages, ...messages.value];
+} else {
+hasMoreHistory.value = false;
+}
+} catch (e) {
+console.error("Error al cargar historial antiguo del chat", e);
+} finally {
+isLoadingHistory.value = false;
+}
+}
 
 async function connect() {
 if (isConnected.value || !authStore.isAuthenticated) return;
-
-isLoading.value = true;
+isLoadingHistory.value = true;
 try {
 const initialMessages = await globalChatService.fetchHistory();
 messages.value = initialMessages;
+if (initialMessages.length < 50) {
+hasMoreHistory.value = false;
+}
 } catch (e) {
 console.error("Error al cargar el historial del chat", e);
 }
-isLoading.value = false;
+isLoadingHistory.value = false;
 isConnected.value = true;
+setupRealtime();
 
+if (!timeInterval) {
+timeInterval = window.setInterval(() => {
+currentTime.value = Date.now();
+}, 1000);
+}
+}
+
+function setupRealtime() {
+if (realtimeChannel) return;
 realtimeChannel = supabase.channel("global_chat_realtime");
-
-realtimeChannel.on("broadcast", { event: "new_message" }, async (payload) => {
+realtimeChannel
+.on("broadcast", { event: "new_message" }, async (payload) => {
 const newMessageId = payload.payload.id;
 const existing = messages.value.find((m) => m.message_id === newMessageId);
 if (existing) return;
-
 const fullMessage = await globalChatService.fetchSingleMessage(newMessageId);
 messages.value.push(fullMessage);
-});
-
-realtimeChannel.on(
-'postgres_changes',
-{
-event: '*',
-schema: 'public',
-table: 'global_chat_reactions',
-},
-async (payload) => {
+})
+.on("postgres_changes", { event: "*", schema: "public", table: "global_chat_reactions" }, async (payload) => {
 const record = (payload.new as any) || (payload.old as any);
 if (!record?.message_id) return;
-
-// No procesamos eventos causados por nosotros mismos, ya que usamos actualización optimista.
 if (record.user_id === authStore.user?.id) return;
-
 const messageIdToUpdate = record.message_id;
 try {
 const updatedMessage = await globalChatService.fetchSingleMessage(messageIdToUpdate);
-// --- FORZAR REACTIVIDAD ---
-// En lugar de mutar el array, creamos uno nuevo con .map()
-// Esto garantiza que Vue detecte el cambio.
 if (updatedMessage) {
-messages.value = messages.value.map(msg =>
-msg.message_id === messageIdToUpdate ? updatedMessage : msg
-);
+messages.value = messages.value.map((msg) => msg.message_id === messageIdToUpdate ? updatedMessage : msg);
 }
 } catch (error) {
 console.error(`Error al refrescar mensaje ${messageIdToUpdate} tras reacción:`, error);
 }
-}
-);
-
-realtimeChannel.subscribe((status, err) => {
-if (status === 'SUBSCRIBED') {
-console.log('Canal Realtime conectado exitosamente!');
-}
-if (status === 'CHANNEL_ERROR') {
-console.error('Error en el canal de Realtime:', err);
-}
+})
+.subscribe((status, err) => {
+if (status === "SUBSCRIBED") console.log("Canal Realtime conectado exitosamente!");
+if (status === "CHANNEL_ERROR") console.error("Error en el canal de Realtime:", err);
 });
 }
 
@@ -132,65 +145,58 @@ function disconnect() {
 if (realtimeChannel) {
 supabase.removeChannel(realtimeChannel);
 realtimeChannel = null;
+}
 isConnected.value = false;
 messages.value = [];
+hasMoreHistory.value = true;
+if (cooldownTimer) clearTimeout(cooldownTimer);
+vipPinCooldownEndsAt.value = null;
+
+if (timeInterval) {
+clearInterval(timeInterval);
+timeInterval = undefined;
 }
 }
 
-async function sendMessage(content: string, parentId: number | null) {
+async function sendMessage(content: string, parentId: number | null, wantsToPin: boolean) {
 try {
-await globalChatService.postMessage(content, parentId);
+await globalChatService.postMessage(content, parentId, wantsToPin);
+if (wantsToPin && authStore.user?.subscription_tier_id === 3 && !authStore.isAdmin) {
+const cooldownDuration = 15000;
+vipPinCooldownEndsAt.value = Date.now() + cooldownDuration;
+cooldownTimer = window.setTimeout(() => {
+vipPinCooldownEndsAt.value = null;
+}, cooldownDuration);
+}
 cancelReply();
 } catch (error: any) {
-uiStore.showToast({
-message: error.response?.data?.message || "No se pudo enviar el mensaje",
-color: "#EF4444",
-});
+uiStore.showToast({ message: error.response?.data?.message || "No se pudo enviar el mensaje", color: "#EF4444" });
 }
 }
 
-// --- FUNCIÓN MODIFICADA CON ACTUALIZACIÓN OPTIMISTA ---
 async function toggleReaction(messageId: number, emoji: string) {
 if (!authStore.user) return;
-
-const messageIndex = messages.value.findIndex(m => m.message_id === messageId);
+const messageIndex = messages.value.findIndex((m) => m.message_id === messageId);
 if (messageIndex === -1) return;
-
 const message = messages.value[messageIndex];
 if (!message.reactions) message.reactions = [];
-
 const userId = authStore.user.id;
-const existingReactionIndex = message.reactions.findIndex(
-r => r.emoji === emoji && r.user_id === userId
-);
-
-// 1. Actualización Optimista (se ejecuta al instante en la UI)
+const existingReactionIndex = message.reactions.findIndex((r) => r.emoji === emoji && r.user_id === userId);
 if (existingReactionIndex !== -1) {
-// Si ya reaccionó, la quitamos
 message.reactions.splice(existingReactionIndex, 1);
 } else {
-// Si no, la agregamos
 message.reactions.push({ emoji, user_id: userId });
 }
-
-// 2. Llamada a la API en segundo plano
 try {
 await globalChatService.toggleReaction(messageId, emoji);
-// La llamada fue exitosa, no hacemos nada más.
 } catch (error) {
-// Si falla, revertimos el cambio en la UI y mostramos un error.
 console.error("Falló la actualización optimista, revirtiendo:", error);
 if (existingReactionIndex !== -1) {
-// Si la quitamos, la volvemos a poner
 message.reactions.push({ emoji, user_id: userId });
 } else {
-// Si la agregamos, la quitamos
-message.reactions = message.reactions.filter(r => !(r.emoji === emoji && r.user_id === userId));
+message.reactions = message.reactions.filter((r) => !(r.emoji === emoji && r.user_id === userId));
 }
-uiStore.showToast({
-message: "No se pudo añadir la reacción",
-color: "#EF4444",
-});
+uiStore.showToast({ message: "No se pudo añadir la reacción", color: "#EF4444" });
 }
 }
 
@@ -206,30 +212,28 @@ async function adminDeleteMessage(messageId: number) {
 try {
 await adminService.deleteGlobalMessage(messageId);
 } catch (error) {
-uiStore.showToast({
-message: "Error al borrar el mensaje",
-color: "#EF4444",
-});
+uiStore.showToast({ message: "Error al borrar el mensaje", color: "#EF4444" });
 }
 }
+
 async function adminPinMessage(messageId: number, unpin: boolean) {
 try {
 await adminService.pinGlobalMessage(messageId, unpin);
 } catch (error) {
-uiStore.showToast({
-message: "Error al fijar el mensaje",
-color: "#EF4444",
-});
+uiStore.showToast({ message: "Error al fijar el mensaje", color: "#EF4444" });
 }
 }
 
 return {
 messages,
-isLoading,
+isLoading: isLoadingHistory,
 isConnected,
-regularMessages,
-pinnedMessages,
+hasMoreHistory,
+allSortedMessages,
+temporaryPinnedMessages,
 replyingToMessage,
+isVipPinOnCooldown,
+vipPinCooldownSeconds,
 connect,
 disconnect,
 sendMessage,
@@ -238,5 +242,6 @@ setReplyingTo,
 cancelReply,
 adminDeleteMessage,
 adminPinMessage,
+fetchOlderMessages,
 };
 });

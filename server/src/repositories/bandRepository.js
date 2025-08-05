@@ -14,4 +14,3 @@ const getAllBandsWithDetails = async () => {
 export const bandRepository = {
 	getAllBandsWithDetails,
 };
-
