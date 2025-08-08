@@ -8,9 +8,11 @@
       <router-link to="/admin/users" class="nav-button">
         Gestionar Usuarios
       </router-link>
-
       <router-link to="/admin/crear-publicacion" class="nav-button">
         Crear Publicación
+      </router-link>
+      <router-link to="/admin/stream" class="nav-button"> 
+        Transmitir en Vivo
       </router-link>
     </div>
 

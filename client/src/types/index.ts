@@ -198,3 +198,19 @@ export interface Post {
   comments: PostComment[];
   pollData: PollData | null;
 }
+export interface DeviceInfo {
+  id: string;
+  label: string;
+}
+export interface LiveSession {
+  id: number;
+  title: string;
+  description: string | null;
+  storage_path: string;
+  duration_seconds: number;
+  created_at: string; // Para saber cuándo fue
+  thumbnail_url: string | null; // Una imagen de vista previa
+  peak_viewers: number; // Máximo de espectadores
+  is_public: boolean; // Para controlar visibilidad
+  tags: string[] | null; // Etiquetas
+}

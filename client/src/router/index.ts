@@ -12,6 +12,7 @@ import AdminMenuView from '../views/AdminMenuView.vue'
 import AdminChatDashboard from '../views/AdminDashboardView.vue'
 import AdminUserListView from '../views/AdminUserListView.vue'
 import SocialFeedView from '../views/SocialFeedView.vue' 
+import AdminStreamView from '../views/AdminStreamView.vue';
 
 const routes = [
   {
@@ -104,8 +105,21 @@ const routes = [
         path: 'crear-publicacion', 
         name: 'admin-create-post',
         component: () => import('../views/AdminCreatePostView.vue')
+      },
+      { 
+        path: 'stream',
+        name: 'admin-stream',
+        component: AdminStreamView
       }
+      
     ]
+    
+  }
+  ,
+  {
+    path: '/chat-popup',
+    name: 'chat-popup',
+    component: () => import('../views/ChatPopupView.vue')
   }
 ]
 

@@ -14,6 +14,7 @@ import profileRouter from "./profileRouter.js";
 import releaseRouter from "./releaseRouter.js";
 import subscriptionRouter from "./subscriptionRouter.js";
 import trackRouter from "./trackRouter.js";
+import streamingRouter from './streamingRouter.js';
 
 const mainRouter = Router();
 
@@ -31,5 +32,6 @@ mainRouter.use("/images", imageRouter);
 mainRouter.use("/admin", adminRouter);
 mainRouter.use("/posts", postRouter);
 mainRouter.use("/global-chat", globalChatRouter);
+mainRouter.use('/streaming', streamingRouter);
 
 export default mainRouter;

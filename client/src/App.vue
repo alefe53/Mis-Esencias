@@ -2,57 +2,61 @@
   <div id="app-container" :class="appContainerClass">
     <div class="background-layer"></div>
 
-    <MoodGlowEffect />
+    <template v-if="!isPopupView">
+      <MoodGlowEffect />
 
-    <transition name="fade">
-      <header
-        class="floating-nav-bar"
-        v-if="!uiStore.isGlobalTransitionActive"
-        :style="dynamicNavStyle"
-      >
-        <nav>
-          <router-link
-            to="/"
-            :class="{ 'router-link-exact-active': isHomeRouteActive }"
-            >Home</router-link
-          >
-          <router-link
-            to="/music-intro"
-            :class="{ 'router-link-exact-active': isMusicRouteActive }"
-            >Música</router-link
-          >
-          <router-link
-            to="/trabajos"
-            :class="{ 'router-link-exact-active': isTrabajosRouteActive }"
-            >Trabajos</router-link
-          >
-          <router-link to="/info">Info</router-link>
-        </nav>
-      </header>
-    </transition>
+      <transition name="fade">
+        <header
+          class="floating-nav-bar"
+          v-if="!uiStore.isGlobalTransitionActive"
+          :style="dynamicNavStyle"
+        >
+          <nav>
+            <router-link
+              to="/"
+              :class="{ 'router-link-exact-active': isHomeRouteActive }"
+              >Home</router-link
+            >
+            <router-link
+              to="/music-intro"
+              :class="{ 'router-link-exact-active': isMusicRouteActive }"
+              >Música</router-link
+            >
+            <router-link
+              to="/trabajos"
+              :class="{ 'router-link-exact-active': isTrabajosRouteActive }"
+              >Trabajos</router-link
+            >
+            <router-link to="/info">Info</router-link>
+          </nav>
+        </header>
+      </transition>
 
-    <main>
-      <router-view />
-    </main>
+      <main>
+        <router-view />
+      </main>
 
-    <transition name="fade">
-      <div class="auth-widget" v-if="!uiStore.isGlobalTransitionActive">
-        <AuthButton />
-      </div>
-    </transition>
+      <transition name="fade">
+        <div class="auth-widget" v-if="!uiStore.isGlobalTransitionActive">
+          <AuthButton />
+        </div>
+      </transition>
 
-    <transition name="fade">
-      <AudioPlayer v-show="!uiStore.isGlobalTransitionActive" />
-    </transition>
+      <transition name="fade">
+        <AudioPlayer v-show="!uiStore.isGlobalTransitionActive" />
+      </transition>
 
-    <Toast
-      :visible="isToastVisible"
-      :message="toastMessage"
-      :backgroundColor="toastBackgroundColor"
-    />
+      <Toast
+        :visible="isToastVisible"
+        :message="toastMessage"
+        :backgroundColor="toastBackgroundColor"
+      />
 
-    <ChatWidget v-if="showChatWidget" />
-    <LightboxModal />
+      <ChatWidget v-if="showChatWidget" />
+      <LightboxModal />
+    </template>
+
+    <router-view v-else />
   </div>
 </template>
 
@@ -82,6 +86,8 @@ const { isChatActivated } = storeToRefs(chatStore)
 const { currentMoodId } = storeToRefs(playerStore)
 const { isToastVisible, toastMessage, toastBackgroundColor, availableMoods } =
   storeToRefs(uiStore)
+
+const isPopupView = computed(() => route.name === 'chat-popup')
 
 const showChatWidget = computed(() => {
   if (uiStore.isGlobalTransitionActive) {

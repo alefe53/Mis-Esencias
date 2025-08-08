@@ -23,6 +23,11 @@ export const config = {
 	admin: {
 		USER_ID: process.env.ADMIN_USER_ID,
 	},
+	livekit: {
+        URL: process.env.LIVEKIT_URL,
+        API_KEY: process.env.LIVEKIT_API_KEY,
+        API_SECRET: process.env.LIVEKIT_API_SECRET,
+    },
 };
 
 // Verificación crítica
@@ -44,4 +49,8 @@ if (config.jwt.SECRET === "secreto_inseguro_cambiar_en_produccion") {
 	console.warn(
 		"ADVERTENCIA: JWT_SECRET está usando un valor por defecto inseguro.",
 	);
+}
+if (!config.livekit.API_KEY || !config.livekit.API_SECRET) {
+    console.error("CRÍTICO: Las variables de LiveKit no están definidas en .env");
+    process.exit(1);
 }

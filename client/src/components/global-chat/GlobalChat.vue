@@ -12,7 +12,7 @@
         Cargando historial...
       </div>
       <div v-if="hasMoreHistory && !isLoading" class="loader-top">
-        <button @click="chatStore.fetchOlderMessages()">Cargar más</button>
+        <button @click="loadMoreManually">Cargar más</button>
       </div>
       <ChatMessage
         v-for="message in allSortedMessages"
@@ -26,35 +26,44 @@
     </div>
   </div>
 </template>
+
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useGlobalChatStore } from '../../stores/globalChatStore'
 import ChatMessage from './ChatMessage.vue'
 import ChatInput from './ChatInput.vue'
+
 const chatStore = useGlobalChatStore()
 const { allSortedMessages, isLoading, messages, hasMoreHistory } =
   storeToRefs(chatStore)
 const chatBodyRef = ref<HTMLElement | null>(null)
 const autoScrollEnabled = ref(true)
-const scrollToBottom = () => {
+
+const scrollToBottom = (behavior: 'smooth' | 'auto' = 'auto') => {
   nextTick(() => {
     const el = chatBodyRef.value
     if (el) {
-      el.scrollTop = el.scrollHeight
+      el.scrollTo({ top: el.scrollHeight, behavior })
     }
   })
 }
+
+const loadMoreManually = async () => {
+  const el = chatBodyRef.value;
+  if (!el) return;
+  const oldScrollHeight = el.scrollHeight;
+  await chatStore.fetchOlderMessages();
+  nextTick(() => {
+    el.scrollTop = el.scrollHeight - oldScrollHeight;
+  });
+};
+
 const handleScroll = () => {
   const el = chatBodyRef.value
   if (!el) return
   if (el.scrollTop === 0 && !isLoading.value && hasMoreHistory.value) {
-    const oldScrollHeight = el.scrollHeight
-    chatStore.fetchOlderMessages().then(() => {
-      nextTick(() => {
-        el.scrollTop = el.scrollHeight - oldScrollHeight
-      })
-    })
+    loadMoreManually();
   }
   const isAtBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 1
   if (isAtBottom) {
@@ -67,6 +76,7 @@ const handleScroll = () => {
     }
   }
 }
+
 onMounted(() => {
   chatStore.connect().then(() => {
     scrollToBottom()
@@ -75,14 +85,16 @@ onMounted(() => {
 onUnmounted(() => {
   chatStore.disconnect()
 })
+
 watch(
   () => messages.value.length,
   (newLength, oldLength) => {
-    if (newLength === oldLength + 1 && autoScrollEnabled.value) {
-      scrollToBottom()
+    if (newLength > oldLength && newLength - oldLength === 1 && autoScrollEnabled.value) {
+      scrollToBottom('smooth')
     }
   },
 )
+
 const handleSend = (payload: {
   content: string
   parentId: number | null
@@ -92,6 +104,7 @@ const handleSend = (payload: {
   autoScrollEnabled.value = true
 }
 </script>
+
 <style scoped>
 .global-chat-container {
   display: flex;
