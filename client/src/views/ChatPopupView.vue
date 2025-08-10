@@ -5,12 +5,12 @@
 </template>
 
 <script setup lang="ts">
-import GlobalChat from '../components/global-chat/GlobalChat.vue';
-import { onMounted } from 'vue';
+import GlobalChat from '../components/global-chat/GlobalChat.vue'
+import { onMounted } from 'vue'
 
 onMounted(() => {
-  document.title = 'Chat Global - Mis Esencias';
-});
+  document.title = 'Chat Global - Mis Esencias'
+})
 </script>
 
 <style scoped>

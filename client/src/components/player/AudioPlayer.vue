@@ -25,7 +25,10 @@
     </button>
     <div class="player-content-wrapper">
       <transition name="playlist-fade">
-        <MusicCatalog v-if="isCatalogVisible" @close="isCatalogVisible = false" />
+        <MusicCatalog
+          v-if="isCatalogVisible"
+          @close="isCatalogVisible = false"
+        />
       </transition>
       <transition name="playlist-fade">
         <Playlist v-if="isPlaylistVisible" />
@@ -86,7 +89,9 @@
               <div class="controls">
                 <button
                   @click="playPrevious"
-                  :disabled="!currentTrack || playerStore.currentTrackIndex === 0"
+                  :disabled="
+                    !currentTrack || playerStore.currentTrackIndex === 0
+                  "
                   class="control-button"
                 >
                   <svg
@@ -250,22 +255,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
-import { useRoute } from 'vue-router';
-import { usePlayerStore } from '../../stores/playerStore';
-import { storeToRefs } from 'pinia';
-import { useAudioControls } from '../../composables/useAudioControls';
-import { useClickOutside } from '../../composables/useClickOutside';
-import { moodColors } from '../../constants/moods';
-import Playlist from './Playlist.vue';
-import MusicCatalog from './MusicCatalog.vue';
-import { useUiStore } from '../../stores/uiStore';
-import { useMusicCatalogStore } from '../../stores/musicCatalogStore';
-import { Minus, Plus } from 'lucide-vue-next';
+import { ref, watch, computed } from 'vue'
+import { useRoute } from 'vue-router'
+import { usePlayerStore } from '../../stores/playerStore'
+import { storeToRefs } from 'pinia'
+import { useAudioControls } from '../../composables/useAudioControls'
+import { useClickOutside } from '../../composables/useClickOutside'
+import { moodColors } from '../../constants/moods'
+import Playlist from './Playlist.vue'
+import MusicCatalog from './MusicCatalog.vue'
+import { useUiStore } from '../../stores/uiStore'
+import { useMusicCatalogStore } from '../../stores/musicCatalogStore'
+import { Minus, Plus } from 'lucide-vue-next'
 
-const playerStore = usePlayerStore();
-const uiStore = useUiStore();
-const catalogStore = useMusicCatalogStore();
+const playerStore = usePlayerStore()
+const uiStore = useUiStore()
+const catalogStore = useMusicCatalogStore()
 const {
   currentTrack,
   isPlaying,
@@ -274,8 +279,8 @@ const {
   isPlaylistVisible,
   playlist,
   playerState,
-} = storeToRefs(playerStore);
-const { availableMoods, isMoodsLoading } = storeToRefs(uiStore);
+} = storeToRefs(playerStore)
+const { availableMoods, isMoodsLoading } = storeToRefs(uiStore)
 const {
   togglePlayPause,
   playNext,
@@ -283,50 +288,50 @@ const {
   fetchAndPlayPlaylist,
   minimizePlayer,
   maximizePlayer,
-} = playerStore;
-const route = useRoute();
-const { audioRef, onTrackEnded } = useAudioControls();
-const playerWrapperRef = ref<HTMLElement>();
-const showTrackInfo = ref(false);
-let infoTimeout: number | undefined;
-const isMoodListVisible = ref(false);
-const isTrackDescriptionVisible = ref(false);
-const isReleaseDescriptionVisible = ref(false);
-const isCatalogVisible = ref(false);
+} = playerStore
+const route = useRoute()
+const { audioRef, onTrackEnded } = useAudioControls()
+const playerWrapperRef = ref<HTMLElement>()
+const showTrackInfo = ref(false)
+let infoTimeout: number | undefined
+const isMoodListVisible = ref(false)
+const isTrackDescriptionVisible = ref(false)
+const isReleaseDescriptionVisible = ref(false)
+const isCatalogVisible = ref(false)
 useClickOutside(playerWrapperRef, () => {
-  if (isCatalogVisible.value) isCatalogVisible.value = false;
-  if (isPlaylistVisible.value) playerStore.togglePlaylistVisibility();
-});
+  if (isCatalogVisible.value) isCatalogVisible.value = false
+  if (isPlaylistVisible.value) playerStore.togglePlaylistVisibility()
+})
 const isAuthView = computed(() => {
-  const authPaths = ['/auth', '/profile', '/info', '/admin'];
-  return authPaths.some((basePath) => route.path.startsWith(basePath));
-});
+  const authPaths = ['/auth', '/profile', '/info', '/admin']
+  return authPaths.some((basePath) => route.path.startsWith(basePath))
+})
 const togglePlaylistVisibility = () => {
-  playerStore.togglePlaylistVisibility();
+  playerStore.togglePlaylistVisibility()
   if (playerStore.isPlaylistVisible && isCatalogVisible.value) {
-    isCatalogVisible.value = false;
+    isCatalogVisible.value = false
   }
-};
+}
 const toggleCatalogVisibility = () => {
-  isCatalogVisible.value = !isCatalogVisible.value;
+  isCatalogVisible.value = !isCatalogVisible.value
   if (isCatalogVisible.value) {
-    catalogStore.fetchCatalog();
-    if (isPlaylistVisible.value) playerStore.togglePlaylistVisibility();
+    catalogStore.fetchCatalog()
+    if (isPlaylistVisible.value) playerStore.togglePlaylistVisibility()
   }
-};
+}
 const currentMoodName = computed(() => {
-  if (isMoodsLoading.value) return 'Cargando...';
-  if (currentMoodId.value === null) return 'Estado de Ánimo';
-  const mood = availableMoods.value.find((m) => m.id === currentMoodId.value);
-  return mood ? mood.name : 'Estado de Ánimo';
-});
+  if (isMoodsLoading.value) return 'Cargando...'
+  if (currentMoodId.value === null) return 'Estado de Ánimo'
+  const mood = availableMoods.value.find((m) => m.id === currentMoodId.value)
+  return mood ? mood.name : 'Estado de Ánimo'
+})
 const moodButtonStyle = computed(() => {
-  if (currentMoodId.value === null) return {};
+  if (currentMoodId.value === null) return {}
   const moodName = availableMoods.value.find(
     (m) => m.id === currentMoodId.value,
-  )?.name;
+  )?.name
   if (moodName) {
-    const color = moodColors[moodName];
+    const color = moodColors[moodName]
     return {
       backgroundColor: color,
       color:
@@ -334,84 +339,84 @@ const moodButtonStyle = computed(() => {
           ? '#111827'
           : '#FFFFFF',
       borderColor: color,
-    };
+    }
   }
-  return {};
-});
+  return {}
+})
 const wrapperStyle = computed(() => {
-  if (currentMoodId.value === null) return {};
+  if (currentMoodId.value === null) return {}
   const moodName = availableMoods.value.find(
     (m) => m.id === currentMoodId.value,
-  )?.name;
+  )?.name
   if (moodName && moodColors[moodName]) {
-    const isLightColor = moodName === 'Lo que sea' || moodName === 'Llevándola';
+    const isLightColor = moodName === 'Lo que sea' || moodName === 'Llevándola'
     return {
       '--current-mood-color': moodColors[moodName],
       '--current-mood-text-color': isLightColor ? '#111827' : '#FFFFFF',
       '--current-mood-secondary-text-color': isLightColor
         ? '#374151'
         : '#e0e0e0',
-    };
+    }
   }
-  return {};
-});
+  return {}
+})
 const getHoverColorForMood = (moodName: string) => {
-  return moodColors[moodName] || '#FFFFFF';
-};
+  return moodColors[moodName] || '#FFFFFF'
+}
 const toggleMoodList = () => {
-  uiStore.ensureMoodsAvailable();
-  isMoodListVisible.value = !isMoodListVisible.value;
-};
+  uiStore.ensureMoodsAvailable()
+  isMoodListVisible.value = !isMoodListVisible.value
+}
 const showInitialPrompt = computed(() => {
-  return !uiStore.hasShownInitialPrompt && !currentTrack.value;
-});
+  return !uiStore.hasShownInitialPrompt && !currentTrack.value
+})
 const selectMood = (moodId: number) => {
   if (!uiStore.hasShownInitialPrompt) {
-    uiStore.setInitialPromptAsShown();
+    uiStore.setInitialPromptAsShown()
   }
-  fetchAndPlayPlaylist(moodId);
-  isMoodListVisible.value = false;
-};
+  fetchAndPlayPlaylist(moodId)
+  isMoodListVisible.value = false
+}
 const toggleTrackDescription = () => {
-  isTrackDescriptionVisible.value = !isTrackDescriptionVisible.value;
-  isReleaseDescriptionVisible.value = false;
-};
+  isTrackDescriptionVisible.value = !isTrackDescriptionVisible.value
+  isReleaseDescriptionVisible.value = false
+}
 const toggleReleaseDescription = () => {
-  isReleaseDescriptionVisible.value = !isReleaseDescriptionVisible.value;
-  isTrackDescriptionVisible.value = false;
-};
+  isReleaseDescriptionVisible.value = !isReleaseDescriptionVisible.value
+  isTrackDescriptionVisible.value = false
+}
 const triggerTrackInfoToast = () => {
-  if (!currentTrack.value) return;
-  showTrackInfo.value = true;
-  clearTimeout(infoTimeout);
+  if (!currentTrack.value) return
+  showTrackInfo.value = true
+  clearTimeout(infoTimeout)
   infoTimeout = window.setTimeout(() => {
-    showTrackInfo.value = false;
-  }, 4000);
-};
+    showTrackInfo.value = false
+  }, 4000)
+}
 watch(currentTrack, (newTrack) => {
   if (newTrack) {
-    triggerTrackInfoToast();
+    triggerTrackInfoToast()
   }
   if (!newTrack?.description) {
-    isTrackDescriptionVisible.value = false;
+    isTrackDescriptionVisible.value = false
   }
   if (!newTrack?.releaseInfo?.description) {
-    isReleaseDescriptionVisible.value = false;
+    isReleaseDescriptionVisible.value = false
   }
-});
+})
 const handlePrimaryPlay = async () => {
   if (availableMoods.value.length === 0) {
-    await uiStore.ensureMoodsAvailable();
+    await uiStore.ensureMoodsAvailable()
   }
-  const moodToPlay = currentMoodId.value === null ? 5 : currentMoodId.value;
+  const moodToPlay = currentMoodId.value === null ? 5 : currentMoodId.value
   if (!currentTrack.value) {
-    uiStore.setInitialPromptAsShown();
-    fetchAndPlayPlaylist(moodToPlay);
+    uiStore.setInitialPromptAsShown()
+    fetchAndPlayPlaylist(moodToPlay)
   } else {
-    togglePlayPause();
-    triggerTrackInfoToast();
+    togglePlayPause()
+    triggerTrackInfoToast()
   }
-};
+}
 </script>
 
 <style scoped>
@@ -440,10 +445,15 @@ const handlePrimaryPlay = async () => {
   display: flex;
   justify-content: center;
   pointer-events: none;
-  transition: justify-content 0.5s ease, left 0.5s ease, bottom 0.5s ease;
+  transition:
+    justify-content 0.5s ease,
+    left 0.5s ease,
+    bottom 0.5s ease;
 }
 .player-content-wrapper {
-  transition: transform 0.5s ease, opacity 0.5s ease;
+  transition:
+    transform 0.5s ease,
+    opacity 0.5s ease;
   pointer-events: auto;
 }
 .player-and-playlist-wrapper.is-docked {
@@ -692,8 +702,8 @@ const handlePrimaryPlay = async () => {
   font-size: 0.75rem;
   cursor: pointer;
   transition:
-  background-color 0.2s,
-  color 0.2s;
+    background-color 0.2s,
+    color 0.2s;
 }
 .release-info-bar {
   display: flex;
@@ -751,8 +761,8 @@ const handlePrimaryPlay = async () => {
 .playlist-fade-enter-active,
 .playlist-fade-leave-active {
   transition:
-  opacity 0.4s ease,
-  transform 0.4s ease;
+    opacity 0.4s ease,
+    transform 0.4s ease;
 }
 .playlist-fade-enter-from,
 .playlist-fade-leave-to {

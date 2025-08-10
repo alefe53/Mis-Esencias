@@ -50,20 +50,20 @@ const scrollToBottom = (behavior: 'smooth' | 'auto' = 'auto') => {
 }
 
 const loadMoreManually = async () => {
-  const el = chatBodyRef.value;
-  if (!el) return;
-  const oldScrollHeight = el.scrollHeight;
-  await chatStore.fetchOlderMessages();
+  const el = chatBodyRef.value
+  if (!el) return
+  const oldScrollHeight = el.scrollHeight
+  await chatStore.fetchOlderMessages()
   nextTick(() => {
-    el.scrollTop = el.scrollHeight - oldScrollHeight;
-  });
-};
+    el.scrollTop = el.scrollHeight - oldScrollHeight
+  })
+}
 
 const handleScroll = () => {
   const el = chatBodyRef.value
   if (!el) return
   if (el.scrollTop === 0 && !isLoading.value && hasMoreHistory.value) {
-    loadMoreManually();
+    loadMoreManually()
   }
   const isAtBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 1
   if (isAtBottom) {
@@ -89,7 +89,11 @@ onUnmounted(() => {
 watch(
   () => messages.value.length,
   (newLength, oldLength) => {
-    if (newLength > oldLength && newLength - oldLength === 1 && autoScrollEnabled.value) {
+    if (
+      newLength > oldLength &&
+      newLength - oldLength === 1 &&
+      autoScrollEnabled.value
+    ) {
       scrollToBottom('smooth')
     }
   },
