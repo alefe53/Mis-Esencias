@@ -121,11 +121,17 @@ const shouldHideAnimation = computed(() => {
 })
 
 const fullAvatarUrl = computed(() => {
-  if (!user.value?.avatar_url) return ''
-  if (user.value.avatar_url.startsWith('http')) {
-    return user.value.avatar_url
+  const avatar = user.value?.avatar_url;
+  if (!avatar) return '';
+
+  // Si la URL ya es completa (viene de Google), la usamos directamente.
+  if (avatar.startsWith('http')) {
+    return avatar;
   }
-  return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/assets-publicos/${user.value.avatar_url}`
+  
+  // Para cualquier otro caso (como 'perfildefault.jpg' o un avatar subido),
+  // construimos la URL del bucket público de Supabase.
+  return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/assets-publicos/${avatar}`;
 })
 
 const handleAuthButtonClick = () => {

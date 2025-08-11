@@ -1,23 +1,19 @@
-// RUTA: client/src/stores/authStore.ts
-
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { User, RegisterPayload, ProfileUpdatePayload } from '../types/index.ts'
 import api from '../services/api'
-import * as profileService from '../services/profileService.ts' 
+import * as profileService from '../services/profileService.ts'
 import { usePlayerStore } from './playerStore'
 import { useUiStore } from './uiStore'
-import { useRouter } from 'vue-router' // Importamos useRouter
+import { useRouter } from 'vue-router'
+import { supabase } from '../services/supabaseClient' // <-- 1. IMPORTAMOS SUPABASE
 
-// --- INICIO: LÓGICA MODIFICADA ---
-
-// Helper para crear una pausa
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const token = ref<string | null>(null)
-  const router = useRouter() // Obtenemos la instancia del router
+  const router = useRouter()
 
   const isAuthenticated = computed(() => !!user.value && !!token.value)
   const isAdmin = computed(() => {
@@ -47,7 +43,7 @@ export const useAuthStore = defineStore('auth', () => {
           await fetchUserProfile()
           await uiStore.ensureMoodsAvailable()
 
-          return; // Si el login es exitoso, salimos de la función.
+          return;
         }
       } catch (error) {
         lastError = error;
@@ -58,11 +54,33 @@ export const useAuthStore = defineStore('auth', () => {
       }
     }
 
-    // Si el bucle termina sin éxito, lanzamos el último error capturado.
     console.error("Error en el login después de todos los reintentos:", lastError);
     throw lastError;
   }
-// --- FIN: LÓGICA MODIFICADA ---
+
+  async function loginWithGoogle(supabaseToken: string) {
+    const playerStore = usePlayerStore();
+    const uiStore = useUiStore();
+    playerStore.reset();
+
+    try {
+        const { data } = await api.post('/auth/google/callback', { supabaseToken });
+        if (data.success && data.token && data.user) {
+            token.value = data.token;
+            user.value = data.user;
+
+            localStorage.setItem('authToken', data.token);
+            localStorage.setItem('authUser', JSON.stringify(data.user));
+
+            await fetchUserProfile();
+            await uiStore.ensureMoodsAvailable();
+            router.push('/');
+        }
+    } catch (error) {
+        console.error("Error en el callback de Google:", error);
+        throw new Error("No se pudo iniciar sesión con Google.");
+    }
+  }
 
   async function fetchUserProfile() {
       try {
@@ -73,16 +91,18 @@ export const useAuthStore = defineStore('auth', () => {
           }
       } catch (error) {
           console.error("No se pudo refrescar el perfil del usuario:", error);
-          // Si el perfil no se puede refrescar por un error 401, el interceptor se encargará
       }
   }
 
-  function logout(sessionExpired = false) { // Acepta un parámetro opcional
+  async function logout(sessionExpired = false) { // La hacemos async
     const playerStore = usePlayerStore()
     const uiStore = useUiStore()
 
     playerStore.reset()
     uiStore.resetLoginToast()
+    
+    // ▼▼▼ 2. AÑADIMOS EL SIGNOUT DE SUPABASE ▼▼▼
+    await supabase.auth.signOut()
 
     token.value = null
     user.value = null
@@ -92,11 +112,10 @@ export const useAuthStore = defineStore('auth', () => {
     
     uiStore.ensureMoodsAvailable()
     
-    // Si la sesión expiró, mostramos un toast y redirigimos
     if (sessionExpired) {
         uiStore.showToast({
             message: 'Tu sesión ha expirado. Por favor, inicia sesión de nuevo.',
-            color: '#ef4444', // Un color de error
+            color: '#ef4444',
             duration: 5000,
         });
         router.push('/auth');
@@ -141,6 +160,7 @@ export const useAuthStore = defineStore('auth', () => {
       throw error
     }
   }
+
   async function updateUserAvatar(avatarFile: File) {
     try {
         const response = await profileService.uploadAvatar(avatarFile);
@@ -154,17 +174,19 @@ export const useAuthStore = defineStore('auth', () => {
         throw error;
     }
   }
+
   return { 
     user, 
     token, 
     isAuthenticated, 
     isAdmin,
-    login, 
+    login,
+    loginWithGoogle,
     register, 
     logout, 
     checkUserSession,
     updateUserProfile,
     updateUserAvatar,
-    fetchUserProfile ,
+    fetchUserProfile,
   }
 })

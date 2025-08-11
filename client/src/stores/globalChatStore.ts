@@ -132,6 +132,12 @@ export const useGlobalChatStore = defineStore("globalChat", () => {
         const fullMessage = await globalChatService.fetchSingleMessage(newMessageId);
         messages.value.push(fullMessage);
       })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'global_chat_messages' }, (payload) => {
+          const deletedMessageId = payload.old.message_id;
+          if (deletedMessageId) {
+              messages.value = messages.value.filter(msg => msg.message_id !== deletedMessageId);
+          }
+      })
       .on("postgres_changes", { event: "*", schema: "public", table: "global_chat_reactions" }, async (payload) => {
         const record = (payload.new as any) || (payload.old as any);
         if (!record?.message_id) return;
@@ -220,6 +226,7 @@ export const useGlobalChatStore = defineStore("globalChat", () => {
   }
 
   async function adminDeleteMessage(messageId: number) {
+    messages.value = messages.value.filter(m => m.message_id !== messageId);
     try {
       await adminService.deleteGlobalMessage(messageId);
     } catch (error) {
