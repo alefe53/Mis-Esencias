@@ -57,7 +57,6 @@ const close = () => {
   font-size: 1.25rem;
   padding: 0.3rem;
   border-radius: 50%;
-  cursor: pointer;
   transition: background-color 0.2s;
   line-height: 1;
 }

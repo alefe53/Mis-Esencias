@@ -374,6 +374,7 @@ const selectMood = (moodId: number) => {
   if (!uiStore.hasShownInitialPrompt) {
     uiStore.setInitialPromptAsShown()
   }
+  uiStore.activateMoodGlow();
   fetchAndPlayPlaylist(moodId)
   isMoodListVisible.value = false
 }
@@ -503,7 +504,6 @@ const handlePrimaryPlay = async () => {
   background-color: #2a2a2a;
   color: #ccc;
   border: 1px solid #555;
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -619,7 +619,6 @@ const handlePrimaryPlay = async () => {
   background: none;
   border: none;
   color: white;
-  cursor: pointer;
   padding: 0;
   display: flex;
   align-items: center;
@@ -658,7 +657,6 @@ const handlePrimaryPlay = async () => {
   border-radius: 20px;
   padding: 6px 12px;
   font-size: 0.8rem;
-  cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
 }
@@ -700,7 +698,6 @@ const handlePrimaryPlay = async () => {
   padding: 5px 9px;
   border-radius: 6px;
   font-size: 0.75rem;
-  cursor: pointer;
   transition:
     background-color 0.2s,
     color 0.2s;
@@ -732,7 +729,6 @@ const handlePrimaryPlay = async () => {
   font-size: 0.9rem;
   font-weight: 500;
   color: #eee;
-  cursor: pointer;
 }
 .release-year {
   font-size: 0.75rem;

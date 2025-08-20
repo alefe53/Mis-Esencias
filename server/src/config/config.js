@@ -28,6 +28,17 @@ export const config = {
         API_KEY: process.env.LIVEKIT_API_KEY,
         API_SECRET: process.env.LIVEKIT_API_SECRET,
     },
+	mercadoPago: {
+        ACCESS_TOKEN: process.env.MP_ACCESS_TOKEN,
+        PUBLIC_KEY: process.env.MP_PUBLIC_KEY,
+        WEBHOOK_SECRET: process.env.MP_WEBHOOK_SECRET,
+    },
+    paypal: {
+        CLIENT_ID: process.env.PAYPAL_CLIENT_ID,
+        CLIENT_SECRET: process.env.PAYPAL_CLIENT_SECRET,
+        WEBHOOK_ID: process.env.PAYPAL_WEBHOOK_ID,
+        MODE: process.env.NODE_ENV === 'production' ? 'live' : 'sandbox',
+    }
 };
 
 // Verificación crítica

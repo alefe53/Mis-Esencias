@@ -6,7 +6,7 @@ import * as profileService from '../services/profileService.ts'
 import { usePlayerStore } from './playerStore'
 import { useUiStore } from './uiStore'
 import { useRouter } from 'vue-router'
-import { supabase } from '../services/supabaseClient' // <-- 1. IMPORTAMOS SUPABASE
+import { supabase } from '../services/supabaseClient' 
 
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
@@ -74,6 +74,7 @@ export const useAuthStore = defineStore('auth', () => {
 
             await fetchUserProfile();
             await uiStore.ensureMoodsAvailable();
+            // Para el login con Google, sí podemos usar el router para una transición más suave
             router.push('/');
         }
     } catch (error) {
@@ -84,24 +85,23 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function fetchUserProfile() {
       try {
-          const response = await profileService.getProfile();
-          if(response.success && response.data) {
-              user.value = response.data;
-              localStorage.setItem('authUser', JSON.stringify(response.data));
-          }
+        const response = await profileService.getProfile();
+        if(response.success && response.data) {
+            user.value = response.data;
+            localStorage.setItem('authUser', JSON.stringify(response.data));
+        }
       } catch (error) {
           console.error("No se pudo refrescar el perfil del usuario:", error);
       }
   }
 
-  async function logout(sessionExpired = false) { // La hacemos async
+  async function logout(sessionExpired = false) { 
     const playerStore = usePlayerStore()
     const uiStore = useUiStore()
 
     playerStore.reset()
     uiStore.resetLoginToast()
     
-    // ▼▼▼ 2. AÑADIMOS EL SIGNOUT DE SUPABASE ▼▼▼
     await supabase.auth.signOut()
 
     token.value = null
@@ -113,12 +113,18 @@ export const useAuthStore = defineStore('auth', () => {
     uiStore.ensureMoodsAvailable()
     
     if (sessionExpired) {
-        uiStore.showToast({
-            message: 'Tu sesión ha expirado. Por favor, inicia sesión de nuevo.',
-            color: '#ef4444',
-            duration: 5000,
-        });
-        router.push('/auth');
+      uiStore.showToast({
+        message: 'Tu sesión ha expirado. Por favor, inicia sesión de nuevo.',
+        color: '#ef4444',
+        duration: 5000,
+      });
+      // Para sesiones expiradas, forzamos la recarga a la página de autenticación
+      window.location.href = '/auth';
+    } else {
+      // [CAMBIO REALIZADO AQUÍ]
+      // Forzamos una recarga completa a la página de inicio.
+      // Esto garantiza que toda la aplicación se reinicie en un estado "limpio" y seguro.
+      window.location.href = '/';
     }
   }
 

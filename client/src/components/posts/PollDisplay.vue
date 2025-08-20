@@ -82,7 +82,6 @@ const handleVote = (optionId: number) => {
   border: 1px solid #555;
   border-radius: 8px;
   padding: 0.75rem 1rem;
-  cursor: pointer;
   transition: all 0.2s ease;
   overflow: hidden;
 }

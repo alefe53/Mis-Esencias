@@ -34,6 +34,17 @@ Content-Type: application/json
   "password": "123123123"
 }
 
+### (A) Login como "pepeluis"
+# @name loginPepeluis
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "kiki@gmail.com",
+  "password": "123123123"
+}
+
+
 ### (B) Login como "admin"
 # @name loginAdmin
 POST {{host}}/api/auth/login

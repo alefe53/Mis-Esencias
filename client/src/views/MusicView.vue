@@ -1,10 +1,9 @@
 <template>
   <div class="music-view">
-    <div class="logo-container">
+    <div class="logo-container fade-in-item" ref="logoContainer">
       <img src="/adfmusiclogo.jpg" alt="ADF Music Logo" class="logo-image" />
     </div>
-
-    <div class="cards-container">
+    <div class="cards-container fade-in-item" ref="cardsContainer">
       <router-link to="/musica-propia" class="music-card-link">
         <div class="music-card" style="background-image: url('/bas.jpg')">
           <div class="card-content">
@@ -14,7 +13,6 @@
           </div>
         </div>
       </router-link>
-
       <router-link to="/musica-con-ale" class="music-card-link">
         <div class="music-card" style="background-image: url('/ladlr.jpg')">
           <div class="card-content">
@@ -27,9 +25,13 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts"></script>
-
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useFadeInAnimation } from '../composables/useFadeInAnimation'
+const logoContainer = ref(null)
+const cardsContainer = ref(null)
+useFadeInAnimation([logoContainer, cardsContainer])
+</script>
 <style scoped>
 @keyframes shimmer-text {
   0% {
@@ -39,7 +41,6 @@
     background-position: -200% center;
   }
 }
-
 .music-view {
   display: flex;
   flex-direction: column;
@@ -50,7 +51,6 @@
   color: #fff;
   background-color: transparent;
 }
-
 .logo-container {
   width: 90%;
   max-width: 880px;
@@ -65,19 +65,16 @@
     filter 0.4s ease-out,
     opacity 0.4s ease-out;
 }
-
 .logo-container:hover {
   transform: scale(1);
   filter: grayscale(0%) blur(0);
   opacity: 1;
 }
-
 .logo-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-
 .cards-container {
   display: flex;
   justify-content: center;
@@ -85,27 +82,23 @@
   flex-wrap: wrap;
   width: 100%;
 }
-
 .music-card {
-  width: 350px;
+  width: 100%;
   height: 350px;
   border-radius: 12px;
   background-size: cover;
   background-position: center;
   position: relative;
   overflow: hidden;
-  cursor: pointer;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
   transition:
     transform 0.3s ease-in-out,
     box-shadow 0.3s ease-in-out;
 }
-
 .music-card:hover {
   transform: scale(1.05) translateY(-10px);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
 }
-
 .card-content {
   position: relative;
   z-index: 2;
@@ -115,12 +108,10 @@
   justify-content: center;
   align-items: center;
 }
-
 .text-info {
   text-align: center;
   transition: opacity 0.3s ease-in-out;
 }
-
 .text-info h2 {
   margin: 0;
   font-size: 2.5rem;
@@ -142,8 +133,42 @@
   animation: shimmer-text 5s linear infinite;
   filter: drop-shadow(2px 3px 4px rgba(0, 0, 0, 0.7));
 }
-
 .music-card:hover .text-info {
   opacity: 0;
+}
+.music-card-link {
+  flex: 1;
+  max-width: 450px;
+  display: flex;
+}
+@media (max-width: 768px) {
+  .music-view {
+    padding: 1rem;
+  }
+  .logo-container {
+    height: 100px;
+    margin-bottom: 2rem;
+  }
+  .cards-container {
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+  }
+  .music-card {
+    width: 100%;
+    max-width: 400px;
+    height: 300px;
+  }
+  .text-info h2 {
+    font-size: 2rem;
+  }
+}
+@media (max-width: 400px) {
+  .music-card {
+    height: 250px;
+  }
+  .text-info h2 {
+    font-size: 1.8rem;
+  }
 }
 </style>

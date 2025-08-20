@@ -110,7 +110,6 @@ const contentStyle = computed(() => {
   border: none;
   font-size: 1.5rem;
   line-height: 1;
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;

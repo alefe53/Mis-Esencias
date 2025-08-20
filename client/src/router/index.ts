@@ -13,6 +13,7 @@ import AdminChatDashboard from '../views/AdminDashboardView.vue'
 import AdminUserListView from '../views/AdminUserListView.vue'
 import SocialFeedView from '../views/SocialFeedView.vue' 
 import AdminStreamView from '../views/AdminStreamView.vue';
+import SubscriptionView from '../views/SubscriptionView.vue'; 
 
 const routes = [
   {
@@ -25,13 +26,13 @@ const routes = [
     path: '/feed', 
     name: 'social-feed',
     component: SocialFeedView, 
-    meta: { requiresAuth: true, scrollable: true }
+    meta: { requiresAuth: true, scrollable: false, scrollableOnMobile: true }
   },
   {
     path: '/auth',
     name: 'auth',
     component: AuthView,
-    meta: { scrollable: true } 
+    meta: { scrollable: true, scrollableOnMobile:true } 
   },
   {
     path: '/profile',
@@ -39,6 +40,12 @@ const routes = [
     component: ProfileView,
     meta: { requiresAuth: true, scrollable: true }
     
+  },
+  {
+  path: '/subscribe',
+  name: 'subscribe',
+  component: SubscriptionView,
+  meta: { requiresAuth: true, scrollable: true }
   },
   {
     path: '/music-intro',
@@ -50,19 +57,19 @@ const routes = [
     path: '/music',
     name: 'music',
     component: MusicView,
-    meta: { scrollable: false } 
+    meta: { scrollable: false, scrollableOnMobile: true } 
   },
   {
     path: '/musica-propia', 
     name: 'my-music',
     component: () => import('../views/MyMusicView.vue'),
-    meta: { scrollable: false }  
+    meta: { scrollable: false, scrollableOnMobile: true }  
   },
   { 
     path: '/musica-con-ale', 
     name: 'music-with-me',
     component: () => import('../views/MusicWithMeView.vue') ,
-    meta: { scrollable: false } 
+    meta: { scrollable: false, scrollableOnMobile: true } 
   },
   {
     path: '/trabajos',

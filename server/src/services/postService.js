@@ -102,6 +102,9 @@ const createPost = async (authToken, postData) => {
 const castPollVote = async (authToken, postId, optionId) => {
 	return postRepository.castVoteInDB(authToken, postId, optionId);
 };
+const toggleCommentLike = async (authToken, commentId) => {
+    return postRepository.toggleCommentLikeInDB(authToken, commentId);
+};
 export const postService = {
 	fetchSocialFeed,
 	togglePostLike,
@@ -110,4 +113,5 @@ export const postService = {
 	deleteComment,
 	createPost,
 	castPollVote,
+	toggleCommentLike,
 };

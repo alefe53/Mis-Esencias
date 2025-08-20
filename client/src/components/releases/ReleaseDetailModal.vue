@@ -2,16 +2,7 @@
   <transition name="modal-fade">
     <div class="modal-backdrop" @click="$emit('close')">
       <div class="modal-content" :style="modalStyle" @click.stop>
-        <button
-          class="close-button"
-          @click="$emit('close')"
-          aria-label="Cerrar modal"
-        >
-          ×
-        </button>
-
         <div v-if="isLoading" class="loader">Cargando detalles...</div>
-
         <div v-else-if="release" class="details-container">
           <div class="header">
             <img
@@ -28,7 +19,6 @@
               </p>
             </div>
           </div>
-
           <div class="view-switcher">
             <button
               @click="activeView = 'tracks'"
@@ -46,7 +36,6 @@
               Galería
             </button>
           </div>
-
           <div class="scrollable-content">
             <div v-if="featuredVideoEmbedUrl" class="featured-video-container">
               <div class="video-wrapper">
@@ -59,7 +48,6 @@
                 ></iframe>
               </div>
             </div>
-
             <div v-if="activeView === 'tracks'" class="main-content">
               <div class="tracks-section">
                 <div class="tracks-header">
@@ -72,13 +60,24 @@
                     <PlayCircle :size="32" stroke-width="1.5" />
                   </button>
                 </div>
-                <ul class="tracks-list">
+                <transition-group
+                  tag="ul"
+                  name="track-list"
+                  class="tracks-list"
+                  appear
+                >
                   <li
-                    v-for="track in release.tracks"
+                    v-for="(track, index) in release.tracks"
                     :key="track.id"
                     :class="{ locked: isTrackLocked(track) }"
                     @click="handleTrackClick(track)"
-                    :style="getHoverStyleForTrack(track)"
+                    :style="{
+                      '--track-hover-bg':
+                        getHoverStyleForTrack(track)['--track-hover-bg'],
+                      '--track-hover-text':
+                        getHoverStyleForTrack(track)['--track-hover-text'],
+                      'transition-delay': `${index * 50}ms`,
+                    }"
                   >
                     <TrackTooltip
                       v-if="activeTooltipTrackId === track.id"
@@ -89,10 +88,8 @@
                     <span class="track-title">{{ track.title }}</span>
                     <div class="platform-icons">
                       <button
-                        v-for="link in track.links?.filter(
-                          (l) => l.platform.toLowerCase() !== 'local',
-                        )"
-                        :key="link.platform"
+                        v-for="(link, linkIndex) in getUniqueLinks(track.links)"
+                        :key="`${link.platform}-${linkIndex}`"
                         class="platform-icon-button"
                         @click.stop="openEmbedModal(link)"
                       >
@@ -103,10 +100,9 @@
                       >🔒</span
                     >
                   </li>
-                </ul>
+                </transition-group>
               </div>
             </div>
-
             <div v-if="activeView === 'gallery'" class="gallery-section">
               <div
                 v-for="(image, index) in release.gallery"
@@ -125,18 +121,24 @@
       </div>
     </div>
   </transition>
-
+  <button
+    class="mobile-close-button"
+    @click="$emit('close')"
+    aria-label="Volver"
+  >
+    Volver
+  </button>
   <EmbedPlayerModal
     v-if="isEmbedModalVisible && selectedEmbed"
     :platform="selectedEmbed.platform"
     :url="selectedEmbed.url"
     @close="closeEmbedModal"
   />
-
   <LightboxModal />
 </template>
 
 <script setup lang="ts">
+// 2. Se eliminan watch, onBeforeUpdate, y la lógica de refs para la animación
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { usePlayerStore } from '../../stores/playerStore'
 import { useAuthStore } from '../../stores/authStore'
@@ -177,6 +179,18 @@ const activeTooltipTrackId = ref<number | null>(null)
 const tooltipMessage = ref('')
 const tooltipColor = ref('')
 let tooltipTimeout: number | undefined
+
+// 4. (Para los íconos duplicados) Función que filtra los links
+function getUniqueLinks(links: TrackLink[] | undefined) {
+  if (!links) return []
+  const linksToShow = links.filter((l) => l.platform.toLowerCase() !== 'local')
+  const seen = new Set()
+  return linksToShow.filter((link) => {
+    const duplicate = seen.has(link.platform)
+    seen.add(link.platform)
+    return !duplicate
+  })
+}
 
 const userTier = computed(() => authStore.user?.subscription_tier_id || 1)
 
@@ -295,6 +309,21 @@ function closeEmbedModal() {
 </script>
 
 <style scoped>
+/* TU CSS EXISTENTE NO CAMBIA, SOLO SE AGREGAN LAS CLASES DE TRANSICIÓN */
+
+/* 3. Se añaden las clases para la animación de la lista */
+.track-list-enter-active,
+.track-list-leave-active {
+  transition: all 0.5s ease;
+}
+.track-list-enter-from,
+.track-list-leave-to {
+  opacity: 0;
+  transform: translateX(30px);
+}
+.mobile-close-button {
+  display: none;
+}
 .modal-backdrop {
   position: fixed;
   top: 0;
@@ -345,22 +374,6 @@ function closeEmbedModal() {
   display: flex;
   flex-direction: column;
   height: 100%;
-}
-.close-button {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: none;
-  border: none;
-  color: #aaa;
-  font-size: 2.5rem;
-  line-height: 1;
-  cursor: pointer;
-  transition: color 0.2s;
-  z-index: 10;
-}
-.close-button:hover {
-  color: #fff;
 }
 .modal-fade-enter-active,
 .modal-fade-leave-active {
@@ -429,7 +442,6 @@ function closeEmbedModal() {
   color: #aaa;
   padding: 0.4rem 1.2rem;
   border-radius: 20px;
-  cursor: pointer;
   font-size: 0.9rem;
   font-weight: 500;
   transition: all 0.2s ease;
@@ -493,7 +505,6 @@ function closeEmbedModal() {
   border: none;
   padding: 0;
   margin: 0;
-  cursor: pointer;
   color: #ccc;
   transition: all 0.2s ease;
   line-height: 1;
@@ -514,8 +525,9 @@ function closeEmbedModal() {
   align-items: center;
   gap: 0.8rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  cursor: pointer;
-  transition: all 0.2s ease-in-out;
+  transition-property: background-color, color, box-shadow, transform;
+  transition-duration: 0.2s;
+  transition-timing-function: ease-in-out;
 }
 .tracks-list li:hover:not(.locked) {
   background-color: var(--track-hover-bg, rgba(167, 228, 255, 0.1));
@@ -535,7 +547,6 @@ function closeEmbedModal() {
   font-size: 1rem;
 }
 .gallery-item {
-  cursor: pointer;
   transition: transform 0.2s ease;
 }
 .gallery-item:hover {
@@ -556,12 +567,61 @@ function closeEmbedModal() {
   background: none;
   border: none;
   padding: 0;
-  cursor: pointer;
   color: #9ca3af;
   transition: all 0.2s ease;
 }
 .platform-icon-button:hover {
   color: #ffffff;
   transform: scale(1.2);
+}
+@media (max-width: 768px) {
+  .modal-content {
+    width: 100%;
+    height: 100%;
+    min-height: 100vh;
+    border-radius: 0;
+    padding: 1.5rem 1.5rem 6rem 1.5rem;
+  }
+  .modal-backdrop {
+    padding: 0;
+  }
+  .header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .header-cover {
+    width: 120px;
+    height: 120px;
+  }
+  .header-info h1 {
+    font-size: 1.5rem;
+  }
+  .header-info h2 {
+    font-size: 1rem;
+  }
+  .header-info .header-description {
+    max-height: 60px;
+  }
+  .mobile-close-button {
+    display: block;
+    position: fixed;
+    bottom: 2rem;
+    right: 1.5rem;
+    z-index: 2001;
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 25px;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    cursor: pointer;
+    transition: transform 0.2s ease;
+  }
+  .mobile-close-button:hover {
+    transform: scale(1.05);
+  }
 }
 </style>

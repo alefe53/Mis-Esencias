@@ -1,8 +1,11 @@
 <template>
   <div class="home-guest-container">
-    <WelcomeBanner />
+    <div class="header-container">
+      <WelcomeBanner />
+      <SubscriptionButton mode="corner-float" />
+    </div>
 
-    <section class="intro-section">
+    <section class="intro-section fade-in-item" ref="introSection">
       <p class="philosophy">
         ¡Hola! Soy ADF. Fusioné mis pasiones por la <strong>música</strong> y la
         <strong>programación</strong> para dar vida a este espacio. Aquí no solo
@@ -13,20 +16,26 @@
       </p>
     </section>
 
-    <section class="photo-gallery">
+    <section class="photo-gallery fade-in-item" ref="photoGallery">
       <div v-for="image in personalPhotos" :key="image.src" class="photo-card">
         <img :src="image.src" :alt="image.alt" />
       </div>
     </section>
 
-    <section class="subscriptions-section">
+    <section
+      class="subscriptions-section fade-in-item"
+      ref="subscriptionsSection"
+    >
       <h2 class="section-title">Únete a la Comunidad</h2>
       <div class="table-container" v-if="!isLoading">
         <table>
           <thead>
             <tr>
               <th>Beneficios</th>
-              <th v-for="tier in subscriptionTiers" :key="tier.id">
+              <th
+                v-for="tier in subscriptionTiersWithInclusiveFeatures"
+                :key="tier.id"
+              >
                 {{ tier.name }}
               </th>
             </tr>
@@ -34,16 +43,22 @@
           <tbody>
             <tr v-for="(feature, index) in allFeatures" :key="index">
               <td>{{ feature }}</td>
-              <td v-for="tier in subscriptionTiers" :key="tier.id">
+              <td
+                v-for="tier in subscriptionTiersWithInclusiveFeatures"
+                :key="tier.id"
+              >
                 <span v-if="tierHasFeature(tier, feature)" class="checkmark"
                   >✓</span
                 >
-                <span v-else class="cross"></span>
+                <span v-else class="cross">-</span>
               </td>
             </tr>
             <tr class="price-row">
               <td>Precio</td>
-              <td v-for="tier in subscriptionTiers" :key="tier.id">
+              <td
+                v-for="tier in subscriptionTiersWithInclusiveFeatures"
+                :key="tier.id"
+              >
                 <span class="price">${{ tier.price.toFixed(2) }}</span>
                 <span class="period" v-if="tier.price > 0">/mes</span>
               </td>
@@ -61,6 +76,14 @@ import { ref, onMounted, computed } from 'vue'
 import WelcomeBanner from '../components/common/WelcomeBanner.vue'
 import apiPublic from '../services/apiPublic'
 import type { SubscriptionTier } from '../types'
+import SubscriptionButton from '../components/common/SubscriptionButton.vue'
+import { useFadeInAnimation } from '../composables/useFadeInAnimation'
+
+const introSection = ref(null)
+const photoGallery = ref(null)
+const subscriptionsSection = ref(null)
+
+useFadeInAnimation([introSection, photoGallery, subscriptionsSection])
 
 const supabasePublicUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/assets-publicos/mis-imagenes/homepage/`
 const personalPhotos = ref([
@@ -85,7 +108,11 @@ onMounted(async () => {
   try {
     const response = await apiPublic.get('/public/subscriptions')
     if (response.data.success) {
-      subscriptionTiers.value = response.data.data
+      // MODIFICADO: Se ordenan los planes por precio para asegurar la herencia correcta
+      const sortedTiers = response.data.data.sort(
+        (a: SubscriptionTier, b: SubscriptionTier) => a.price - b.price
+      )
+      subscriptionTiers.value = sortedTiers
     }
   } catch (error) {
     console.error('Error al cargar los niveles de suscripción:', error)
@@ -97,25 +124,80 @@ onMounted(async () => {
 const allFeatures = computed(() => {
   const featuresSet = new Set<string>()
   subscriptionTiers.value.forEach((tier) => {
-    tier.features?.items.forEach((feature) => {
+    // Se excluye el feature "Todo lo del plan anterior" de la lista de filas
+    const filteredFeatures = tier.features?.items.filter(
+      (f) => !f.toLowerCase().includes('todo lo del plan anterior')
+    )
+    filteredFeatures?.forEach((feature) => {
       featuresSet.add(feature)
     })
   })
   return Array.from(featuresSet)
 })
 
-const tierHasFeature = (tier: SubscriptionTier, feature: string): boolean => {
-  return tier.features?.items.includes(feature) ?? false
+// MODIFICADO: Nueva propiedad computada para procesar los planes
+const subscriptionTiersWithInclusiveFeatures = computed(() => {
+  const processedTiers: (SubscriptionTier & {
+    inclusiveFeatures: Set<string>
+  })[] = []
+  const accumulatedFeatures = new Set<string>()
+
+  for (const tier of subscriptionTiers.value) {
+    // Añade los beneficios propios del plan actual al set acumulado
+    tier.features?.items.forEach((feature) => {
+      accumulatedFeatures.add(feature)
+    })
+
+    // Crea un nuevo objeto para el plan con una copia del set acumulado
+    processedTiers.push({
+      ...tier,
+      inclusiveFeatures: new Set(accumulatedFeatures),
+    })
+  }
+
+  return processedTiers
+})
+
+// MODIFICADO: La función ahora usa el set de beneficios inclusivos
+const tierHasFeature = (
+  tier: SubscriptionTier & { inclusiveFeatures: Set<string> },
+  feature: string
+): boolean => {
+  return tier.inclusiveFeatures.has(feature)
 }
 </script>
 
 <style scoped>
+.fade-in-item {
+  opacity: 0;
+  transform: scale(0.95) translateY(20px);
+}
+
 .home-guest-container {
   max-width: 1100px;
   margin: 0 auto;
   padding: 0 2rem 4rem 2rem;
   color: #e0e0e0;
   text-align: center;
+}
+
+.header-container {
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 1.5rem;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+.header-container > :first-child {
+  grid-column: 2;
+}
+.header-container > :last-child {
+  grid-column: 3;
+  justify-self: end;
 }
 
 .intro-section {
@@ -205,9 +287,15 @@ tbody tr:last-child td {
   border-bottom: none;
 }
 .checkmark {
-  color: #4ade80; /* Verde */
+  color: #4ade80;
   font-size: 1.5rem;
   font-weight: bold;
+}
+/* MODIFICADO: Estilo para el guión en celdas vacías */
+.cross {
+  color: #6b7280;
+  font-weight: bold;
+  font-size: 1.5rem;
 }
 .price-row {
   font-size: 1.2rem;
@@ -220,5 +308,93 @@ tbody tr:last-child td {
   font-size: 0.8rem;
   color: #9ca3af;
   margin-left: 4px;
+}
+
+@media (max-width: 768px) {
+  .home-guest-container {
+    padding: 0 1rem 3rem 1rem;
+  }
+
+  .header-container {
+    display: flex;
+    flex-direction: column;
+    position: static;
+  }
+
+  .intro-section {
+    margin-bottom: 3rem;
+  }
+
+  .philosophy {
+    font-size: 1.1rem;
+    padding: 1.5rem;
+  }
+
+  .photo-gallery {
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+    margin-bottom: 4rem;
+  }
+
+  .photo-card {
+    width: 100%;
+    max-width: 350px;
+    height: 300px;
+  }
+
+  .photo-card:hover {
+    transform: translateY(-5px) scale(1.02);
+  }
+
+  .section-title {
+    font-size: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  /* MODIFICADO: Habilitamos el scroll horizontal como última opción */
+  .table-container {
+    overflow-x: auto;
+    padding: 0.5rem;
+  }
+
+  /* MODIFICADO: Estilos para hacer la tabla mucho más compacta */
+  table {
+    min-width: 500px; /* Ancho mínimo para que no se deforme demasiado */
+  }
+
+  th,
+  td {
+    padding: 0.7rem 0.3rem; /* Menos padding */
+    font-size: 0.7rem; /* Letra más pequeña */
+    white-space: normal; /* Permite que el texto se divida en varias líneas */
+  }
+
+  th {
+    font-size: 0.75rem; /* Encabezados un poco más grandes */
+  }
+
+  td:first-child {
+    max-width: 110px; /* Ancho máximo para la primera columna */
+    font-weight: 600;
+    word-break: break-word; /* Rompe palabras largas si es necesario */
+  }
+
+  .checkmark,
+  .cross {
+    font-size: 1rem; /* Iconos más pequeños */
+  }
+
+  .price-row {
+    font-size: 0.9rem;
+  }
+
+  .price {
+    font-size: 1rem;
+  }
+
+  .period {
+    font-size: 0.7rem;
+  }
 }
 </style>

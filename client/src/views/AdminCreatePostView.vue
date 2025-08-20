@@ -165,7 +165,6 @@ textarea {
   color: white;
   border: none;
   border-radius: 5px;
-  cursor: pointer;
 }
 .add-btn {
   background-color: #3b82f6;

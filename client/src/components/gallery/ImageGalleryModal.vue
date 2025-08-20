@@ -95,7 +95,6 @@ const handleSelectImage = (image: PrivateGalleryImage) => {
   border: none;
   color: #9ca3af;
   font-size: 2.5rem;
-  cursor: pointer;
   transition: color 0.2s;
 }
 .close-button:hover {
@@ -114,7 +113,6 @@ const handleSelectImage = (image: PrivateGalleryImage) => {
   background-color: #1f2937;
   border-radius: 8px;
   overflow: hidden;
-  cursor: pointer;
   transition: transform 0.2s ease;
 }
 .gallery-item:hover {

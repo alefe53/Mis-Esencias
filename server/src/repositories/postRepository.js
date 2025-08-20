@@ -109,6 +109,19 @@ const castVoteInDB = async (authToken, postId, optionId) => {
 	}
 	return data;
 };
+const toggleCommentLikeInDB = async (authToken, commentId) => {
+    const scopedSupabase = createScopedClient(authToken);
+
+    const { data, error } = await scopedSupabase.rpc("toggle_comment_like", {
+        p_comment_id: commentId,
+    });
+
+    if (error) {
+        console.error("Error en RPC (toggle_comment_like):", error);
+        throw new Error("No se pudo procesar el 'Me Gusta' del comentario.");
+    }
+    return data;
+};
 
 export const postRepository = {
 	getFeedFromDB,
@@ -118,4 +131,5 @@ export const postRepository = {
 	deleteCommentFromDB,
 	createPostInDB,
 	castVoteInDB,
+	toggleCommentLikeInDB,
 };

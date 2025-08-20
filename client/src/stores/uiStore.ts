@@ -1,10 +1,13 @@
-// stores/utStore.ts
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { Mood } from '../types'
 import apiPublic from '../services/apiPublic'
 
 export const useUiStore = defineStore('ui', () => {
+  const isMoodGlowEnabled = ref(true)
+  // --- NUEVO ESTADO PARA VISIBILIDAD DEL BOTÓN ---
+  const hasMoodGlowBeenActivated = ref(false)
+
   const isGlobalTransitionActive = ref(false)
   const hasShownInitialPrompt = ref(false)
   const loginToastDismissed = ref(false)
@@ -15,6 +18,23 @@ export const useUiStore = defineStore('ui', () => {
 
   const availableMoods = ref<Mood[]>([])
   const isMoodsLoading = ref(false)
+
+  // --- MODIFICACIÓN DE LA ACCIÓN ---
+  function toggleMoodGlow() {
+    isMoodGlowEnabled.value = !isMoodGlowEnabled.value
+    // Marcamos que el efecto se ha usado al menos una vez para que el botón aparezca.
+    if (!hasMoodGlowBeenActivated.value) {
+      hasMoodGlowBeenActivated.value = true
+    }
+  }
+  
+  // --- NUEVA ACCIÓN PARA ACTIVAR EL BOTÓN DESDE EL REPRODUCTOR ---
+  function activateMoodGlow() {
+    if (!hasMoodGlowBeenActivated.value) {
+      hasMoodGlowBeenActivated.value = true
+    }
+  }
+
 
   async function fetchAvailableMoods() {
     if (isMoodsLoading.value) return;
@@ -66,6 +86,10 @@ export const useUiStore = defineStore('ui', () => {
   }
 
   return {
+    isMoodGlowEnabled,
+    toggleMoodGlow,
+    hasMoodGlowBeenActivated, 
+    activateMoodGlow, 
     isGlobalTransitionActive,
     setTransitionState,
     hasShownInitialPrompt,

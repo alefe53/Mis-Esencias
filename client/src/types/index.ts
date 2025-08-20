@@ -41,6 +41,7 @@ export interface User {
   last_name: string;
   birth_date: string;
   avatar_url: string | null; 
+  subscription_expires_at: string | null;
 }
 
 export interface RegisterPayload {
@@ -213,4 +214,18 @@ export interface LiveSession {
   peak_viewers: number; // Máximo de espectadores
   is_public: boolean; // Para controlar visibilidad
   tags: string[] | null; // Etiquetas
+}
+
+export interface MercadoPagoPreferenceResponse {
+  init_point: string;
+  preferenceId: string;
+}
+
+export interface PayPalOrderResponse {
+  orderID: string;
+}
+
+export interface PayPalCaptureResponse {
+  success: boolean;
+  details: any;
 }

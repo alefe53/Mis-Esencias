@@ -120,7 +120,6 @@ watch(replyingToMessage, (newMessage) => {
   border: none;
   color: #ccc;
   font-size: 1.2rem;
-  cursor: pointer;
 }
 .chat-input-wrapper {
   display: flex;
@@ -141,7 +140,6 @@ watch(replyingToMessage, (newMessage) => {
   border: none;
   border-radius: 8px;
   padding: 0 1.5rem;
-  cursor: pointer;
   font-weight: 600;
 }
 .send-button:disabled {
@@ -171,7 +169,6 @@ watch(replyingToMessage, (newMessage) => {
   border: none;
   border-radius: 6px;
   padding: 0.3rem 0.8rem;
-  cursor: pointer;
   font-weight: 500;
   font-size: 0.8rem;
 }

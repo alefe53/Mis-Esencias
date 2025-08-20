@@ -28,5 +28,10 @@ postRouter.delete(
 	requireAdminAuth,
 	postController.deleteComment,
 );
+postRouter.post(
+    "/comments/:commentId/like",
+    requireAuth, // Protegemos la ruta, solo usuarios logueados pueden dar like
+    postController.toggleCommentLike
+);
 
 export default postRouter;

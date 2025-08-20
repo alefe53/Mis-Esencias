@@ -122,7 +122,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue' // <-- CORREGIDO
 import { useAuthStore } from '../stores/authStore'
 import { useUiStore } from '../stores/uiStore'
 import * as profileService from '../services/profileService'
@@ -157,6 +157,13 @@ const fullAvatarUrl = computed(() => {
     return user.value.avatar_url
   }
   return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/assets-publicos/${user.value.avatar_url}`
+})
+
+// ▼▼▼ BLOQUE AÑADIDO ▼▼▼
+watch(fullAvatarUrl, (newUrl) => {
+  if (newUrl) {
+    avatarPreview.value = newUrl
+  }
 })
 
 onMounted(() => {
@@ -309,7 +316,6 @@ h3 {
   border-radius: 50%;
   object-fit: cover;
   border: 3px solid #444;
-  cursor: pointer;
   transition: filter 0.2s;
 }
 .profile-avatar:hover {
@@ -320,7 +326,6 @@ h3 {
   background: none;
   border: none;
   color: #3b82f6;
-  cursor: pointer;
   font-size: 0.9rem;
 }
 .form-group {
@@ -365,7 +370,6 @@ h3 {
   border-radius: 8px;
   font-weight: bold;
   font-size: 1rem;
-  cursor: pointer;
   background-color: #22c55e;
   color: white;
   transition: background-color 0.2s;
@@ -385,7 +389,6 @@ h3 {
   font-weight: 500;
   background-color: #374151;
   color: #d1d5db;
-  cursor: pointer;
   transition: background-color 0.2s;
 }
 .change-password-btn:hover {
@@ -443,7 +446,6 @@ h3 {
   font-weight: 500;
   background-color: transparent;
   color: #9ca3af;
-  cursor: pointer;
   margin-top: 0.5rem;
   transition: background-color 0.2s;
 }

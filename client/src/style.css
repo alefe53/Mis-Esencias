@@ -17,6 +17,34 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+
+html,
+body {
+  cursor: url('/cursor.png'), auto;
+}
+
+input[type='text'],
+input[type='email'],
+input[type='password'],
+input[type='number'],
+input[type='search'],
+textarea {
+  cursor: text;
+}
+
+a,
+button,
+label,
+select,
+input[type='button'],
+input[type='submit'],
+input[type='reset'],
+input[type='checkbox'],
+input[type='radio'],
+[role='button'] {
+  cursor: url('/cursormano.png'), auto;
+}
+
 a {
   font-weight: 500;
   color: #646cff;
@@ -45,7 +73,6 @@ button {
   font-weight: 500;
   font-family: inherit;
   background-color: #1a1a1a;
-  cursor: pointer;
   transition: border-color 0.25s;
 }
 button:hover {
@@ -114,6 +141,11 @@ button:focus-visible {
 .music-bg .background-layer::after {
   background-image: url('/fondomusic2.jpg');
   animation-name: crossfade-2;
+}
+
+.fade-in-item {
+  opacity: 0;
+  transform: scale(0.95) translateY(20px);
 }
 
 @keyframes crossfade-1 {

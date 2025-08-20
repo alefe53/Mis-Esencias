@@ -12,6 +12,7 @@ export const usePlayerStore = defineStore('player', {
     currentMoodId: null as number | null,
     isPlaylistVisible: false,
     playerState: 'maximized' as 'maximized' | 'docked' | 'hidden',
+    isMobile: false,
   }),
 
   getters: {
@@ -27,6 +28,9 @@ export const usePlayerStore = defineStore('player', {
   },
 
   actions: {
+    setMobileStatus(isMobile: boolean) {
+      this.isMobile = isMobile;
+    },
     async playAlbum(tracks: Track[]) {
       if (!tracks || tracks.length === 0) {
         console.error("Se intentó reproducir un álbum sin tracks.");
@@ -187,18 +191,30 @@ export const usePlayerStore = defineStore('player', {
     },
 
     minimizePlayer() {
-      if (this.playerState === 'maximized') {
-        this.playerState = 'docked';
-      } else if (this.playerState === 'docked') {
-        this.playerState = 'hidden';
+      if (this.isMobile) {
+        if (this.playerState === 'maximized') {
+          this.playerState = 'hidden';
+        }
+      } else {
+        if (this.playerState === 'maximized') {
+          this.playerState = 'docked';
+        } else if (this.playerState === 'docked') {
+          this.playerState = 'hidden';
+        }
       }
     },
 
     maximizePlayer() {
-      if (this.playerState === 'hidden') {
-        this.playerState = 'docked';
-      } else if (this.playerState === 'docked') {
-        this.playerState = 'maximized';
+      if (this.isMobile) {
+        if (this.playerState === 'hidden') {
+          this.playerState = 'maximized';
+        }
+      } else {
+        if (this.playerState === 'hidden') {
+          this.playerState = 'docked';
+        } else if (this.playerState === 'docked') {
+          this.playerState = 'maximized';
+        }
       }
     },
   },

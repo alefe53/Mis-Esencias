@@ -286,7 +286,6 @@ const formattedTimestamp = computed(() => {
   flex-shrink: 0;
   margin-top: 2px;
   object-fit: cover;
-  cursor: pointer;
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease;
@@ -347,7 +346,6 @@ const formattedTimestamp = computed(() => {
 .message-actions button {
   background: none;
   border: none;
-  cursor: pointer;
   font-size: 0.9rem;
   padding: 0.25rem;
   line-height: 1;
@@ -374,7 +372,6 @@ const formattedTimestamp = computed(() => {
   border-radius: 10px;
   padding: 0.1rem 0.5rem;
   font-size: 0.8rem;
-  cursor: pointer;
   border: 1px solid #555;
 }
 .reaction-pill.reacted-by-me {

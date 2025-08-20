@@ -121,17 +121,14 @@ const shouldHideAnimation = computed(() => {
 })
 
 const fullAvatarUrl = computed(() => {
-  const avatar = user.value?.avatar_url;
-  if (!avatar) return '';
+  const avatar = user.value?.avatar_url
+  if (!avatar) return ''
 
-  // Si la URL ya es completa (viene de Google), la usamos directamente.
   if (avatar.startsWith('http')) {
-    return avatar;
+    return avatar
   }
-  
-  // Para cualquier otro caso (como 'perfildefault.jpg' o un avatar subido),
-  // construimos la URL del bucket público de Supabase.
-  return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/assets-publicos/${avatar}`;
+
+  return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/assets-publicos/${avatar}`
 })
 
 const handleAuthButtonClick = () => {
@@ -260,7 +257,6 @@ const goToAdminDashboard = () => {
   border: 2px solid #555;
   background-color: #2a2a2a;
   color: white;
-  cursor: pointer;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -315,7 +311,6 @@ const goToAdminDashboard = () => {
 .dropdown-menu li {
   padding: 8px 12px;
   color: #eee;
-  cursor: pointer;
   border-radius: 6px;
   transition: all 0.2s;
 }
@@ -342,5 +337,33 @@ const goToAdminDashboard = () => {
 .fade-down-leave-to {
   opacity: 0;
   transform: translateY(-10px);
+}
+
+@media (max-width: 768px) {
+  .auth-container {
+    width: 60px;
+    height: 60px;
+    margin-top: 2rem;
+  }
+
+  .auth-button {
+    width: 46px;
+    height: 46px;
+    border-width: 1.5px;
+  }
+
+  .user-initial {
+    font-size: 1.2rem;
+  }
+
+  .dropdown-menu {
+    top: calc(100% - 12px);
+    min-width: 140px;
+  }
+
+  .login-toast {
+    font-size: 0.6rem;
+    padding: 5px 12px;
+  }
 }
 </style>

@@ -31,3 +31,7 @@ export const castVoteOnPoll = async (postId: number, optionId: number): Promise<
   const response = await api.post(`/posts/${postId}/vote`, { optionId });
   return response.data.data;
 };
+export const toggleLikeOnComment = async (commentId: number) => {
+  const response = await api.post(`/posts/comments/${commentId}/like`);
+  return response.data.data; 
+};

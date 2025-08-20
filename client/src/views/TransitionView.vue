@@ -81,4 +81,17 @@ onMounted(() => {
   opacity: 0;
   filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.7));
 }
+
+@media (max-width: 768px) {
+  .transition-logo {
+    width: 85%;
+    max-width: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .transition-logo {
+    width: 90%;
+  }
+}
 </style>

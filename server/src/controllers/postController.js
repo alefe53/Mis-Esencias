@@ -102,6 +102,16 @@ const castVote = async (req, res, next) => {
 		next(error);
 	}
 };
+const toggleCommentLike = async (req, res, next) => {
+    try {
+        const { commentId } = req.params;
+        const authToken = extractAuthToken(req);
+        const result = await postService.toggleCommentLike(authToken, commentId);
+        res.status(200).json({ success: true, data: result });
+    } catch (error) {
+        next(error);
+    }
+};
 export const postController = {
 	getSocialFeed,
 	toggleLike,
@@ -110,4 +120,5 @@ export const postController = {
 	deleteComment,
 	createPost,
 	castVote,
+	toggleCommentLike,
 };

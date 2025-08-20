@@ -1,28 +1,30 @@
 <template>
   <div class="social-feed-layout">
-    <div class="feed-column">
+    <SubscriptionButton
+      v-if="isMobile"
+      mode="corner-float"
+      :force-float-on-mobile="true"
+    />
+
+    <div class="title-area fade-in-item" ref="titleArea">
       <div class="feed-title-container">
-        <h2 class="feed-title" :style="titleStyle">Comunidad Fenicia</h2>
-      </div>
-
-      <div class="feed-content-scrollable">
-        <p class="fenicia-subtitle">
-          Ahora estás en mis Dominios. Yo soy el ojo
-          <img src="/ojo.png" alt="Ojo que todo lo ve" class="inline-icon" />
-          que todo lo ve. ¡Portate Bien!
-        </p>
-
-        <LiveStreamPlayer v-if="isLive" />
-
-        <div v-if="isLoading && posts.length === 0" class="loading-spinner">
-          Cargando...
+        <div class="title-background-container" :style="containerStyle">
+          <h2 class="feed-title" :style="textGlowStyle">Comunidad Fenicia</h2>
         </div>
-        <div v-else class="posts-container">
-          <PostCard v-for="post in posts" :key="post.id" :post="post" />
-        </div>
+
+        <SubscriptionButton v-if="!isMobile" mode="corner-float" />
       </div>
+      <p class="fenicia-subtitle">
+        Ahora estás en mis Dominios. Yo soy el ojo
+        <img src="/ojo.png" alt="Ojo que todo lo ve" class="inline-icon" />
+        que todo lo ve. ¡Portate Bien!
+      </p>
     </div>
-    <div class="chat-column">
+
+    <div v-if="isLive" class="stream-area fade-in-item" ref="streamArea">
+      <LiveStreamPlayer />
+    </div>
+    <div class="chat-area fade-in-item" ref="chatArea">
       <div class="pin-banners-container">
         <TemporaryPinBanner
           v-for="msg in temporaryPinnedMessages"
@@ -32,11 +34,20 @@
       </div>
       <GlobalChat />
     </div>
+    <div class="posts-area fade-in-item" ref="postsArea">
+      <div v-if="isLoading && posts.length === 0" class="loading-spinner">
+        Cargando...
+      </div>
+      <div v-else class="posts-container">
+        <PostCard v-for="post in posts" :key="post.id" :post="post" />
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, computed, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, computed, ref } from 'vue' // Añadimos onUnmounted
+import gsap from 'gsap'
 import { storeToRefs } from 'pinia'
 import { usePostStore } from '../stores/postStore'
 import { useGlobalChatStore } from '../stores/globalChatStore'
@@ -48,20 +59,52 @@ import GlobalChat from '../components/global-chat/GlobalChat.vue'
 import TemporaryPinBanner from '../components/global-chat/TemporaryPinBanner.vue'
 import { useStreamingStore } from '../stores/streamingStore'
 import LiveStreamPlayer from '../components/streaming/LiveStreamPlayer.vue'
+import SubscriptionButton from '../components/common/SubscriptionButton.vue'
 
 const postStore = usePostStore()
 const playerStore = usePlayerStore()
 const uiStore = useUiStore()
 const globalChatStore = useGlobalChatStore()
 const streamingStore = useStreamingStore()
-
+const titleArea = ref(null)
+const streamArea = ref(null)
+const chatArea = ref(null)
+const postsArea = ref(null)
 const { posts, isLoading } = storeToRefs(postStore)
 const { currentMoodId } = storeToRefs(playerStore)
 const { availableMoods } = storeToRefs(uiStore)
 const { temporaryPinnedMessages } = storeToRefs(globalChatStore)
 const { isLive } = storeToRefs(streamingStore)
 
-const titleStyle = computed(() => {
+// --- MODIFICACIÓN CLAVE 3: Lógica para detectar el tamaño de la pantalla ---
+const isMobile = ref(window.innerWidth < 992)
+const handleResize = () => {
+  isMobile.value = window.innerWidth < 992
+}
+onMounted(() => {
+  window.addEventListener('resize', handleResize)
+})
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+})
+// --- FIN DE LA LÓGICA ---
+
+const containerStyle = computed(() => {
+  const defaultColor = '#fca311';
+  if (!currentMoodId.value) {
+    return { '--mood-glow-color': defaultColor }
+  }
+  const currentMood = availableMoods.value.find(
+    (m) => m.id === currentMoodId.value,
+  )
+  if (currentMood && moodColors[currentMood.name]) {
+    const color = moodColors[currentMood.name]
+    return { '--mood-glow-color': color }
+  }
+  return { '--mood-glow-color': defaultColor }
+})
+
+const textGlowStyle = computed(() => {
   if (!currentMoodId.value) return {}
   const currentMood = availableMoods.value.find(
     (m) => m.id === currentMoodId.value,
@@ -79,54 +122,117 @@ onMounted(() => {
   postStore.fetchInitialFeed()
   streamingStore.checkInitialStreamStatus()
   streamingStore.listenToStreamStatus()
+  const elementsToAnimate = [
+    titleArea.value,
+    streamArea.value,
+    chatArea.value,
+    postsArea.value,
+  ].filter(Boolean)
+  gsap.to(elementsToAnimate, {
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    duration: 0.8,
+    delay: 0.3,
+    stagger: 0.2,
+    ease: 'power3.out',
+  })
 })
 </script>
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,400..900&display=swap');
+
+@keyframes animated-border-glow {
+  0% {
+    box-shadow: 0 0 10px 0 var(--mood-glow-color, #fca311), inset 0 0 10px 0 var(--mood-glow-color, #fca311);
+  }
+  50% {
+    box-shadow: 0 0 25px 3px var(--mood-glow-color, #fca311), inset 0 0 15px 2px var(--mood-glow-color, #fca311);
+  }
+  100% {
+    box-shadow: 0 0 10px 0 var(--mood-glow-color, #fca311), inset 0 0 10px 0 var(--mood-glow-color, #fca311);
+  }
+}
+
 .social-feed-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
-  gap: 1.5rem;
-  max-width: 1600px;
-  margin: 0 auto;
-  padding: 1rem 2rem 0 12rem;
-  box-sizing: border-box;
-  height: calc(100vh - 80px);
-}
-.feed-column {
-  height: 100%;
-  overflow-y: auto;
-  padding-right: 1rem;
-}
-.feed-title-container {
-  position: sticky;
-  top: 0;
-  background-color: transparent;
-  backdrop-filter: blur(0px);
-  z-index: 10;
-  padding: 0rem 0;
-}
-.feed-content-scrollable {
-  padding-top: 1.5rem;
-}
-.feed-column::-webkit-scrollbar {
-  width: 8px;
-}
-.feed-column::-webkit-scrollbar-track {
-  background: transparent;
-}
-.feed-column::-webkit-scrollbar-thumb {
-  background-color: #4a525d;
-  border-radius: 10px;
-  border: 2px solid transparent;
-  background-clip: content-box;
-}
-.chat-column {
-  height: 100%;
   display: flex;
   flex-direction: column;
+  padding: 0 1rem;
+  box-sizing: border-box;
+}
+.title-area {
+  padding-top: 1rem;
+}
+.feed-title-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.title-background-container {
+  display: inline-block;
   position: relative;
+  border-radius: 25px;
+  padding: 0.3rem 1.5rem;
+  overflow: hidden;
+  z-index: 1;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  animation: animated-border-glow 4s linear infinite;
+  transition: box-shadow 0.5s ease;
+}
+
+.title-background-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('/fondoInfo.jpg');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.9;
+  z-index: -1;
+}
+
+.feed-title {
+  font-family: 'Uncial Antiqua', serif;
+  text-align: center;
+  font-size: 2rem;
+  color: #fca311;
+  transition: text-shadow 0.5s ease;
+  position: relative;
+  z-index: 2;
+}
+.fenicia-subtitle {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-weight: 500;
+  color: white;
+  text-align: center;
+  font-size: 0.9rem;
+  margin-bottom: 0rem;
+  text-shadow:
+    0 0 7px black,
+    0 0 4px black;
+}
+.inline-icon {
+  height: 1.7em;
+  width: auto;
+  vertical-align: text-bottom;
+  margin: 0 0.2em;
+}
+.stream-area, .chat-area, .posts-area {
+  margin-bottom: 0rem;
+}
+.chat-area {
+  position: relative;
+  height: 70vh;
+  display: flex;
+  flex-direction: column;
 }
 .pin-banners-container {
   position: absolute;
@@ -140,40 +246,12 @@ onMounted(() => {
 .pin-banners-container > :deep(*) {
   pointer-events: auto;
 }
-.chat-column > :deep(.global-chat-container) {
+.chat-area > :deep(.global-chat-container) {
   flex-grow: 1;
   min-height: 0;
 }
-.social-feed-container {
-  max-width: 700px;
-  margin: 0 auto;
-}
-.feed-title {
-  font-family: 'Uncial Antiqua', serif;
-  text-align: center;
-  font-size: 2.5rem;
-  color: #fca311;
-  flex-shrink: 0;
-  transition: text-shadow 0.5s ease;
-}
-.fenicia-subtitle {
-  font-family: 'Playfair Display', serif;
-  font-style: italic;
-  font-weight: 500;
-  color: white;
-  text-align: center;
-  font-size: 0.9rem;
-  margin-top: -1.2rem;
-  margin-bottom: 2rem;
-  text-shadow:
-    0 0 7px black,
-    0 0 4px black;
-}
-.inline-icon {
-  height: 1.7em;
-  width: auto;
-  vertical-align: text-bottom;
-  margin: 0 0.2em;
+.posts-area {
+  padding-bottom: 0rem;
 }
 .loading-spinner {
   text-align: center;
@@ -181,7 +259,76 @@ onMounted(() => {
   padding: 4rem;
   color: #999;
 }
-.posts-container {
-  padding-bottom: 2rem;
+.fade-in-item {
+  opacity: 0;
+  transform: scale(0.95) translateY(20px);
+}
+
+/* MODIFICACIÓN CLAVE 4: CSS SIMPLIFICADO */
+@media (max-width: 991px) {
+  .feed-title-container {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+  }
+  .feed-title {
+    font-size: 1.6rem;
+  }
+  .title-background-container {
+    padding: 0.2rem 1rem;
+  }
+}
+
+@media (min-width: 992px) {
+  .social-feed-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas:
+      'title chat'
+      'stream chat'
+      'posts chat';
+    gap: 1.5rem;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 1rem 2rem 0 180px;
+    height: calc(100vh - 80px);
+  }
+  .title-area {
+    grid-area: title;
+    padding-top: 0;
+  }
+  .stream-area {
+    grid-area: stream;
+  }
+  .chat-area {
+    grid-area: chat;
+    height: 100%;
+  }
+  .posts-area {
+    grid-area: posts;
+    overflow-y: auto;
+    padding-right: 1rem;
+  }
+  .posts-area::-webkit-scrollbar {
+    width: 8px;
+  }
+  .posts-area::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .posts-area::-webkit-scrollbar-thumb {
+    background-color: #4a525d;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  .feed-title-container {
+    position: sticky;
+    top: 0;
+    flex-direction: row; 
+    background-color: transparent;
+    z-index: 10;
+    padding: 1rem 0;
+  }
 }
 </style>

@@ -24,7 +24,6 @@ defineProps<{
 
 <style scoped>
 .release-card {
-  cursor: pointer;
   text-align: left;
   color: #fff;
 }

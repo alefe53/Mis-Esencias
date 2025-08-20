@@ -118,7 +118,6 @@ watch(
   background: none;
   border: none;
   color: #aaa;
-  cursor: pointer;
   padding: 0.25rem;
   transition:
     color 0.2s,
@@ -144,7 +143,6 @@ watch(
   justify-content: space-between;
   padding: 0.1rem 0.55rem;
   border-radius: 5px;
-  cursor: pointer;
   transition:
     background-color 0.2s,
     color 0.2s;

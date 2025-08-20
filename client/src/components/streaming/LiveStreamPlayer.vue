@@ -208,7 +208,6 @@ watch(audioTrackPub, (newPub) => {
   font-style: italic;
 }
 .stream-placeholder.cta {
-  cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -236,7 +235,6 @@ watch(audioTrackPub, (newPub) => {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  cursor: pointer;
   z-index: 10;
   opacity: 0;
   transition: opacity 0.3s ease;

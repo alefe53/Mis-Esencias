@@ -183,7 +183,6 @@ onUnmounted(() => {
   font-size: 1rem;
   font-weight: 600;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-  cursor: pointer;
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease,
@@ -224,7 +223,6 @@ onUnmounted(() => {
   font-size: 2rem;
   line-height: 1;
   padding: 0;
-  cursor: pointer;
 }
 .messages-area {
   flex-grow: 1;

@@ -9,3 +9,7 @@ declare module 'vue3-emoji-picker/css' {
   const content: any
   export default content
 }
+interface Window {
+MercadoPago: any;
+paypal: any;
+}

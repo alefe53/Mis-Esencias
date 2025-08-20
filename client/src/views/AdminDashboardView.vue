@@ -253,7 +253,6 @@ watch(
   background-color: rgba(255, 255, 255, 0.05);
   border-radius: 6px;
   border-left: 4px solid #3b82f6;
-  cursor: pointer;
   transition: background-color 0.2s;
   margin-bottom: 0.5rem;
 }
@@ -317,7 +316,6 @@ watch(
   background: none;
   border: none;
   color: #6b7280;
-  cursor: pointer;
   padding: 2px;
   display: flex;
   align-items: center;

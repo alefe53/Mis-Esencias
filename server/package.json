@@ -38,6 +38,7 @@
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "livekit-server-sdk": "^2.13.1",
+    "mercadopago": "^2.8.0",
     "morgan": "^1.10.0",
     "multer": "^2.0.1",
     "rest": "^2.0.0"

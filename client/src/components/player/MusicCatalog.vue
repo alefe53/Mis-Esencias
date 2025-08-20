@@ -166,7 +166,6 @@ const handleAddToQueue = (track: Track) => {
   border: none;
   padding: 0.25rem 0.5rem;
   margin: -0.25rem -0.5rem;
-  cursor: pointer;
   flex-shrink: 0;
 
   font-size: 1.6rem;
