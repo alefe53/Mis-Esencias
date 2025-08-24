@@ -42,7 +42,7 @@ const detachTrack = () => {
 
 watch(
   () => props.publication,
-  (newPub, oldPub) => {
+  (newPub, _oldPub) => {
     nextTick(() => {
       detachTrack()
       if (newPub) {

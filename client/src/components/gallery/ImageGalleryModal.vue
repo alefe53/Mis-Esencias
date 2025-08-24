@@ -13,7 +13,7 @@
         <div v-if="isLoading" class="loader">Cargando imágenes...</div>
         <div v-else-if="privateGallery.length > 0" class="gallery-grid">
           <div
-            v-for="(image, index) in privateGallery"
+            v-for="(image, _index) in privateGallery"
             :key="image.file_path"
             class="gallery-item"
             @click="handleSelectImage(image)"

@@ -135,11 +135,10 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   const authStore = useAuthStore();
   const isAuthenticated = authStore.isAuthenticated;
 
-  // Lógica de redirección del Home
   if (to.name === 'home' && isAuthenticated) {
     return next({ name: 'social-feed' });
   } 
@@ -147,7 +146,6 @@ router.beforeEach((to, from, next) => {
     return next({ name: 'home' });
   }
 
-  // Lógica de seguridad para rutas protegidas
   if (to.meta.requiresAdmin && !authStore.isAdmin) {
     return next({ name: 'home' });
   }

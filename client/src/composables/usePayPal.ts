@@ -25,9 +25,6 @@ export function usePayPal(props: { selectedTierId: number; durationMonths: numbe
         label: 'paypal',
       },
       createOrder: () => {
-        // ¡LA CLAVE ESTÁ AQUÍ! No cambiamos ningún estado.
-        // Solo llamamos al store y devolvemos la promesa resultante.
-        // El SDK de PayPal manejará la UI de carga en el botón.
         return subscriptionStore.createPayPalOrder(
           props.selectedTierId,
           props.durationMonths
@@ -37,14 +34,12 @@ export function usePayPal(props: { selectedTierId: number; durationMonths: numbe
           }
           throw new Error('El store no devolvió un orderID válido.');
         }).catch(err => {
-          // Si hay un error, lo mostramos y lo propagamos para que el SDK lo sepa.
           paymentError.value = 'No se pudo iniciar el pago con PayPal.';
           console.error('Error al crear la orden de PayPal:', err);
           throw err;
         });
       },
-      onApprove: (data: any, actions: any) => {
-        // Ahora sí, ponemos el estado de carga para el proceso de captura.
+      onApprove: (_data: any, actions: any) => {
         isProcessing.value = true;
         return actions.order.capture().then(async (details: any) => {
           const { success } = await subscriptionStore.capturePayPalPayment(details.id);

@@ -27,14 +27,14 @@ export function useParticipantTracks(participant: Ref<Participant | null>) {
       participant.value.getTrackPublication(Track.Source.Microphone) ?? null
   }
   const onTrackSubscribed = (
-    track: RemoteTrack,
-    pub: RemoteTrackPublication,
+    _track: RemoteTrack,
+    _pub: RemoteTrackPublication,
   ) => {
     updateTracks()
   }
   const onTrackUnsubscribed = (
-    track: RemoteTrack,
-    pub: RemoteTrackPublication,
+    _track: RemoteTrack,
+    _pub: RemoteTrackPublication,
   ) => {
     updateTracks()
   }

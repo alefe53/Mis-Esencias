@@ -46,7 +46,7 @@
       <div v-if="post.postType === 'poll'" class="poll-section">
         <h3>Opciones de la Encuesta</h3>
         <div
-          v-for="(option, index) in post.pollOptions"
+          v-for="(_option, index) in post.pollOptions"
           :key="index"
           class="poll-option"
         >
