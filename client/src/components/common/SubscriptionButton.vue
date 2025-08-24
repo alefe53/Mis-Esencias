@@ -21,7 +21,7 @@ import { moodColors } from '../../constants/moods'
 import { storeToRefs } from 'pinia'
 
 const props = defineProps<{
-  mode?: 'default' | 'corner-float',
+  mode?: 'default' | 'corner-float'
   forceFloatOnMobile?: boolean // Nueva propiedad
 }>()
 
@@ -57,7 +57,9 @@ const buttonText = computed(() => {
 // --- FIN LÓGICA MEJORADA ---
 
 const hexToRgb = (hex: string): string => {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})?$/i.exec(hex)
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})?$/i.exec(
+    hex,
+  )
   if (!result) {
     return '252, 163, 17'
   }

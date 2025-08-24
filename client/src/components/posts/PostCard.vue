@@ -11,10 +11,18 @@
         <span class="post-timestamp">{{ formattedDate }}</span>
       </div>
       <div v-if="authStore.isAdmin" class="post-header-actions">
-        <button @click="openPostEdit" class="icon-btn edit-btn" title="Editar Publicación">
+        <button
+          @click="openPostEdit"
+          class="icon-btn edit-btn"
+          title="Editar Publicación"
+        >
           <Pencil :size="18" />
         </button>
-        <button @click="handleDeletePost" class="icon-btn delete-btn" title="Borrar Publicación">
+        <button
+          @click="handleDeletePost"
+          class="icon-btn delete-btn"
+          title="Borrar Publicación"
+        >
           <Trash2 :size="18" />
         </button>
       </div>
@@ -27,7 +35,11 @@
       </template>
       <div v-else class="post-edit-form">
         <input v-model="editablePost.title" type="text" placeholder="Título" />
-        <textarea v-model="editablePost.content" placeholder="Contenido" rows="5"></textarea>
+        <textarea
+          v-model="editablePost.content"
+          placeholder="Contenido"
+          rows="5"
+        ></textarea>
         <div class="edit-form-actions">
           <button @click="cancelPostEdit" class="cancel-btn">Cancelar</button>
           <button @click="savePostChanges" class="save-btn">Guardar</button>
@@ -53,7 +65,12 @@
       <div class="post-stats">
         <span>{{ post.stats.likesCount }} Me gusta</span>
         <span>·</span>
-        <span>{{ post.stats.commentsCount }} Comentarios</span>
+        <span
+          @click="areCommentsVisible = !areCommentsVisible"
+          class="comments-toggle"
+        >
+          {{ post.stats.commentsCount }} Comentarios
+        </span>
       </div>
       <div class="post-actions">
         <button @click="handleLike" :class="{ liked: post.isLikedByUser }">
@@ -73,16 +90,33 @@
           :disabled="!canComment"
           rows="2"
         ></textarea>
-        <button @click="submitComment" :disabled="!newCommentText.trim() || !canComment">
+        <button
+          @click="submitComment"
+          :disabled="!newCommentText.trim() || !canComment"
+        >
           Publicar
         </button>
       </div>
-      <div v-if="post.comments && post.comments.length > 0" class="comments-list">
-        <div v-for="comment in visibleComments" :key="comment.id" class="comment">
-          <img :src="comment.author.avatarUrl || '/perfildefault.jpg'" alt="Avatar" class="comment-avatar" />
+      <div
+        v-if="post.comments && post.comments.length > 0"
+        class="comments-list"
+      >
+        <div
+          v-for="comment in visibleComments"
+          :key="comment.id"
+          class="comment"
+        >
+          <img
+            :src="comment.author.avatarUrl || '/perfildefault.jpg'"
+            alt="Avatar"
+            class="comment-avatar"
+          />
           <div class="comment-body">
             <div class="comment-header">
               <span class="comment-author">{{ comment.author.fullName }}</span>
+              <span class="comment-timestamp">{{
+                formatCommentDate(comment.createdAt)
+              }}</span>
               <div v-if="authStore.isAdmin" class="comment-actions">
                 <button
                   v-if="comment.author.id === authStore.user?.id"
@@ -92,7 +126,11 @@
                 >
                   <Pencil :size="16" />
                 </button>
-                <button @click="handleDeleteComment(comment.id)" class="icon-btn delete-btn" title="Borrar comentario">
+                <button
+                  @click="handleDeleteComment(comment.id)"
+                  class="icon-btn delete-btn"
+                  title="Borrar comentario"
+                >
                   <Trash2 :size="16" />
                 </button>
               </div>
@@ -103,23 +141,30 @@
             <div v-else class="comment-edit-form">
               <textarea v-model="editableCommentContent" rows="3"></textarea>
               <div class="edit-form-actions">
-                <button @click="cancelCommentEdit" class="cancel-btn">Cancelar</button>
-                <button @click="saveCommentChanges" class="save-btn">Guardar</button>
+                <button @click="cancelCommentEdit" class="cancel-btn">
+                  Cancelar
+                </button>
+                <button @click="saveCommentChanges" class="save-btn">
+                  Guardar
+                </button>
               </div>
             </div>
-
             <div class="comment-footer-actions">
-                <button 
-                  @click="handleCommentLike(comment.id)" 
-                  class="like-comment-btn" 
-                  :class="{ liked: comment.isLikedByUser }"
-                >
-                  👍 {{ comment.likesCount }}
-                </button>
+              <button
+                @click="handleCommentLike(comment.id)"
+                class="like-comment-btn"
+                :class="{ liked: comment.isLikedByUser }"
+              >
+                👍 {{ comment.likesCount }}
+              </button>
             </div>
-            </div>
+          </div>
         </div>
-        <button v-if="post.comments.length > 5 && !showAllComments" @click="showAllComments = true" class="show-more-btn">
+        <button
+          v-if="post.comments.length > 5 && !showAllComments"
+          @click="showAllComments = true"
+          class="show-more-btn"
+        >
           Ver +{{ post.comments.length - 5 }} comentarios más
         </button>
       </div>
@@ -129,111 +174,150 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, type PropType, computed } from 'vue';
-import { Pencil, Trash2 } from 'lucide-vue-next'; // Importamos los íconos
-import type { Post, PostComment } from '../../types';
-import { usePostStore } from '../../stores/postStore';
-import { useAuthStore } from '../../stores/authStore';
-import { useUiStore } from '../../stores/uiStore';
-import PollDisplay from './PollDisplay.vue';
+import { ref, reactive, type PropType, computed } from 'vue'
+import { Pencil, Trash2 } from 'lucide-vue-next'
+import type { Post, PostComment } from '../../types'
+import { usePostStore } from '../../stores/postStore'
+import { useAuthStore } from '../../stores/authStore'
+import { useUiStore } from '../../stores/uiStore'
+import PollDisplay from './PollDisplay.vue'
 
 const props = defineProps({
   post: {
     type: Object as PropType<Post>,
     required: true,
   },
-});
+})
 
-const authStore = useAuthStore();
-const uiStore = useUiStore();
-const postStore = usePostStore();
+const authStore = useAuthStore()
+const uiStore = useUiStore()
+const postStore = usePostStore()
 
-const areCommentsVisible = ref(false);
-const showAllComments = ref(false);
-const newCommentText = ref('');
+const areCommentsVisible = ref(false)
+const showAllComments = ref(false)
+const newCommentText = ref('')
 
-const isEditingPost = ref(false);
-const editablePost = reactive({ title: '', content: '' });
+const isEditingPost = ref(false)
+const editablePost = reactive({ title: '', content: '' })
 
-const editingCommentId = ref<number | null>(null);
-const editableCommentContent = ref('');
+const editingCommentId = ref<number | null>(null)
+const editableCommentContent = ref('')
 
-const canComment = computed(() => (authStore.user?.subscription_tier_id ?? 0) >= 2);
-const commentPlaceholder = computed(() => (canComment.value ? 'Escribe un comentario...' : 'Requiere suscripción Premium para comentar.'));
+const canComment = computed(
+  () => (authStore.user?.subscription_tier_id ?? 0) >= 2,
+)
+const commentPlaceholder = computed(() =>
+  canComment.value
+    ? 'Escribe un comentario...'
+    : 'Requiere suscripción Premium para comentar.',
+)
 const visibleComments = computed(() => {
-  if (!props.post.comments) return [];
-  return showAllComments.value ? props.post.comments : props.post.comments.slice(0, 5);
-});
+  if (!props.post.comments) return []
+  return showAllComments.value
+    ? props.post.comments
+    : props.post.comments.slice(0, 5)
+})
 
 const openPostEdit = () => {
-  isEditingPost.value = true;
-  editablePost.title = props.post.title || '';
-  editablePost.content = props.post.content || '';
-};
+  isEditingPost.value = true
+  editablePost.title = props.post.title || ''
+  editablePost.content = props.post.content || ''
+}
 
 const cancelPostEdit = () => {
-  isEditingPost.value = false;
-};
+  isEditingPost.value = false
+}
 
 const savePostChanges = async () => {
   if (!editablePost.title.trim() && !editablePost.content.trim()) {
-    uiStore.showToast({ message: "El título o el contenido no pueden estar vacíos.", color: '#EF4444' });
-    return;
+    uiStore.showToast({
+      message: 'El título o el contenido no pueden estar vacíos.',
+      color: '#EF4444',
+    })
+    return
   }
   await postStore.updatePost(props.post.id, {
     title: editablePost.title,
     content: editablePost.content,
-  });
-  isEditingPost.value = false;
-};
+  })
+  isEditingPost.value = false
+}
 
 const startCommentEdit = (comment: PostComment) => {
-  editingCommentId.value = comment.id;
-  editableCommentContent.value = comment.content;
-};
+  editingCommentId.value = comment.id
+  editableCommentContent.value = comment.content
+}
 
 const cancelCommentEdit = () => {
-  editingCommentId.value = null;
-  editableCommentContent.value = '';
-};
+  editingCommentId.value = null
+  editableCommentContent.value = ''
+}
 
 const saveCommentChanges = async () => {
   if (editingCommentId.value && editableCommentContent.value.trim()) {
-    await postStore.updateComment(props.post.id, editingCommentId.value, { content: editableCommentContent.value });
-    cancelCommentEdit();
+    await postStore.updateComment(props.post.id, editingCommentId.value, {
+      content: editableCommentContent.value,
+    })
+    cancelCommentEdit()
   } else {
-    uiStore.showToast({ message: "El comentario no puede estar vacío.", color: '#EF4444' });
+    uiStore.showToast({
+      message: 'El comentario no puede estar vacío.',
+      color: '#EF4444',
+    })
   }
-};
+}
 
-const handleLike = () => postStore.toggleLike(props.post.id);
-const handlePollVote = (optionId: number) => postStore.castVote(props.post.id, optionId);
+const handleLike = () => postStore.toggleLike(props.post.id)
+
+const handleCommentLike = (commentId: number) => {
+  postStore.toggleCommentLike(props.post.id, commentId)
+}
+
+const handlePollVote = (optionId: number) =>
+  postStore.castVote(props.post.id, optionId)
 
 const submitComment = async () => {
   if (!canComment.value) {
-    uiStore.showToast({ message: 'Para comentar debes tener mínimo suscripción nivel 2.', color: '#F59E0B' });
-    return;
+    uiStore.showToast({
+      message: 'Para comentar debes tener mínimo suscripción nivel 2.',
+      color: '#F59E0B',
+    })
+    return
   }
-  if (!newCommentText.value.trim()) return;
-  await postStore.addComment(props.post.id, newCommentText.value);
-  newCommentText.value = '';
-};
-const handleCommentLike = (commentId: number) => {
-  postStore.toggleCommentLike(props.post.id, commentId);
-};
+  if (!newCommentText.value.trim()) return
+  await postStore.addComment(props.post.id, newCommentText.value)
+  newCommentText.value = ''
+}
+
 const handleDeletePost = () => {
   if (window.confirm('¿Estás seguro de que quieres borrar esta publicación?')) {
-    postStore.deletePost(props.post.id);
+    postStore.deletePost(props.post.id)
   }
-};
+}
 
 const handleDeleteComment = (commentId: number) => {
   if (window.confirm('¿Estás seguro de que quieres borrar este comentario?')) {
-    postStore.deleteComment(props.post.id, commentId);
+    postStore.deleteComment(props.post.id, commentId)
   }
-};
+}
 
-const formattedDate = computed(() => new Date(props.post.createdAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' }));
+const formattedDate = computed(() =>
+  new Date(props.post.createdAt).toLocaleDateString('es-AR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }),
+)
+
+const formatCommentDate = (dateString: string) => {
+  return new Date(dateString).toLocaleString('es-AR', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+}
 </script>
 
 <style scoped>
@@ -354,6 +438,7 @@ const formattedDate = computed(() => new Date(props.post.createdAt).toLocaleDate
 }
 .post-stats {
   display: flex;
+  align-items: center; /* Añadido para mejor alineación vertical */
   gap: 0.5rem;
   font-size: 0.9rem;
   color: #999;
@@ -435,8 +520,8 @@ const formattedDate = computed(() => new Date(props.post.createdAt).toLocaleDate
 }
 .comment-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 0.5rem;
 }
 .comment-author {
   font-weight: 600;
@@ -462,8 +547,6 @@ const formattedDate = computed(() => new Date(props.post.createdAt).toLocaleDate
 .show-more-btn:hover {
   color: #fff;
 }
-
-/* ===== NUEVOS ESTILOS PARA EL LIKE DEL COMENTARIO ===== */
 .comment-footer-actions {
   margin-top: 0.5rem;
   display: flex;
@@ -491,5 +574,21 @@ const formattedDate = computed(() => new Date(props.post.createdAt).toLocaleDate
   border-color: #3b82f6;
   color: white;
   font-weight: bold;
+}
+.comments-toggle {
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.comments-toggle:hover {
+  color: #e0e0e0;
+  text-decoration: underline;
+}
+
+.comment-timestamp {
+  font-size: 0.75rem;
+  color: #999;
+  margin-left: auto;
+  padding-right: 0.5rem;
+  flex-shrink: 0; /* Evita que la fecha se encoja */
 }
 </style>

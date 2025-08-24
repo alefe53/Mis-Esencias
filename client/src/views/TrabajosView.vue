@@ -5,8 +5,8 @@
       <h1 class="title-text">Sonido</h1>
     </div>
     <p class="description fade-in-item" ref="description">
-      Proyectos Laborales Musicales, de todos los colores. Aquí algunos destacados.
-      ¡Contactame para estar entre ellos!
+      Proyectos Laborales Musicales, de todos los colores. Aquí algunos
+      destacados. ¡Contactame para estar entre ellos!
     </p>
 
     <div v-if="isLoadingProjects" class="loader">Cargando proyectos...</div>

@@ -19,7 +19,7 @@ export const usePostStore = defineStore('posts', () => {
         try {
             const newPosts = await postService.getFeed(1);
             posts.value = newPosts;
-            currentPage.value = 1;
+            currentPage.value = 1; // Reseteamos la página
             hasMorePosts.value = newPosts.length > 0;
         } catch (error) {
             console.error("Error al cargar el feed:", error);
@@ -29,6 +29,27 @@ export const usePostStore = defineStore('posts', () => {
         }
     }
 
+
+    async function fetchMorePosts() {
+        if (isLoading.value || !hasMorePosts.value) return;
+
+        isLoading.value = true;
+        try {
+            currentPage.value++; 
+            const newPosts = await postService.getFeed(currentPage.value);
+
+            if (newPosts.length > 0) {
+                posts.value.push(...newPosts);
+            } else {
+                hasMorePosts.value = false; 
+            }
+        } catch (error) {
+            console.error("Error al cargar más posts:", error);
+            currentPage.value--; 
+        } finally {
+            isLoading.value = false;
+        }
+    }
     async function toggleLike(postId: number) {
         const post = posts.value.find(p => p.id === postId);
         if (!post) return;
@@ -173,7 +194,9 @@ export const usePostStore = defineStore('posts', () => {
     return {
         posts,
         isLoading,
+        hasMorePosts,
         fetchInitialFeed,
+        fetchMorePosts, 
         toggleLike,
         addComment,
         deletePost,
@@ -181,6 +204,6 @@ export const usePostStore = defineStore('posts', () => {
         castVote,
         updatePost,
         updateComment,
-        toggleCommentLike, 
+        toggleCommentLike,
     };
 });

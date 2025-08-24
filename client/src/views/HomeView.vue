@@ -110,7 +110,7 @@ onMounted(async () => {
     if (response.data.success) {
       // MODIFICADO: Se ordenan los planes por precio para asegurar la herencia correcta
       const sortedTiers = response.data.data.sort(
-        (a: SubscriptionTier, b: SubscriptionTier) => a.price - b.price
+        (a: SubscriptionTier, b: SubscriptionTier) => a.price - b.price,
       )
       subscriptionTiers.value = sortedTiers
     }
@@ -126,7 +126,7 @@ const allFeatures = computed(() => {
   subscriptionTiers.value.forEach((tier) => {
     // Se excluye el feature "Todo lo del plan anterior" de la lista de filas
     const filteredFeatures = tier.features?.items.filter(
-      (f) => !f.toLowerCase().includes('todo lo del plan anterior')
+      (f) => !f.toLowerCase().includes('todo lo del plan anterior'),
     )
     filteredFeatures?.forEach((feature) => {
       featuresSet.add(feature)
@@ -161,7 +161,7 @@ const subscriptionTiersWithInclusiveFeatures = computed(() => {
 // MODIFICADO: La función ahora usa el set de beneficios inclusivos
 const tierHasFeature = (
   tier: SubscriptionTier & { inclusiveFeatures: Set<string> },
-  feature: string
+  feature: string,
 ): boolean => {
   return tier.inclusiveFeatures.has(feature)
 }

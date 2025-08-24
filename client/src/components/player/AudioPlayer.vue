@@ -303,7 +303,7 @@ useClickOutside(playerWrapperRef, () => {
   if (isPlaylistVisible.value) playerStore.togglePlaylistVisibility()
 })
 const isAuthView = computed(() => {
-  const authPaths = ['/auth', '/profile', '/info', '/admin']
+  const authPaths = ['/auth', '/profile', '/info', '/admin','/subscribe']
   return authPaths.some((basePath) => route.path.startsWith(basePath))
 })
 const togglePlaylistVisibility = () => {
@@ -374,7 +374,7 @@ const selectMood = (moodId: number) => {
   if (!uiStore.hasShownInitialPrompt) {
     uiStore.setInitialPromptAsShown()
   }
-  uiStore.activateMoodGlow();
+  uiStore.activateMoodGlow()
   fetchAndPlayPlaylist(moodId)
   isMoodListVisible.value = false
 }
@@ -421,7 +421,6 @@ const handlePrimaryPlay = async () => {
 </script>
 
 <style scoped>
-/* AJUSTE 3: AÑADIR LA ANIMACIÓN DE "LATIDO" (PULSO) */
 @keyframes pulse-animation {
   0% {
     transform: scale(1);

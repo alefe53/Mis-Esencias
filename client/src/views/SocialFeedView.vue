@@ -40,13 +40,23 @@
       </div>
       <div v-else class="posts-container">
         <PostCard v-for="post in posts" :key="post.id" :post="post" />
+
+        <div
+          v-if="posts.length > 0 && hasMorePosts"
+          ref="loadTrigger"
+          class="load-trigger"
+        ></div>
+
+        <div v-if="isLoading && posts.length > 0" class="loading-spinner">
+          Cargando más...
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, computed, ref } from 'vue' // Añadimos onUnmounted
+import { onMounted, onUnmounted, computed, ref, watch } from 'vue' // ===== MODIFICADO: Se añade 'watch' =====
 import gsap from 'gsap'
 import { storeToRefs } from 'pinia'
 import { usePostStore } from '../stores/postStore'
@@ -66,31 +76,30 @@ const playerStore = usePlayerStore()
 const uiStore = useUiStore()
 const globalChatStore = useGlobalChatStore()
 const streamingStore = useStreamingStore()
+
 const titleArea = ref(null)
 const streamArea = ref(null)
 const chatArea = ref(null)
 const postsArea = ref(null)
-const { posts, isLoading } = storeToRefs(postStore)
+
+// ===== MODIFICADO: Se añade 'hasMorePosts' para controlar el disparador =====
+const { posts, isLoading, hasMorePosts } = storeToRefs(postStore)
 const { currentMoodId } = storeToRefs(playerStore)
 const { availableMoods } = storeToRefs(uiStore)
 const { temporaryPinnedMessages } = storeToRefs(globalChatStore)
 const { isLive } = storeToRefs(streamingStore)
 
-// --- MODIFICACIÓN CLAVE 3: Lógica para detectar el tamaño de la pantalla ---
+// ===== NUEVO: Refs y variables para el Intersection Observer =====
+const loadTrigger = ref<HTMLElement | null>(null)
+let observer: IntersectionObserver
+
 const isMobile = ref(window.innerWidth < 992)
 const handleResize = () => {
   isMobile.value = window.innerWidth < 992
 }
-onMounted(() => {
-  window.addEventListener('resize', handleResize)
-})
-onUnmounted(() => {
-  window.removeEventListener('resize', handleResize)
-})
-// --- FIN DE LA LÓGICA ---
 
 const containerStyle = computed(() => {
-  const defaultColor = '#fca311';
+  const defaultColor = '#fca311'
   if (!currentMoodId.value) {
     return { '--mood-glow-color': defaultColor }
   }
@@ -119,9 +128,33 @@ const textGlowStyle = computed(() => {
 })
 
 onMounted(() => {
+  window.addEventListener('resize', handleResize)
   postStore.fetchInitialFeed()
   streamingStore.checkInitialStreamStatus()
   streamingStore.listenToStreamStatus()
+
+  // ===== NUEVO: Lógica para el scroll infinito =====
+  observer = new IntersectionObserver(
+    (entries) => {
+      if (entries[0].isIntersecting && !isLoading.value) {
+        postStore.fetchMorePosts()
+      }
+    },
+    {
+      root: null,
+      threshold: 0.5,
+    },
+  )
+
+  watch(loadTrigger, (newEl, oldEl) => {
+    if (oldEl) {
+      observer.unobserve(oldEl)
+    }
+    if (newEl) {
+      observer.observe(newEl)
+    }
+  })
+
   const elementsToAnimate = [
     titleArea.value,
     streamArea.value,
@@ -138,6 +171,14 @@ onMounted(() => {
     ease: 'power3.out',
   })
 })
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+  // ===== NUEVO: Se desconecta el observador para limpiar =====
+  if (observer) {
+    observer.disconnect()
+  }
+})
 </script>
 
 <style scoped>
@@ -145,13 +186,19 @@ onMounted(() => {
 
 @keyframes animated-border-glow {
   0% {
-    box-shadow: 0 0 10px 0 var(--mood-glow-color, #fca311), inset 0 0 10px 0 var(--mood-glow-color, #fca311);
+    box-shadow:
+      0 0 10px 0 var(--mood-glow-color, #fca311),
+      inset 0 0 10px 0 var(--mood-glow-color, #fca311);
   }
   50% {
-    box-shadow: 0 0 25px 3px var(--mood-glow-color, #fca311), inset 0 0 15px 2px var(--mood-glow-color, #fca311);
+    box-shadow:
+      0 0 25px 3px var(--mood-glow-color, #fca311),
+      inset 0 0 15px 2px var(--mood-glow-color, #fca311);
   }
   100% {
-    box-shadow: 0 0 10px 0 var(--mood-glow-color, #fca311), inset 0 0 10px 0 var(--mood-glow-color, #fca311);
+    box-shadow:
+      0 0 10px 0 var(--mood-glow-color, #fca311),
+      inset 0 0 10px 0 var(--mood-glow-color, #fca311);
   }
 }
 
@@ -214,7 +261,7 @@ onMounted(() => {
   color: white;
   text-align: center;
   font-size: 0.9rem;
-  margin-bottom: 0rem;
+  margin-bottom: 1rem; /* Margen reducido */
   text-shadow:
     0 0 7px black,
     0 0 4px black;
@@ -225,8 +272,10 @@ onMounted(() => {
   vertical-align: text-bottom;
   margin: 0 0.2em;
 }
-.stream-area, .chat-area, .posts-area {
-  margin-bottom: 0rem;
+.stream-area,
+.chat-area,
+.posts-area {
+  margin-bottom: 1rem; /* Margen reducido */
 }
 .chat-area {
   position: relative;
@@ -251,12 +300,12 @@ onMounted(() => {
   min-height: 0;
 }
 .posts-area {
-  padding-bottom: 0rem;
+  padding-bottom: 1rem; /* Padding reducido */
 }
 .loading-spinner {
   text-align: center;
   font-size: 1.5rem;
-  padding: 4rem;
+  padding: 2rem; /* Padding reducido para el spinner */
   color: #999;
 }
 .fade-in-item {
@@ -264,7 +313,11 @@ onMounted(() => {
   transform: scale(0.95) translateY(20px);
 }
 
-/* MODIFICACIÓN CLAVE 4: CSS SIMPLIFICADO */
+/* ===== NUEVO: Estilo para el disparador de carga ===== */
+.load-trigger {
+  height: 50px;
+}
+
 @media (max-width: 991px) {
   .feed-title-container {
     flex-direction: column;
@@ -325,7 +378,7 @@ onMounted(() => {
   .feed-title-container {
     position: sticky;
     top: 0;
-    flex-direction: row; 
+    flex-direction: row;
     background-color: transparent;
     z-index: 10;
     padding: 1rem 0;

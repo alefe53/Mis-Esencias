@@ -7,7 +7,12 @@
 
       <div
         class="mood-glow-toggle"
-        v-if="hasMoodGlowBeenActivated && authStore.isAuthenticated && !isAuthView && !isMobile"
+        v-if="
+          hasMoodGlowBeenActivated &&
+          authStore.isAuthenticated &&
+          !isAuthView &&
+          !isMobile
+        "
         :style="toggleStyle"
       >
         <span class="toggle-label">Fx Humor</span>
@@ -46,7 +51,12 @@
             <router-link to="/info">Info</router-link>
 
             <button
-              v-if="isMobile && hasMoodGlowBeenActivated && authStore.isAuthenticated && !isAuthView"
+              v-if="
+                isMobile &&
+                hasMoodGlowBeenActivated &&
+                authStore.isAuthenticated &&
+                !isAuthView
+              "
               @click="uiStore.toggleMoodGlow"
               class="nav-fx-toggle"
               :style="toggleStyle"
@@ -115,13 +125,13 @@ const {
   toastBackgroundColor,
   availableMoods,
   isMoodGlowEnabled,
-  hasMoodGlowBeenActivated
+  hasMoodGlowBeenActivated,
 } = storeToRefs(uiStore)
 
 watch(
   currentMoodId,
   (newMoodId) => {
-    const root = document.documentElement 
+    const root = document.documentElement
     const defaultColor = '#e0e0e0'
 
     if (newMoodId === null || availableMoods.value.length === 0) {
@@ -138,25 +148,25 @@ watch(
 )
 
 const toggleStyle = computed(() => {
-  const defaultColor = '#3b82f6';
+  const defaultColor = '#3b82f6'
   if (currentMoodId.value === null) {
-    return { '--toggle-active-color': defaultColor };
+    return { '--toggle-active-color': defaultColor }
   }
   const currentMood = availableMoods.value.find(
     (m) => m.id === currentMoodId.value,
-  );
-  const color = currentMood ? moodColors[currentMood.name] : defaultColor;
+  )
+  const color = currentMood ? moodColors[currentMood.name] : defaultColor
   return {
     '--toggle-active-color': color || defaultColor,
-  };
-});
+  }
+})
 
 const isPopupView = computed(() => route.name === 'chat-popup')
 
 const isAuthView = computed(() => {
-  const authPaths = ['/auth', '/profile', '/info', '/admin'];
-  return authPaths.some((basePath) => route.path.startsWith(basePath));
-});
+  const authPaths = ['/auth', '/profile', '/info', '/admin']
+  return authPaths.some((basePath) => route.path.startsWith(basePath))
+})
 
 const isMobile = ref(window.innerWidth <= 768)
 const handleResize = () => {
@@ -164,8 +174,8 @@ const handleResize = () => {
 }
 
 const fxButtonText = computed(() => {
-  return isMoodGlowEnabled.value ? 'FX ON' : 'FX OFF';
-});
+  return isMoodGlowEnabled.value ? 'FX ON' : 'FX OFF'
+})
 
 const showChatWidget = computed(() => {
   if (uiStore.isGlobalTransitionActive) {
@@ -225,7 +235,7 @@ const isHomeRouteActive = computed(() => {
 })
 
 const isMusicRouteActive = computed(() => {
-  const musicRoutes = ['music-intro', 'music', 'my-music', 'music-with-me']
+  const musicRoutes = ['music-intro', 'music', 'my-music', 'music-with-me','subscribe']
   return musicRoutes.includes(route.name as string)
 })
 
@@ -284,12 +294,12 @@ onUnmounted(() => {
   padding: 0.35rem 0.7rem;
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  --toggle-active-color: #3b82f6; 
+  --toggle-active-color: #3b82f6;
   transition: box-shadow 0.3s ease;
 }
 .mood-glow-toggle:has(.is-active) {
-    box-shadow: 0 0 8px 0 var(--toggle-active-color);
-    border-color: var(--toggle-active-color);
+  box-shadow: 0 0 8px 0 var(--toggle-active-color);
+  border-color: var(--toggle-active-color);
 }
 
 .toggle-label {
@@ -299,8 +309,8 @@ onUnmounted(() => {
   transition: color 0.3s ease;
 }
 .mood-glow-toggle:has(.is-active) .toggle-label {
-    color: var(--toggle-active-color);
-    text-shadow: 0 0 5px var(--toggle-active-color);
+  color: var(--toggle-active-color);
+  text-shadow: 0 0 5px var(--toggle-active-color);
 }
 .toggle-switch {
   position: relative;
@@ -526,7 +536,7 @@ footer {
   .mood-glow-toggle {
     display: none;
   }
-  
+
   body {
     padding-left: 0 !important;
   }
@@ -550,7 +560,7 @@ footer {
     flex-direction: row;
     justify-content: center;
     align-items: center;
-    gap: 1rem; 
+    gap: 1rem;
   }
 
   main {

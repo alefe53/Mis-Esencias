@@ -20,6 +20,8 @@ const initializeBrick = async () => {
     const settings = {
       initialization: {
         preferenceId: props.preferenceId,
+        // 👇 AÑADE ESTA LÍNEA 👇
+        redirectMode: 'modal',
       },
       customization: {
         texts: {
