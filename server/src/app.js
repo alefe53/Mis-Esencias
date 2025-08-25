@@ -29,7 +29,7 @@ app.use("/api", mainRouter);
 app.use(errorHandler);
 
 // Iniciar servidor
-app.listen(config.server.PORT, () => {
+app.listen(config.server.HOST,config.server.PORT, () => {
 	console.log(
 		`🚀 Server listening on http://${config.server.HOST}:${config.server.PORT}`,
 	);

@@ -2,7 +2,7 @@
 export const config = {
 	server: {
 		PORT: process.env.PORT || 3001,
-		HOST: process.env.HOST || "127.0.0.1",
+		HOST: process.env.HOST || "0.0.0.0",
 	},
 	supabase: {
 		URL: process.env.SUPABASE_URL,
