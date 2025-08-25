@@ -196,4 +196,36 @@ const handleAddToQueue = (track: Track) => {
   padding: 2rem;
   font-size: 0.9rem;
 }
+@media (max-width: 768px) {
+  .catalog-container {
+    position: fixed; 
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 0;
+    transform: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(10, 10, 10, 0.85);
+  }
+
+  .track-list {
+    background-color: #1e1e1e;
+    border-radius: 12px;
+    padding: 1rem;
+    width: 90vw;
+    max-height: 80vh;
+  }
+  
+  .track-title {
+    font-size: 0.85rem;
+  }
+  .track-artist {
+    font-size: 0.75rem;
+  }
+}
 </style>

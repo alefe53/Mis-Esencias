@@ -516,7 +516,6 @@ const handlePrimaryPlay = async () => {
 }
 .minimize-btn {
   bottom: 1rem;
-  /* AJUSTE 1: ACERCAR EL BOTÓN AL REPRODUCTOR */
   left: calc(50% - 160px);
 }
 .maximize-btn {
@@ -533,8 +532,7 @@ const handlePrimaryPlay = async () => {
 }
 .is-hidden .maximize-btn {
   bottom: 1rem;
-  /* AJUSTE 2: CENTRAR EL BOTÓN Y APLICAR ANIMACIÓN */
-  left: calc(50% - 16px); /* Centra el botón de 32px de ancho */
+  left: calc(50% - 16px); 
   animation: pulse-animation 2.5s infinite ease-in-out;
 }
 .center-column {
@@ -815,5 +813,58 @@ const handlePrimaryPlay = async () => {
   bottom: calc(40% + 0px);
   left: 25%;
   transform: translateX(-50%);
+}
+@media (max-width: 768px) {
+  .mood-list,
+  .description-panel {
+    position: fixed; 
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(10, 10, 10, 0.85); 
+    backdrop-filter: blur(10px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1100; 
+    
+    transform: none;
+    bottom: auto;
+    right: auto;
+    left: auto;
+  }
+
+  .mood-list,
+  .description-panel {
+    padding: 20px;
+  }
+
+  .mood-list ul,
+  .description-panel p {
+    background-color: #1e1e1e;
+    border-radius: 12px;
+    padding: 1.5rem;
+    max-width: 90vw;
+    max-height: 80vh;
+    overflow-y: auto;
+    border: 1px solid #444;
+  }
+
+  .mood-item {
+    font-size: 1rem;
+    padding: 10px 15px;
+  }
+
+  .playlist-toggle-btn,
+  .catalog-toggle-btn {
+    position: static; 
+    transform: none;
+    margin-top: 10px;
+  }
+
+  .center-column {
+     gap: 5px; 
+  }
 }
 </style>
