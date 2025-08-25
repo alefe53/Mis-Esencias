@@ -14,7 +14,6 @@ class AuthService {
                 data: {
                     first_name: firstName,
                     last_name: lastName,
-                    // Es crucial asignar nuestro avatar por defecto en el registro
                     avatar_url: 'perfildefault.jpg',
                 },
             },
@@ -63,7 +62,6 @@ class AuthService {
     }
 
     async handleGoogleLogin(supabaseToken) {
-        // 1. Obtenemos el usuario de Supabase. Esto nos da acceso a su ID y a los metadatos de Google.
         const { data: { user: supabaseUser }, error: userError } =
             await supabase.auth.getUser(supabaseToken);
 
@@ -72,33 +70,25 @@ class AuthService {
             throw new Error("Token de Supabase inválido o expirado.");
         }
 
-        // 2. [LÓGICA CENTRAL] Obtenemos el perfil *ACTUAL* directamente de nuestra tabla `profiles`.
         const { data: currentProfile, error: profileError } = await supabase
             .rpc("get_user_profile_by_id", { p_user_id: supabaseUser.id })
             .single();
 
         if (profileError || !currentProfile) {
-            // Esto no debería pasar si el trigger `handle_new_user` funciona, pero es una buena salvaguarda.
             throw new Error("No se pudo encontrar el perfil del usuario en la base de datos.");
         }
 
-        // 3. [LA DECISIÓN] Comprobamos si el usuario tiene un avatar personalizado.
-        // Un avatar personalizado es cualquier cosa que NO sea nuestro avatar por defecto.
         const hasCustomAvatar = currentProfile.avatar_url !== 'perfildefault.jpg';
 
         if (hasCustomAvatar) {
-            // Si ya tiene un avatar personalizado, no hacemos NADA.
             console.log(`El usuario ${supabaseUser.id} ya tiene un avatar personalizado. Se mantendrá.`);
         } else {
-            // Si tiene el avatar por defecto, intentamos "mejorarlo" con el de Google.
             console.log(`El usuario ${supabaseUser.id} tiene el avatar por defecto. Intentando actualizar desde Google.`);
             await profileService.updateAvatar(supabaseUser.id, {
                 url: supabaseUser.user_metadata.avatar_url,
             });
         }
 
-        // 4. Para asegurar consistencia, volvemos a pedir el perfil final.
-        // Este contendrá el avatar de Google (si se actualizó) o el personalizado que ya tenía.
         const { data: finalProfile, error: finalProfileError } = await supabase
             .rpc("get_user_profile_by_id", { p_user_id: supabaseUser.id })
             .single();
@@ -107,7 +97,6 @@ class AuthService {
             throw new Error("No se pudo recuperar el perfil final del usuario para generar el token.");
         }
 
-        // 5. Creamos nuestro JWT con la información definitiva y correcta.
         const userPayload = {
             sub: finalProfile.id,
             id: finalProfile.id,
@@ -115,7 +104,7 @@ class AuthService {
             subscription_tier_id: finalProfile.subscription_tier_id,
             first_name: finalProfile.first_name,
             last_name: finalProfile.last_name,
-            avatar_url: finalProfile.avatar_url, // <-- Aquí irá la URL correcta siempre.
+            avatar_url: finalProfile.avatar_url, 
         };
 
         const token = jwt.sign(userPayload, config.jwt.SECRET, {
