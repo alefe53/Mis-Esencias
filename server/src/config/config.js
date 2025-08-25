@@ -1,7 +1,7 @@
 // src/config/config.js
 export const config = {
 	server: {
-		PORT: process.env.PORT || 3001,
+		PORT: process.env.PORT,
 		HOST: process.env.HOST || "0.0.0.0",
 	},
 	supabase: {
