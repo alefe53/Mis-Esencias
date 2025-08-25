@@ -1,6 +1,4 @@
 // src/config/config.js
-import "dotenv/config";
-
 export const config = {
 	server: {
 		PORT: process.env.PORT || 3001,

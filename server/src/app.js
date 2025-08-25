@@ -15,6 +15,8 @@ const corsOptions = {
 	credentials: true,
 };
 
+console.log('CORS Origin configurado para:', config.CORS_ORIGIN);
+
 // Middlewares
 app.use(express.json());
 app.use(morgan("dev"));
