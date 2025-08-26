@@ -47,6 +47,7 @@
               <ul
                 v-if="isMoodListVisible"
                 class="mood-list"
+                ref="moodListRef"
                 :class="{ 'shifted-left': showInitialPrompt }"
               >
                 <li
@@ -209,6 +210,7 @@
               <div
                 v-if="isTrackDescriptionVisible && currentTrack?.description"
                 class="description-panel track-desc"
+                ref="descriptionPanelRef"
               >
                 <p>{{ currentTrack.description }}</p>
               </div>
@@ -301,9 +303,23 @@ const isMoodListVisible = ref(false)
 const isTrackDescriptionVisible = ref(false)
 const isReleaseDescriptionVisible = ref(false)
 const isCatalogVisible = ref(false)
+
+const moodListRef = ref<HTMLElement | undefined>()
+const descriptionPanelRef = ref<HTMLElement | undefined>()
+
 useClickOutside(playerWrapperRef, () => {
   if (isCatalogVisible.value) isCatalogVisible.value = false
   if (isPlaylistVisible.value) playerStore.togglePlaylistVisibility()
+})
+useClickOutside(moodListRef, () => {
+  if (isMoodListVisible.value) {
+    isMoodListVisible.value = false
+  }
+})
+useClickOutside(descriptionPanelRef, () => {
+  if (isTrackDescriptionVisible.value) {
+    isTrackDescriptionVisible.value = false
+  }
 })
 const isAuthView = computed(() => {
   const authPaths = ['/auth', '/profile', '/info', '/admin','/subscribe']
