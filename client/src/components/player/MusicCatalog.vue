@@ -40,8 +40,6 @@ import type { Track } from '../../types'
 import { moodColors } from '../../constants/moods'
 import { useClickOutside } from '../../composables/useClickOutside'
 
-defineEmits(['close'])
-
 const emit = defineEmits(['close'])
 
 const catalogContainerRef = ref<HTMLElement | undefined>()
