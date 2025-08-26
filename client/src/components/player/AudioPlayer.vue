@@ -854,7 +854,7 @@ const handlePrimaryPlay = async () => {
     align-items: center;
     gap: 15px; 
     position: relative;
-    margin-bottom: 70px; 
+    margin-bottom: 0px; 
   }
 
   .player-controls-pill {
