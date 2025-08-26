@@ -1,5 +1,5 @@
 <template>
-  <div class="playlist-container" @click.stop>
+  <div class="playlist-container" @click.stop ref="playlistContainerRef">
     <button
       @click="closePlaylist"
       class="close-button"
@@ -51,10 +51,18 @@
 import { ref, watch, nextTick } from 'vue'
 import { usePlayerStore } from '../../stores/playerStore'
 import { storeToRefs } from 'pinia'
+import { useClickOutside } from '../../composables/useClickOutside'
 
 const playerStore = usePlayerStore()
-const { playlist, currentTrackIndex } = storeToRefs(playerStore)
+const { playlist, currentTrackIndex, isPlaylistVisible  } = storeToRefs(playerStore)
 const trackElements = ref<HTMLLIElement[]>([])
+
+const playlistContainerRef = ref<HTMLElement | undefined>() 
+useClickOutside(playlistContainerRef, () => {
+  if (isPlaylistVisible.value) {
+    playerStore.togglePlaylistVisibility()
+  }
+})
 
 const closePlaylist = () => {
   playerStore.togglePlaylistVisibility()
