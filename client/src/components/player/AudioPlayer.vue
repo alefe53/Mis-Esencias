@@ -850,7 +850,7 @@ const handlePrimaryPlay = async () => {
   }
 
   .mood-list {
-    position: fixed;
+    /*position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -863,7 +863,7 @@ const handlePrimaryPlay = async () => {
     border: 1px solid #555;
     border-radius: 12px;
     z-index: 1100;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);*/
     padding: 0.75rem;
     list-style: none;
 }
