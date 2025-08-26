@@ -866,7 +866,7 @@ const handlePrimaryPlay = async () => {
   }
 
   .mood-list {
-    left:1rem;
+    left:0.3rem;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
     padding: 0.75rem;
     list-style: none;
