@@ -189,43 +189,33 @@ watch(
   color: #777;
   font-size: 0.9rem;
 }
-
 @media (max-width: 768px) {
   .playlist-container {
-    position: fixed; 
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    max-width: 100%;
-    max-height: 100%;
-    border-radius: 0; 
-    transform: none; 
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: rgba(10, 10, 10, 0.85);
-  }
-
-  .track-list {
-    background-color: #1e1e1e;
-    border-radius: 12px;
-    padding: 1rem;
-    width: 90vw;
-    max-height: 80vh;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); 
+    width: 90vw; 
+    max-width: 350px; 
+    height: 75vh; 
+    max-height: 500px; 
+    z-index: 1200;
   }
 
   .close-button {
-    top: 1.5rem;
-    right: 1.5rem;
-    color: #fff;
-    background-color: rgba(40, 40, 40, 0.8);
+    top: 10px;
+    right: 10px;
+    width: 32px;
+    height: 32px;
+    background-color: rgba(50, 50, 50, 0.8);
     border-radius: 50%;
-    width: 36px;
-    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+
+  .track-title {
+    font-size: 0.85rem;
   }
 }
 </style>

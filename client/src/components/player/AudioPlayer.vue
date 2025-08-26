@@ -818,53 +818,59 @@ const handlePrimaryPlay = async () => {
   .mood-list,
   .description-panel {
     position: fixed; 
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(10, 10, 10, 0.85); 
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90vw;
+    max-width: 320px; 
+    max-height: 70vh; 
+    background-color: rgba(30, 30, 30, 0.95);
     backdrop-filter: blur(10px);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1100; 
-    
-    transform: none;
-    bottom: auto;
-    right: auto;
-    left: auto;
-  }
-
-  .mood-list,
-  .description-panel {
-    padding: 20px;
-  }
-
-  .mood-list ul,
-  .description-panel p {
-    background-color: #1e1e1e;
+    border: 1px solid #555;
     border-radius: 12px;
-    padding: 1.5rem;
-    max-width: 90vw;
-    max-height: 80vh;
-    overflow-y: auto;
-    border: 1px solid #444;
+    z-index: 1100;
+    padding: 1rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+
+    right: auto;
+    bottom: auto;
+    min-width: unset;
   }
 
   .mood-item {
-    font-size: 1rem;
-    padding: 10px 15px;
+    font-size: 1rem; 
+    padding: 10px 12px;
+    text-align: center;
   }
 
-  .playlist-toggle-btn,
-  .catalog-toggle-btn {
-    position: static; 
-    transform: none;
-    margin-top: 10px;
+  .side-panel-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
-
   .center-column {
-     gap: 5px; 
+    display: flex;
+    flex-direction: row; 
+    align-items: center;
+    gap: 15px; 
+    position: relative;
+    margin-bottom: 70px; 
+  }
+
+  .player-controls-pill {
+    order: 2;
+  }
+
+  .playlist-toggle-btn {
+    order: 3; 
+    position: static;
+    transform: none;
+  }
+
+  .catalog-toggle-btn {
+    order: 1; 
+    position: static;
+    transform: none;
   }
 }
 </style>
