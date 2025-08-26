@@ -201,27 +201,39 @@ const handleAddToQueue = (track: Track) => {
     position: fixed;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%); 
+    transform: translate(-50%, -50%);
     width: 90vw;
-    max-width: 350px; 
-    height: 75vh;
-    max-height: 500px;
-    z-index: 1200; 
-
-    right: auto;
-    bottom: auto;
+    max-width: 350px;
+    height: auto;
+    max-height: 75vh; 
+    z-index: 1200;
   }
 
   .track-list {
-     padding: 0.75rem;
+    padding: 0.5rem; 
+  }
+
+  .track-item {
+    padding: 0.6rem 0.5rem; 
+    margin-bottom: 0;
+    border-bottom: 1px solid #333; 
+  }
+  .track-item:last-child {
+    border-bottom: none; 
   }
 
   .track-title {
-    font-size: 0.8rem; 
+    font-size: 0.85rem;
+    font-weight: 600; 
   }
 
   .track-artist {
     font-size: 0.75rem;
+    color: #999; 
+  }
+
+  .add-queue-btn {
+    font-size: 1.8rem; 
   }
 }
 </style>

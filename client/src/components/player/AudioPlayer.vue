@@ -153,42 +153,45 @@
                 </button>
               </div>
             </div>
-            <button
-              v-if="!isAuthView"
-              @click="toggleCatalogVisibility"
-              class="side-button catalog-toggle-btn"
-              :class="{ pressed: isCatalogVisible }"
-              aria-label="Mostrar catálogo de música"
-            >
-              C
-            </button>
-            <button
-              v-if="!isAuthView"
-              @click="togglePlaylistVisibility"
-              :disabled="playlist.length === 0"
-              class="side-button playlist-toggle-btn"
-              :class="{ pressed: isPlaylistVisible }"
-              aria-label="Mostrar lista de reproducción"
-            >
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+            
+            <div class="secondary-controls">
+              <button
+                v-if="!isAuthView"
+                @click="toggleCatalogVisibility"
+                class="side-button catalog-toggle-btn"
+                :class="{ pressed: isCatalogVisible }"
+                aria-label="Mostrar catálogo de música"
               >
-                <line x1="8" y1="6" x2="21" y2="6"></line>
-                <line x1="8" y1="12" x2="21" y2="12"></line>
-                <line x1="8" y1="18" x2="21" y2="18"></line>
-                <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                <line x1="3" y1="18" x2="3.01" y2="18"></line>
-              </svg>
-            </button>
-          </div>
+                C
+              </button>
+              <button
+                v-if="!isAuthView"
+                @click="togglePlaylistVisibility"
+                :disabled="playlist.length === 0"
+                class="side-button playlist-toggle-btn"
+                :class="{ pressed: isPlaylistVisible }"
+                aria-label="Mostrar lista de reproducción"
+              >
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <line x1="8" y1="6" x2="21" y2="6"></line>
+                  <line x1="8" y1="12" x2="21" y2="12"></line>
+                  <line x1="8" y1="18" x2="21" y2="18"></line>
+                  <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                  <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                  <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            </div>
           <div
             class="side-panel-container"
             v-if="!isAuthView"
@@ -815,15 +818,49 @@ const handlePrimaryPlay = async () => {
   transform: translateX(-50%);
 }
 @media (max-width: 768px) {
+  .audio-player-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 0 1rem; 
+    box-sizing: border-box;
+  }
+
+  .center-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px; 
+  }
+  
+  .secondary-controls {
+    display: flex;
+    gap: 15px;
+  }
+
+  .side-panel-container {
+    flex: 1; 
+  }
+  .side-panel-container:first-of-type {
+    display: flex;
+    justify-content: flex-start; 
+  }
+  .side-panel-container:last-of-type {
+    display: flex;
+    justify-content: flex-end; 
+  }
+
   .mood-list,
   .description-panel {
-    position: fixed; 
+    position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     width: 90vw;
-    max-width: 320px; 
-    max-height: 70vh; 
+    max-width: 320px;
+    max-height: 70vh;
     background-color: rgba(30, 30, 30, 0.95);
     backdrop-filter: blur(10px);
     border: 1px solid #555;
@@ -831,46 +868,12 @@ const handlePrimaryPlay = async () => {
     z-index: 1100;
     padding: 1rem;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-
-    right: auto;
-    bottom: auto;
-    min-width: unset;
   }
 
   .mood-item {
-    font-size: 1rem; 
+    font-size: 1rem;
     padding: 10px 12px;
     text-align: center;
-  }
-
-  .side-panel-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  .center-column {
-    display: flex;
-    flex-direction: row; 
-    align-items: center;
-    gap: 15px; 
-    position: relative;
-    margin-bottom: 0px; 
-  }
-
-  .player-controls-pill {
-    order: 2;
-  }
-
-  .playlist-toggle-btn {
-    order: 3; 
-    position: static;
-    transform: none;
-  }
-
-  .catalog-toggle-btn {
-    order: 1; 
-    position: static;
-    transform: none;
   }
 }
 </style>
