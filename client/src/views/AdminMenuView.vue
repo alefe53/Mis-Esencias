@@ -49,4 +49,20 @@
   transform: translateY(-2px);
   box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
 }
+@media (max-width: 768px) {
+  .admin-menu-container {
+    margin: 1rem; 
+  }
+
+  .admin-nav {
+    flex-direction: column; 
+    gap: 1rem; 
+    align-items: center; 
+  }
+
+  .nav-button {
+    width: 90%; 
+    text-align: center;
+  }
+}
 </style>

@@ -341,4 +341,33 @@ watch(
 .message-bubble:hover .msg-delete-btn {
   opacity: 1;
 }
+@media (max-width: 768px) {
+  .dashboard-layout {
+    flex-direction: column; 
+    height: calc(100vh - 100px); 
+    padding: 0.5rem;
+  }
+
+  .conversations-panel {
+    width: 100%; 
+    flex-shrink: 1; 
+    border-right: none;
+    border-bottom: 2px solid #444; 
+    padding-right: 0;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .messages-panel {
+    height: 100%; 
+  }
+
+  .message-wrapper {
+    max-width: 90%; 
+  }
+
+  .chat-item {
+    padding: 0.75rem;
+  }
+}
 </style>

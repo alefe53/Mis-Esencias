@@ -556,4 +556,48 @@ onUnmounted(() => {
 .toggle-fullscreen-btn {
   background-color: #4f46e5;
 }
+@media (max-width: 768px) {
+  .admin-stream-layout {
+    padding: 0.5rem;
+    height: calc(100vh - 80px); 
+  }
+
+  .stream-panel-full {
+    padding: 0.5rem;
+  }
+
+  .controls-section {
+    flex-direction: column;
+    align-items: stretch; 
+    gap: 1.5rem; 
+  }
+
+  .device-controls,
+  .device-selectors,
+  .stream-actions {
+    justify-content: center; 
+    width: 100%;
+  }
+
+  .device-selectors {
+    flex-direction: column;
+    align-items: stretch; 
+  }
+
+  .device-selector select {
+    width: 100%; 
+  }
+  
+  .stream-actions {
+    flex-direction: column; 
+  }
+
+  .stream-actions button {
+    width: 100%; 
+  }
+  
+  .overlay-buttons {
+    justify-content: center;
+  }
+}
 </style>

@@ -71,7 +71,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore'
-import * as adminService from '../services/adminService' // Necesitarás crear este servicio
+import * as adminService from '../services/adminService'
 
 const router = useRouter()
 const uiStore = useUiStore()
@@ -82,7 +82,7 @@ const post = ref({
   content: '',
   imageUrl: '',
   postType: 'text',
-  pollOptions: [''], // Inicia con una opción vacía
+  pollOptions: [''], 
 })
 
 const addOption = () => {
@@ -96,7 +96,6 @@ const removeOption = (index: number) => {
 const handleSubmit = async () => {
   isLoading.value = true
   try {
-    // Filtra las opciones de encuesta vacías antes de enviar
     const payload = {
       ...post.value,
       pollOptions:
@@ -111,7 +110,7 @@ const handleSubmit = async () => {
       message: 'Publicación creada exitosamente',
       color: '#10B981',
     })
-    router.push({ name: 'social-feed' }) // Redirige al feed para ver el nuevo post
+    router.push({ name: 'social-feed' }) 
   } catch (error) {
     console.error('Error al crear la publicación:', error)
     uiStore.showToast({
@@ -174,5 +173,12 @@ button[type='submit'] {
   padding: 1rem;
   background-color: #10b981;
   font-size: 1.2rem;
+}
+@media (max-width: 768px) {
+  .create-post-container {
+    margin: 1rem;
+    padding: 1.25rem;
+    border-radius: 0;
+  }
 }
 </style>

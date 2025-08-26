@@ -22,8 +22,8 @@
               <span>{{ user.full_name }}</span>
             </div>
           </td>
-          <td>{{ user.email }}</td>
-          <td>
+          <td data-label="Email">{{ user.email }}</td>
+          <td data-label="Suscripción">
             <span
               class="tier-badge"
               :class="`tier-${user.subscription_tier_id}`"
@@ -94,5 +94,56 @@ th {
 }
 .tier-3 {
   background-color: #a855f7;
+}
+@media (max-width: 768px) {
+  table thead {
+    display: none;
+  }
+
+  table, tbody, tr, td {
+    display: block;
+    width: 100%;
+  }
+
+  tr {
+    margin-bottom: 1.5rem;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    padding: 0.5rem;
+  }
+
+  td {
+    text-align: right; 
+    padding-left: 50%;
+    position: relative;
+    border-bottom: 1px dashed #4b5563; 
+  }
+
+  td:last-child {
+    border-bottom: none;
+  }
+
+  td::before {
+    content: attr(data-label); 
+    position: absolute;
+    left: 1rem;
+    width: 45%;
+    text-align: left;
+    font-weight: bold;
+    color: #9ca3af;
+  }
+
+  td:first-child {
+    padding-left: 1rem;
+    text-align: left;
+  }
+
+  td:first-child::before {
+    content: ''; 
+  }
+
+  .user-cell {
+    justify-content: flex-start;
+  }
 }
 </style>
