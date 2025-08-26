@@ -855,19 +855,18 @@ const handlePrimaryPlay = async () => {
     left: 50%;
     transform: translate(-50%, -50%);
     width: 90vw;
-    max-width: 280px; 
-    max-height: 700vh;
-    background-color: #1e1e1e; 
+    max-width: 280px;
+    
+    height: auto !important; 
+    
+    background-color: #1e1e1e;
     border: 1px solid #555;
     border-radius: 12px;
     z-index: 1100;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
     padding: 0.75rem;
-    
-    overflow-y: auto;
     list-style: none;
-  }
-
+}
   .mood-item {
     font-size: 0.9rem; 
     color: #eee;
