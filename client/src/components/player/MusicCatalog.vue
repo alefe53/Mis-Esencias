@@ -1,5 +1,5 @@
 <template>
-  <div class="catalog-container" @click.stop>
+  <div class="catalog-container" @click.stop ref="catalogContainerRef">
     <div v-if="isLoading" class="loader">Cargando catálogo...</div>
     <ul v-else-if="catalog.length > 0" class="track-list">
       <li
@@ -38,8 +38,13 @@ import { usePlayerStore } from '../../stores/playerStore'
 import { useUiStore } from '../../stores/uiStore'
 import type { Track } from '../../types'
 import { moodColors } from '../../constants/moods'
+import { useClickOutside } from '../../composables/useClickOutside'
 
 defineEmits(['close'])
+
+const emit = defineEmits(['close'])
+
+const catalogContainerRef = ref<HTMLElement | undefined>()
 
 const catalogStore = useMusicCatalogStore()
 const playerStore = usePlayerStore()
@@ -47,7 +52,9 @@ const uiStore = useUiStore()
 
 const { catalog, isLoading } = storeToRefs(catalogStore)
 const recentlyAdded = ref(new Set<number>())
-
+useClickOutside(catalogContainerRef, () => {
+  emit('close')
+})
 const trackItemHoverStyle = (track: Track) => {
   if (!track.moods || track.moods.length === 0) {
     return {

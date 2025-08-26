@@ -869,7 +869,7 @@ const handlePrimaryPlay = async () => {
     
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
     padding: 0.75rem;
-    padding-right: 3.5rem;
+    padding-left: 1rem;
     list-style: none;
 }
   .mood-item {
