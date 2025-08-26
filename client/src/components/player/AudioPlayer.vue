@@ -246,6 +246,7 @@
                   isReleaseDescriptionVisible &&
                   currentTrack.releaseInfo.description
                 "
+                ref="releaseDescriptionPanelRef"
                 class="description-panel release-desc"
               >
                 <p>{{ currentTrack.releaseInfo.description }}</p>
@@ -286,6 +287,8 @@ const {
   playerState,
 } = storeToRefs(playerStore)
 const { availableMoods, isMoodsLoading } = storeToRefs(uiStore)
+const releaseDescriptionPanelRef = ref<HTMLElement | undefined>()
+
 const {
   togglePlayPause,
   playNext,
@@ -319,6 +322,11 @@ useClickOutside(moodListRef, () => {
 useClickOutside(descriptionPanelRef, () => {
   if (isTrackDescriptionVisible.value) {
     isTrackDescriptionVisible.value = false
+  }
+})
+useClickOutside(releaseDescriptionPanelRef, () => {
+  if (isReleaseDescriptionVisible.value) {
+    isReleaseDescriptionVisible.value = false
   }
 })
 const isAuthView = computed(() => {
@@ -866,7 +874,7 @@ const handlePrimaryPlay = async () => {
   }
 
   .mood-list {
-    left:3px;
+    left:1px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
     padding: 0.75rem;
     list-style: none;
@@ -892,21 +900,23 @@ const handlePrimaryPlay = async () => {
     background-color: var(--hover-color, #3b82f6);
   }
 
-  .description-panel {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 90vw;
-    max-width: 320px;
-    max-height: 70vh;
-    background-color: rgba(30, 30, 30, 0.95);
-    backdrop-filter: blur(10px);
-    border: 1px solid #555;
-    border-radius: 12px;
-    z-index: 1100;
-    padding: 1rem;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-  }
+  .description-panel,
+.release-desc {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90vw;
+  max-width: 320px;
+  max-height: 70vh;
+  background-color: rgba(30, 30, 30, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid #555;
+  border-radius: 12px;
+  z-index: 1100;
+  padding: 1rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  overflow-y: auto;
+}
 }
 </style>
