@@ -202,38 +202,51 @@ const handleAddToQueue = (track: Track) => {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+    
     width: 90vw;
     max-width: 350px;
-    height: auto;
-    max-height: 75vh; 
+    height: 75vh;
+    max-height: 500px;
+
     z-index: 1200;
+    display: flex; 
+    background-color: rgba(25, 25, 25, 0.95);
+    backdrop-filter: blur(8px);
+    border-radius: 12px;
+    box-shadow: 0 5px 30px rgba(0, 0, 0, 0.4);
+    border: 1px solid #444;
+    overflow: hidden;
   }
 
   .track-list {
-    padding: 0.5rem; 
+    width: 100%;
+    overflow-y: auto; 
+    padding: 0.5rem;
+    scrollbar-width: thin;
+    scrollbar-color: #555 #333;
   }
 
   .track-item {
-    padding: 0.6rem 0.5rem; 
+    padding: 0.6rem 0.5rem;
     margin-bottom: 0;
-    border-bottom: 1px solid #333; 
+    border-bottom: 1px solid #333;
   }
   .track-item:last-child {
-    border-bottom: none; 
+    border-bottom: none;
   }
 
   .track-title {
     font-size: 0.85rem;
-    font-weight: 600; 
+    font-weight: 600;
   }
 
   .track-artist {
     font-size: 0.75rem;
-    color: #999; 
+    color: #999;
   }
 
   .add-queue-btn {
-    font-size: 1.8rem; 
+    font-size: 1.8rem;
   }
 }
 </style>

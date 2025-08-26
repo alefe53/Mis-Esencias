@@ -831,8 +831,8 @@ const handlePrimaryPlay = async () => {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 20px; 
+    gap: 10px; 
+    margin-bottom: 20px;
   }
   
   .secondary-controls {
@@ -841,15 +841,15 @@ const handlePrimaryPlay = async () => {
   }
 
   .side-panel-container {
-    flex: 1; 
+    flex: 1;
   }
   .side-panel-container:first-of-type {
     display: flex;
-    justify-content: flex-start; 
+    justify-content: flex-start;
   }
   .side-panel-container:last-of-type {
     display: flex;
-    justify-content: flex-end; 
+    justify-content: flex-end;
   }
 
   .mood-list,
@@ -868,6 +868,17 @@ const handlePrimaryPlay = async () => {
     z-index: 1100;
     padding: 1rem;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    display: flex; 
+    flex-direction: column;
+  }
+
+  .mood-list ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    overflow-y: auto; 
+    scrollbar-width: thin;
+    scrollbar-color: #555 #333;
   }
 
   .mood-item {
