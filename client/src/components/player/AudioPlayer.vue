@@ -819,27 +819,24 @@ const handlePrimaryPlay = async () => {
 }
 @media (max-width: 768px) {
   .audio-player-container {
-    display: flex;
+ display: flex;
     justify-content: space-between;
     align-items: center;
     width: 100%;
-    padding: 0 1rem; 
+    padding: 0 1rem;
     box-sizing: border-box;
   }
-
   .center-column {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px; 
+    gap: 10px;
     margin-bottom: 20px;
   }
-  
   .secondary-controls {
     display: flex;
     gap: 15px;
   }
-
   .side-panel-container {
     flex: 1;
   }
@@ -852,7 +849,45 @@ const handlePrimaryPlay = async () => {
     justify-content: flex-end;
   }
 
-  .mood-list,
+  .mood-list {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90vw;
+    max-width: 280px; 
+    max-height: 70vh;
+    background-color: #1e1e1e; 
+    border: 1px solid #555;
+    border-radius: 12px;
+    z-index: 1100;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    padding: 0.75rem;
+    
+    overflow-y: auto;
+    list-style: none;
+  }
+
+  .mood-item {
+    font-size: 0.9rem; 
+    color: #eee;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 6px;
+    text-align: center;
+    width: 100%;
+    box-sizing: border-box;
+    white-space: normal;
+  }
+  .mood-item:last-child {
+    margin-bottom: 0;
+  }
+  .mood-item:hover {
+    color: white;
+    background-color: var(--hover-color, #3b82f6);
+  }
+
   .description-panel {
     position: fixed;
     top: 50%;
@@ -868,23 +903,6 @@ const handlePrimaryPlay = async () => {
     z-index: 1100;
     padding: 1rem;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-    display: flex; 
-    flex-direction: column;
-  }
-
-  .mood-list ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    overflow-y: auto; 
-    scrollbar-width: thin;
-    scrollbar-color: #555 #333;
-  }
-
-  .mood-item {
-    font-size: 1rem;
-    padding: 10px 12px;
-    text-align: center;
   }
 }
 </style>

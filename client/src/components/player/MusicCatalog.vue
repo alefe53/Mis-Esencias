@@ -198,18 +198,18 @@ const handleAddToQueue = (track: Track) => {
 }
 @media (max-width: 768px) {
   .catalog-container {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
     
     width: 90vw;
     max-width: 350px;
     height: 75vh;
     max-height: 500px;
-
     z-index: 1200;
-    display: flex; 
+
+    display: flex;
     background-color: rgba(25, 25, 25, 0.95);
     backdrop-filter: blur(8px);
     border-radius: 12px;
@@ -220,7 +220,7 @@ const handleAddToQueue = (track: Track) => {
 
   .track-list {
     width: 100%;
-    overflow-y: auto; 
+    overflow-y: auto;
     padding: 0.5rem;
     scrollbar-width: thin;
     scrollbar-color: #555 #333;
@@ -228,7 +228,6 @@ const handleAddToQueue = (track: Track) => {
 
   .track-item {
     padding: 0.6rem 0.5rem;
-    margin-bottom: 0;
     border-bottom: 1px solid #333;
   }
   .track-item:last-child {
@@ -239,14 +238,6 @@ const handleAddToQueue = (track: Track) => {
     font-size: 0.85rem;
     font-weight: 600;
   }
-
-  .track-artist {
-    font-size: 0.75rem;
-    color: #999;
-  }
-
-  .add-queue-btn {
-    font-size: 1.8rem;
-  }
 }
+
 </style>
