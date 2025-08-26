@@ -305,6 +305,7 @@ const formattedTimestamp = computed(() => {
 }
 .author-name {
   font-weight: 600;
+  color: #e5e7eb;
 }
 .timestamp {
   font-size: 0.75rem;
@@ -323,6 +324,7 @@ const formattedTimestamp = computed(() => {
   margin: 0.25rem 0 0 0;
   white-space: pre-wrap;
   word-break: break-word;
+  color: #f9fafb;
 }
 .message-actions {
   position: absolute;
