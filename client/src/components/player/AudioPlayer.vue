@@ -866,10 +866,11 @@ const handlePrimaryPlay = async () => {
   }
 
   .mood-list {
-    left:0.3rem;
+    left:3px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
     padding: 0.75rem;
     list-style: none;
+    z-index: 9999;
 }
   .mood-item {
     font-size: 0.9rem; 
