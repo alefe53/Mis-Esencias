@@ -135,8 +135,7 @@ adminParticipant.value = participant
 const _setupRoomListeners = (newRoom: Room) => {
 newRoom
 .on(RoomEvent.ParticipantConnected, (p) => {
-          console.log('[STREAM DEBUG] 4. Estado de conexión de LiveKit cambió a:', state); // <--- AÑADIR ESTE LOG
-   
+
 nextTick(_updateRoomState)
 if (newRoom.localParticipant.permissions?.canPublish) {
 if (p.identity !== import.meta.env.VITE_ADMIN_USER_ID) {
@@ -148,6 +147,8 @@ _broadcastStreamState()
 })
 .on(RoomEvent.ParticipantDisconnected, () => nextTick(_updateRoomState))
 .on(RoomEvent.ConnectionStateChanged, (state: ConnectionState) => {
+         console.log('[STREAM DEBUG] 4. Estado de conexión de LiveKit cambió a:', state);
+   
 if (state === ConnectionState.Connected) {
 isConnecting.value = false
 localParticipant.value = newRoom.localParticipant
