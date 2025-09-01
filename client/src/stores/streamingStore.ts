@@ -456,11 +456,14 @@ function unsubscribeFromStreamStatus() {
 async function toggleCamera(enabled: boolean) {
 if (room.value?.localParticipant)
 await room.value.localParticipant.setCameraEnabled(enabled)
+  _broadcastStreamState(); 
+  
 }
 
 async function toggleMicrophone(enabled: boolean) {
 if (room.value?.localParticipant)
 await room.value.localParticipant.setMicrophoneEnabled(enabled)
+  _broadcastStreamState(); 
 }
 
 async function changeCamera(deviceId: string) {
