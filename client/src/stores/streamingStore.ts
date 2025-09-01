@@ -411,24 +411,23 @@ async function disconnect() {
 }
 
 function listenToStreamStatus() {
-if (realtimeChannel) return
-realtimeChannel = supabase
-.channel('public-events')
-.on('broadcast', { event: 'stream-status-change' }, ({ payload }) => {
-isLive.value = payload.isLive
-if (
-!payload.isLive &&
-room.value &&
-!room.value.localParticipant?.permissions?.canPublish
-) {
-disconnect()
-}
-})
-.subscribe((status) => {
-if (status === 'SUBSCRIBED') {
-checkInitialStreamStatus()
-}
-})
+  if (realtimeChannel) return;
+
+  realtimeChannel = supabase
+    .channel('public-events')
+    .on('broadcast', { event: 'stream-status-change' }, ({ payload }) => {
+      console.log('[REALTIME] Recibido evento de broadcast:', payload);
+      isLive.value = payload.isLive;
+      if (!payload.isLive && room.value && !room.value.localParticipant?.permissions?.canPublish) {
+        disconnect();
+      }
+    })
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        console.log('[REALTIME] Suscripción exitosa. Verificando estado inicial del stream...');
+        checkInitialStreamStatus();
+      }
+    });
 }
 
 async function checkInitialStreamStatus() {
