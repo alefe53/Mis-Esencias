@@ -20,10 +20,11 @@
         que todo lo ve. ¡Portate Bien!
       </p>
     </div>
-
+    <transition name="stream-fade">
     <div v-if="isLive" class="stream-area fade-in-item" ref="streamArea">
       <LiveStreamPlayer />
     </div>
+    </transition>
     <div class="chat-area fade-in-item" ref="chatArea">
       <div class="pin-banners-container">
         <TemporaryPinBanner
@@ -56,7 +57,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, computed, ref, watch } from 'vue' // ===== MODIFICADO: Se añade 'watch' =====
+import { onMounted, onUnmounted, computed, ref, watch, nextTick } from 'vue' 
 import gsap from 'gsap'
 import { storeToRefs } from 'pinia'
 import { usePostStore } from '../stores/postStore'
@@ -145,6 +146,26 @@ onMounted(() => {
       threshold: 0.5,
     },
   )
+
+  watch(isLive, (newValue) => {
+    if (newValue) {
+      nextTick(() => {
+        if (streamArea.value) {
+          gsap.from(streamArea.value, {
+            opacity: 0,
+            y: -30,
+            scale: 0.98,
+            duration: 0.8,
+            ease: 'power3.out',
+          });
+          (streamArea.value as HTMLElement).scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+        }
+      });
+    }
+  });
 
   watch(loadTrigger, (newEl, oldEl) => {
     if (oldEl) {
@@ -243,6 +264,17 @@ onUnmounted(() => {
   background-position: center;
   opacity: 0.9;
   z-index: -1;
+}
+
+.stream-fade-enter-active,
+.stream-fade-leave-active {
+  transition: all 0.5s ease;
+}
+
+.stream-fade-enter-from,
+.stream-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
 }
 
 .feed-title {

@@ -1,3 +1,4 @@
+//src/streamingRouter.js
 import { Router } from "express";
 import * as streamingController from '../controllers/streamingController.js';
 import { requireAuth, attachUserIfAuthenticated } from '../middlewares/authMiddleware.js';

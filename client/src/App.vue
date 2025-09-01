@@ -235,7 +235,13 @@ const isHomeRouteActive = computed(() => {
 })
 
 const isMusicRouteActive = computed(() => {
-  const musicRoutes = ['music-intro', 'music', 'my-music', 'music-with-me','subscribe']
+  const musicRoutes = [
+    'music-intro',
+    'music',
+    'my-music',
+    'music-with-me',
+    'subscribe',
+  ]
   return musicRoutes.includes(route.name as string)
 })
 

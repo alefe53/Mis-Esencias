@@ -54,10 +54,11 @@ import { storeToRefs } from 'pinia'
 import { useClickOutside } from '../../composables/useClickOutside'
 
 const playerStore = usePlayerStore()
-const { playlist, currentTrackIndex, isPlaylistVisible  } = storeToRefs(playerStore)
+const { playlist, currentTrackIndex, isPlaylistVisible } =
+  storeToRefs(playerStore)
 const trackElements = ref<HTMLLIElement[]>([])
 
-const playlistContainerRef = ref<HTMLElement | undefined>() 
+const playlistContainerRef = ref<HTMLElement | undefined>()
 useClickOutside(playlistContainerRef, () => {
   if (isPlaylistVisible.value) {
     playerStore.togglePlaylistVisibility()
@@ -202,11 +203,11 @@ watch(
     position: fixed;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%); 
-    width: 90vw; 
-    max-width: 350px; 
-    height: 75vh; 
-    max-height: 500px; 
+    transform: translate(-50%, -50%);
+    width: 90vw;
+    max-width: 350px;
+    height: 75vh;
+    max-height: 500px;
     z-index: 1200;
   }
 

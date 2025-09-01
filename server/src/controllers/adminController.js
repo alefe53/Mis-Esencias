@@ -1,3 +1,4 @@
+//src/controllers/adminController.js
 import * as adminService from "../services/adminService.js";
 
 export const handleGetAllUsers = async (req, res, next) => {

@@ -51,17 +51,17 @@
 }
 @media (max-width: 768px) {
   .admin-menu-container {
-    margin: 1rem; 
+    margin: 1rem;
   }
 
   .admin-nav {
-    flex-direction: column; 
-    gap: 1rem; 
-    align-items: center; 
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
   }
 
   .nav-button {
-    width: 90%; 
+    width: 90%;
     text-align: center;
   }
 }

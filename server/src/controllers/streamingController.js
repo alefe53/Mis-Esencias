@@ -1,3 +1,4 @@
+//src/controllers/streamingController.js
 import { generateToken, startRecording, stopRecording, getRoomParticipants } from '../services/streamingService.js';
 import * as streamingRepository from '../repositories/streamingRepository.js';
 import { broadcastRealtimeEvent } from '../utils/supabaseUtils.js';

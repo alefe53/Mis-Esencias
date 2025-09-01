@@ -207,7 +207,7 @@ const handleAddToQueue = (track: Track) => {
     top: 50% !important;
     left: 50% !important;
     transform: translate(-50%, -50%) !important;
-    
+
     width: 90vw;
     max-width: 350px;
     height: 75vh;
@@ -244,5 +244,4 @@ const handleAddToQueue = (track: Track) => {
     font-weight: 600;
   }
 }
-
 </style>

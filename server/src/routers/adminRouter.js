@@ -1,3 +1,4 @@
+//src/routers/adminRouter.js
 import { Router } from "express";
 import * as adminController from "../controllers/adminController.js";
 import { postController } from "../controllers/postController.js";

@@ -100,7 +100,10 @@ th {
     display: none;
   }
 
-  table, tbody, tr, td {
+  table,
+  tbody,
+  tr,
+  td {
     display: block;
     width: 100%;
   }
@@ -113,10 +116,10 @@ th {
   }
 
   td {
-    text-align: right; 
+    text-align: right;
     padding-left: 50%;
     position: relative;
-    border-bottom: 1px dashed #4b5563; 
+    border-bottom: 1px dashed #4b5563;
   }
 
   td:last-child {
@@ -124,7 +127,7 @@ th {
   }
 
   td::before {
-    content: attr(data-label); 
+    content: attr(data-label);
     position: absolute;
     left: 1rem;
     width: 45%;
@@ -139,7 +142,7 @@ th {
   }
 
   td:first-child::before {
-    content: ''; 
+    content: '';
   }
 
   .user-cell {

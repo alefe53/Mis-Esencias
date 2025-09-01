@@ -142,7 +142,9 @@ _broadcastStreamState()
 if (state === ConnectionState.Connected) {
 isConnecting.value = false
 localParticipant.value = newRoom.localParticipant
-fetchMediaDevices()
+    if (newRoom.localParticipant.permissions?.canPublish) {
+      fetchMediaDevices();
+    }
 nextTick(_updateRoomState)
 } else if (state === ConnectionState.Disconnected) {
 _resetState()

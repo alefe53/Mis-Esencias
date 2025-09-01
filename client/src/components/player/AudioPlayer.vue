@@ -154,7 +154,7 @@
                 </button>
               </div>
             </div>
-            
+
             <div class="secondary-controls">
               <button
                 v-if="!isAuthView"
@@ -192,7 +192,7 @@
                 </svg>
               </button>
             </div>
-            </div>
+          </div>
           <div
             class="side-panel-container"
             v-if="!isAuthView"
@@ -330,7 +330,7 @@ useClickOutside(releaseDescriptionPanelRef, () => {
   }
 })
 const isAuthView = computed(() => {
-  const authPaths = ['/auth', '/profile', '/info', '/admin','/subscribe']
+  const authPaths = ['/auth', '/profile', '/info', '/admin', '/subscribe']
   return authPaths.some((basePath) => route.path.startsWith(basePath))
 })
 const togglePlaylistVisibility = () => {
@@ -559,7 +559,7 @@ const handlePrimaryPlay = async () => {
 }
 .is-hidden .maximize-btn {
   bottom: 1rem;
-  left: calc(50% - 16px); 
+  left: calc(50% - 16px);
   animation: pulse-animation 2.5s infinite ease-in-out;
 }
 .center-column {
@@ -843,7 +843,7 @@ const handlePrimaryPlay = async () => {
 }
 @media (max-width: 768px) {
   .audio-player-container {
- display: flex;
+    display: flex;
     justify-content: space-between;
     align-items: center;
     width: 100%;
@@ -874,14 +874,14 @@ const handlePrimaryPlay = async () => {
   }
 
   .mood-list {
-    left:1px;
+    left: 1px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
     padding: 0.75rem;
     list-style: none;
     z-index: 9999;
-}
+  }
   .mood-item {
-    font-size: 0.9rem; 
+    font-size: 0.9rem;
     color: #eee;
     background-color: rgba(255, 255, 255, 0.05);
     border-radius: 6px;
@@ -901,22 +901,22 @@ const handlePrimaryPlay = async () => {
   }
 
   .description-panel,
-.release-desc {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 90vw;
-  max-width: 320px;
-  max-height: 70vh;
-  background-color: rgba(30, 30, 30, 0.95);
-  backdrop-filter: blur(10px);
-  border: 1px solid #555;
-  border-radius: 12px;
-  z-index: 1100;
-  padding: 1rem;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-  overflow-y: auto;
-}
+  .release-desc {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90vw;
+    max-width: 320px;
+    max-height: 70vh;
+    background-color: rgba(30, 30, 30, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid #555;
+    border-radius: 12px;
+    z-index: 1100;
+    padding: 1rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    overflow-y: auto;
+  }
 }
 </style>

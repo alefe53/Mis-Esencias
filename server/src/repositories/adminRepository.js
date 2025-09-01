@@ -1,3 +1,4 @@
+//src/repositories/adminRepository.js
 import { createScopedClient } from "../utils/supabaseUtils.js";
 
 export const getAllUsersFromDB = async (authToken) => {

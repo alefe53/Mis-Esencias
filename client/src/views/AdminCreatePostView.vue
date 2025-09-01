@@ -82,7 +82,7 @@ const post = ref({
   content: '',
   imageUrl: '',
   postType: 'text',
-  pollOptions: [''], 
+  pollOptions: [''],
 })
 
 const addOption = () => {
@@ -110,7 +110,7 @@ const handleSubmit = async () => {
       message: 'Publicación creada exitosamente',
       color: '#10B981',
     })
-    router.push({ name: 'social-feed' }) 
+    router.push({ name: 'social-feed' })
   } catch (error) {
     console.error('Error al crear la publicación:', error)
     uiStore.showToast({
