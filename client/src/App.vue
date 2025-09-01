@@ -3,6 +3,9 @@
     <div class="background-layer"></div>
 
     <template v-if="!isPopupView">
+      <main style="position: relative; z-index: 10;">
+        <router-view />
+      </main>
       <MoodGlowEffect v-if="isMoodGlowEnabled" />
 
       <div
