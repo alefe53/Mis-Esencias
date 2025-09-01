@@ -70,9 +70,7 @@
         </header>
       </transition>
 
-      <main>
-        <router-view />
-      </main>
+
 
       <transition name="fade">
         <div class="auth-widget" v-if="!uiStore.isGlobalTransitionActive">
