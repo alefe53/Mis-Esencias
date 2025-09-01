@@ -75,6 +75,7 @@ if (!room.value) return
 remoteParticipants.value = new Map(room.value.remoteParticipants)
 participantCount.value =
 room.value.remoteParticipants.size + (room.value.localParticipant ? 1 : 0)
+  console.log(`[STREAM DEBUG] 5. Actualizando estado. Participantes remotos: ${room.value.remoteParticipants.size}`); // <--- AÑADIR ESTE LOG
 
 let streamer: Participant | undefined
 
@@ -82,10 +83,16 @@ if (room.value.localParticipant?.permissions?.canPublish) {
 streamer = room.value.localParticipant
 } else {
 const remotePArray = Array.from(room.value.remoteParticipants.values())
+    const adminId = import.meta.env.VITE_ADMIN_USER_ID;
+    console.log('[STREAM DEBUG] 6. Buscando al admin con ID:', adminId); // <--- AÑADIR ESTE LOG
+   
 streamer = remotePArray.find(
 (p) => p.identity === import.meta.env.VITE_ADMIN_USER_ID,
 )
+
 }
+  console.log('[STREAM DEBUG] 7. Streamer encontrado:', streamer ? streamer.identity : 'Nadie'); // <--- AÑADIR ESTE LOG
+
 
 if (streamer) {
 if (adminParticipant.value?.sid !== streamer.sid) {
@@ -128,6 +135,8 @@ adminParticipant.value = participant
 const _setupRoomListeners = (newRoom: Room) => {
 newRoom
 .on(RoomEvent.ParticipantConnected, (p) => {
+          console.log('[STREAM DEBUG] 4. Estado de conexión de LiveKit cambió a:', state); // <--- AÑADIR ESTE LOG
+   
 nextTick(_updateRoomState)
 if (newRoom.localParticipant.permissions?.canPublish) {
 if (p.identity !== import.meta.env.VITE_ADMIN_USER_ID) {
@@ -325,11 +334,15 @@ color: '#ef4444',
 
 async function connectToView() {
 if (isConnecting.value || room.value) return
+  console.log('[STREAM DEBUG] 1. Iniciando conexión como espectador...'); // <--- AÑADIR ESTE LOG
+ 
 isConnecting.value = true
 const uiStore = useUiStore()
 try {
 const response = await api.get('/streaming/token?viewer=true')
 const token = response.data.token
+    console.log('[STREAM DEBUG] 2. Token de espectador recibido.'); // <--- AÑADIR ESTE LOG
+ 
 if (!token) throw new Error('No se pudo obtener el token de espectador')
 
 const newRoom = new Room({
@@ -339,9 +352,12 @@ dynacast: true,
 room.value = newRoom
 
 _setupRoomListeners(room.value)
-
+    console.log('[STREAM DEBUG] 3. Conectando a la sala de LiveKit...'); // <--- AÑADIR ESTE LOG
+ 
 await room.value.connect(import.meta.env.VITE_LIVEKIT_URL, token)
 } catch (error) {
+       console.error('[STREAM DEBUG] ERROR FATAL en connectToView:', error); // <--- AÑADIR ESTE LOG
+   
 console.error('Falló la conexión como espectador:', error)
 uiStore.showToast({
 message: 'No se pudo conectar al stream.',
