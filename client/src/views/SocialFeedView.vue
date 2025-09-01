@@ -11,7 +11,6 @@
         <div class="title-background-container" :style="containerStyle">
           <h2 class="feed-title" :style="textGlowStyle">Comunidad Fenicia</h2>
         </div>
-
         <SubscriptionButton v-if="!isMobile" mode="corner-float" />
       </div>
       <p class="fenicia-subtitle">
@@ -19,6 +18,11 @@
         <img src="/ojo.png" alt="Ojo que todo lo ve" class="inline-icon" />
         que todo lo ve. ¡Portate Bien!
       </p>
+
+      <button @click="forceLiveStatus" style="margin: 1rem auto; display: block; background-color: #ef4444; color: white; padding: 10px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer;">
+        Forzar Estado EN VIVO (TEST)
+      </button>
+
     </div>
     <transition name="stream-fade">
     <div v-if="isLive" class="stream-area fade-in-item" ref="streamArea">
@@ -83,20 +87,24 @@ const streamArea = ref(null)
 const chatArea = ref(null)
 const postsArea = ref(null)
 
-// ===== MODIFICADO: Se añade 'hasMorePosts' para controlar el disparador =====
 const { posts, isLoading, hasMorePosts } = storeToRefs(postStore)
 const { currentMoodId } = storeToRefs(playerStore)
 const { availableMoods } = storeToRefs(uiStore)
 const { temporaryPinnedMessages } = storeToRefs(globalChatStore)
 const { isLive } = storeToRefs(streamingStore)
 
-// ===== NUEVO: Refs y variables para el Intersection Observer =====
 const loadTrigger = ref<HTMLElement | null>(null)
 let observer: IntersectionObserver
 
 const isMobile = ref(window.innerWidth < 992)
 const handleResize = () => {
   isMobile.value = window.innerWidth < 992
+}
+
+// ✅ FUNCIÓN PARA EL BOTÓN DE DIAGNÓSTICO AÑADIDA AQUÍ
+function forceLiveStatus() {
+  console.log('%cForzando manualmente el estado isLive a true...', 'color: #ef4444; font-weight: bold;');
+  streamingStore.isLive = true;
 }
 
 const containerStyle = computed(() => {
@@ -134,7 +142,6 @@ onMounted(() => {
   streamingStore.checkInitialStreamStatus()
   streamingStore.listenToStreamStatus()
 
-  // ===== NUEVO: Lógica para el scroll infinito =====
   observer = new IntersectionObserver(
     (entries) => {
       if (entries[0].isIntersecting && !isLoading.value) {
@@ -195,7 +202,6 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
-  // ===== NUEVO: Se desconecta el observador para limpiar =====
   if (observer) {
     observer.disconnect()
   }
