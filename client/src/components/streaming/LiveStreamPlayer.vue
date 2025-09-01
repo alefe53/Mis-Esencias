@@ -10,16 +10,16 @@
         <span>{{ participantCount }}</span>
       </div>
     </div>
+
     <div class="video-grid">
       <template v-if="room && adminParticipant">
         <div class="video-wrapper">
           <ParticipantView
             :publication="mainPublication ?? null"
             class="main-video"
-            :class="{
-              'fill-container': !isScreenSharing || isCameraFullScreen,
-            }"
+            :class="{ 'fill-container': !isScreenSharing || isCameraFullScreen }"
           />
+
           <div
             v-if="isScreenSharing && !isCameraFullScreen && cameraTrackPub"
             class="camera-overlay"
@@ -27,6 +27,9 @@
           >
             <ParticipantView :publication="cameraTrackPub ?? null" />
           </div>
+
+          <ParticipantView :publication="audioTrackPub ?? null" class="audio-handler" />
+
           <div
             v-if="!userHasUnmuted"
             class="unmute-overlay"
@@ -37,6 +40,7 @@
           </div>
         </div>
       </template>
+
       <div v-else-if="room && !adminParticipant" class="stream-placeholder">
         <p>Esperando la señal del streamer...</p>
       </div>
@@ -51,14 +55,15 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { storeToRefs } from 'pinia'
-import { useStreamingStore } from '../../stores/streamingStore'
-import { useParticipantTracks } from '../../composables/useParticipantTracks'
-import ParticipantView from './ParticipantView.vue'
 
-const streamingStore = useStreamingStore()
+<script setup lang="ts">
+import { ref, computed, watch } from 'vue';
+import { storeToRefs } from 'pinia';
+import { useStreamingStore } from '../../stores/streamingStore';
+import { useParticipantTracks } from '../../composables/useParticipantTracks';
+import ParticipantView from './ParticipantView.vue';
+
+const streamingStore = useStreamingStore();
 const {
   participantCount,
   adminParticipant,
@@ -68,55 +73,49 @@ const {
   cameraOverlaySize,
   isCameraFullScreen,
   isScreenSharing,
-} = storeToRefs(streamingStore)
-const { connectToView } = streamingStore
+} = storeToRefs(streamingStore);
+const { connectToView } = streamingStore;
 
-const userHasUnmuted = ref(false)
+const userHasUnmuted = ref(false);
 
+// Obtenemos TODOS los tracks del admin
 const { cameraTrackPub, screenShareTrackPub, audioTrackPub } =
-  useParticipantTracks(adminParticipant)
+  useParticipantTracks(adminParticipant);
 
+// La lógica para decidir qué video mostrar (cámara o pantalla) sigue igual
 const mainPublication = computed(() => {
   if (isCameraFullScreen.value) {
-    return cameraTrackPub.value
+    return cameraTrackPub.value;
   }
   if (isScreenSharing.value && screenShareTrackPub.value) {
-    return screenShareTrackPub.value
+    return screenShareTrackPub.value;
   }
-  return cameraTrackPub.value
-})
+  return cameraTrackPub.value;
+});
 
 const cameraOverlayStyle = computed(() => ({
   top: `${cameraOverlayPosition.value.y}%`,
   left: `${cameraOverlayPosition.value.x}%`,
   width: `${cameraOverlaySize.value.width}%`,
-}))
+}));
 
 const handleWatchClick = () => {
-  if (isConnecting.value) return
-  connectToView()
-}
+  if (isConnecting.value) return;
+  connectToView();
+};
 
 const unmutePlayer = async () => {
-  userHasUnmuted.value = true
+  userHasUnmuted.value = true;
   if (room.value) {
     try {
-      await room.value.startAudio()
+      // Esta función es clave para permitir que el audio se reproduzca
+      await room.value.startAudio();
+      console.log('Audio context started by user gesture.');
     } catch (e) {
-      console.error('No se pudo iniciar el audio:', e)
+      console.error('Could not start audio:', e);
     }
   }
-}
-
-watch(audioTrackPub, (newPub) => {
-  if (newPub && userHasUnmuted.value) {
-    newPub.track?.attachedElements.forEach((el) => {
-      ;(el as HTMLAudioElement)
-        .play()
-        .catch((e) => console.warn('Play() falló en el unmute reactivo:', e))
-    })
-  }
-})
+};
 </script>
 
 <style scoped>
@@ -260,5 +259,9 @@ watch(audioTrackPub, (newPub) => {
   100% {
     box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
   }
+}
+.audio-handler {
+  display: none;
+  visibility: hidden;
 }
 </style>
