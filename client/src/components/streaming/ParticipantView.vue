@@ -4,9 +4,8 @@
 
 <script setup lang="ts">
 import { ref, watch, onUnmounted } from 'vue';
-import { TrackEvent, type TrackPublication } from 'livekit-client';
+import { TrackEvent, type TrackPublication, type Track } from 'livekit-client'; // <-- Añade 'Track' a los imports
 
-// La clave es la nueva prop "isLocal" y el manejo del evento "Subscribed".
 const props = defineProps<{
   publication: TrackPublication | null,
   isLocal: boolean
@@ -15,17 +14,15 @@ const props = defineProps<{
 const containerRef = ref<HTMLDivElement | null>(null);
 
 // Función para mostrar el video/audio en el DOM
-const attach = (pub: TrackPublication) => {
-  if (!pub.track || !containerRef.value) {
-    return;
-  }
-  
+// La hacemos más simple: ahora recibe el track directamente
+const attach = (track: Track) => {
+  if (!containerRef.value) return;
+
   detach(); // Limpiamos cualquier elemento anterior
 
-  const element = pub.track.attach();
-  
-  // Usamos la nueva prop para decidir si espejar el video
-  if (pub.source === 'camera' && props.isLocal) {
+  const element = track.attach();
+
+  if (track.source === 'camera' && props.isLocal) {
     element.classList.add('mirrored');
   }
 
@@ -39,34 +36,32 @@ const detach = () => {
   }
 };
 
-// Creamos una función manejadora para poder añadirla y quitarla del listener
-const handleSubscribed = () => {
-  if (props.publication) {
-    attach(props.publication);
-  }
+// ✨ LÓGICA CORREGIDA ✨
+// Ahora, el manejador del evento recibe el 'track' como argumento
+const handleSubscribed = (track: Track) => {
+  attach(track);
 };
 
 watch(() => props.publication, (newPub, oldPub) => {
-  // Limpiamos listeners del track anterior
   if (oldPub) {
+    // Limpiamos el listener del track anterior para evitar fugas de memoria
     oldPub.off(TrackEvent.Subscribed, handleSubscribed);
     detach();
   }
 
   if (newPub) {
-    // Si el track ya está listo (porque ya estábamos suscritos), lo mostramos
-    if (newPub.isSubscribed && newPub.track) {
-      attach(newPub);
+    // Si el track ya está listo y suscrito, lo mostramos
+    if (newPub.track) {
+      attach(newPub.track);
     } else {
       // Si no, esperamos a que el evento 'Subscribed' nos avise
+      // El evento nos pasará el objeto 'track' directamente
       newPub.on(TrackEvent.Subscribed, handleSubscribed);
     }
   }
 }, { immediate: true });
 
-
 onUnmounted(() => {
-  // Aseguramos la limpieza al destruir el componente
   if (props.publication) {
     props.publication.off(TrackEvent.Subscribed, handleSubscribed);
   }
