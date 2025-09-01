@@ -4,7 +4,7 @@
       <div class="video-container" ref="videoContainerRef">
         <template v-if="room">
           <ParticipantView
-            :publication="mainPublication ?? null"
+            :publication="mainPublication as TrackPublication | null"
             :is-local="true" class="main-video"
             :class="{
               'fill-container': !isScreenSharing || isCameraFullScreen,
@@ -20,7 +20,7 @@
           >
             <ParticipantView
               class="overlay-participant"
-              :publication="localCameraPublication ?? null"
+              :publication="localCameraPublication as TrackPublication | null"
               :is-local="true" />
           </div>
         </template>
@@ -170,6 +170,7 @@ import {
   createLocalVideoTrack,
   type LocalVideoTrack,
   Room,
+  type TrackPublication,
 } from 'livekit-client'
 import { useParticipantTracks } from '../composables/useParticipantTracks'
 import { useInteractableOverlay } from '../composables/useInteractableOverlay'

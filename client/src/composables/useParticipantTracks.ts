@@ -1,77 +1,94 @@
-//composables/useParticipantTracks.ts
-import { onMounted, onUnmounted, shallowRef, watch, type Ref } from 'vue'
+// RUTA: src/composables/useParticipantTracks.ts
+
+import { ref, watch, onUnmounted, type Ref } from 'vue';
 import {
   type Participant,
   type TrackPublication,
-  type RemoteTrack,
-  type RemoteTrackPublication,
   Track,
-  RoomEvent,
-} from 'livekit-client'
+  TrackEvent,
+  ParticipantEvent, // ✨ IMPORTANTE: Importamos ParticipantEvent
+} from 'livekit-client';
+
 export function useParticipantTracks(participant: Ref<Participant | null>) {
-  const cameraTrackPub = shallowRef<TrackPublication | null>(null)
-  const screenShareTrackPub = shallowRef<TrackPublication | null>(null)
-  const audioTrackPub = shallowRef<TrackPublication | null>(null)
-  const updateTracks = () => {
-    if (!participant.value) {
-      cameraTrackPub.value = null
-      screenShareTrackPub.value = null
-      audioTrackPub.value = null
-      return
+  // Las publicaciones de tracks
+  const cameraTrackPub = ref<TrackPublication | null>(null);
+  const screenShareTrackPub = ref<TrackPublication | null>(null);
+  const audioTrackPub = ref<TrackPublication | null>(null);
+
+  // El estado reactivo que usará la UI
+  const isCameraEnabled = ref(false);
+  const isScreenShareEnabled = ref(false);
+  const isAudioEnabled = ref(false);
+
+  // --- Lógica de actualización ---
+
+  const updateState = () => {
+    if (!participant.value) return;
+
+    // Obtenemos las publicaciones de tracks actuales
+    cameraTrackPub.value = participant.value.getTrackPublication(Track.Source.Camera) ?? null;
+    screenShareTrackPub.value = participant.value.getTrackPublication(Track.Source.ScreenShare) ?? null;
+    audioTrackPub.value = participant.value.getTrackPublication(Track.Source.Microphone) ?? null;
+    
+    // Leemos el estado INICIAL de cada track
+    // Un track está "habilitado" si su publicación existe y NO está muteada
+    isCameraEnabled.value = !!cameraTrackPub.value && !cameraTrackPub.value.isMuted;
+    isScreenShareEnabled.value = !!screenShareTrackPub.value && !screenShareTrackPub.value.isMuted;
+    isAudioEnabled.value = !!audioTrackPub.value && !audioTrackPub.value.isMuted;
+  };
+
+  // --- Lógica para escuchar eventos ---
+
+  // Se activa cuando un track se mutea o desmutea
+  const onTrackMutedChanged = () => {
+    // Simplemente volvemos a leer todo el estado
+    updateState();
+  };
+  
+  // Se activa cuando un nuevo track se publica o despublica
+  const onTrackPublishedChanged = () => {
+    // Volvemos a leer todo el estado
+    updateState();
+  };
+  
+  // --- Hook de ciclo de vida ---
+
+  watch(participant, (newP, oldP) => {
+    if (oldP) {
+      // Limpiamos los listeners del participante anterior para evitar fugas de memoria
+      oldP.off(ParticipantEvent.TrackMuted, onTrackMutedChanged);
+      oldP.off(ParticipantEvent.TrackUnmuted, onTrackMutedChanged);
+      oldP.off(ParticipantEvent.TrackPublished, onTrackPublishedChanged);
+      oldP.off(ParticipantEvent.TrackUnpublished, onTrackPublishedChanged);
     }
-    cameraTrackPub.value =
-      participant.value.getTrackPublication(Track.Source.Camera) ?? null
-    screenShareTrackPub.value =
-      participant.value.getTrackPublication(Track.Source.ScreenShare) ?? null
-    audioTrackPub.value =
-      participant.value.getTrackPublication(Track.Source.Microphone) ?? null
-  }
-  const onTrackSubscribed = (
-    _track: RemoteTrack,
-    _pub: RemoteTrackPublication,
-  ) => {
-    updateTracks()
-  }
-  const onTrackUnsubscribed = (
-    _track: RemoteTrack,
-    _pub: RemoteTrackPublication,
-  ) => {
-    updateTracks()
-  }
-  const setupListeners = (p: Participant) => {
-    p.on(RoomEvent.TrackSubscribed, onTrackSubscribed)
-    p.on(RoomEvent.TrackUnsubscribed, onTrackUnsubscribed)
-    p.on(RoomEvent.LocalTrackPublished, updateTracks)
-    p.on(RoomEvent.LocalTrackUnpublished, updateTracks)
-  }
-  const cleanupListeners = (p: Participant) => {
-    p.off(RoomEvent.TrackSubscribed, onTrackSubscribed)
-    p.off(RoomEvent.TrackUnsubscribed, onTrackUnsubscribed)
-    p.off(RoomEvent.LocalTrackPublished, updateTracks)
-    p.off(RoomEvent.LocalTrackUnpublished, updateTracks)
-  }
-  onMounted(updateTracks)
+    if (newP) {
+      // Leemos el estado inicial en cuanto tenemos al nuevo participante
+      updateState();
+
+      // Y nos suscribimos a TODOS los eventos relevantes para el futuro
+      newP.on(ParticipantEvent.TrackMuted, onTrackMutedChanged);
+      newP.on(ParticipantEvent.TrackUnmuted, onTrackMutedChanged);
+      newP.on(ParticipantEvent.TrackPublished, onTrackPublishedChanged);
+      newP.on(ParticipantEvent.TrackUnpublished, onTrackPublishedChanged);
+    }
+  }, { immediate: true });
+
   onUnmounted(() => {
+    // Nos aseguramos de limpiar todo cuando el componente se destruye
     if (participant.value) {
-      cleanupListeners(participant.value)
+      participant.value.off(ParticipantEvent.TrackMuted, onTrackMutedChanged);
+      participant.value.off(ParticipantEvent.TrackUnmuted, onTrackMutedChanged);
+      participant.value.off(ParticipantEvent.TrackPublished, onTrackPublishedChanged);
+      participant.value.off(ParticipantEvent.TrackUnpublished, onTrackPublishedChanged);
     }
-  })
-  watch(
-    participant,
-    (newP, oldP) => {
-      if (oldP) {
-        cleanupListeners(oldP)
-      }
-      if (newP) {
-        setupListeners(newP)
-      }
-      updateTracks()
-    },
-    { immediate: true },
-  )
+  });
+
   return {
     cameraTrackPub,
     screenShareTrackPub,
     audioTrackPub,
-  }
+    isCameraEnabled,
+    isScreenShareEnabled,
+    isAudioEnabled,
+  };
 }

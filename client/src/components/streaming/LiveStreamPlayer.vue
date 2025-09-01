@@ -15,19 +15,19 @@
       <template v-if="room && adminParticipant">
         <div class="video-wrapper">
           <ParticipantView
-            :publication="mainPublication ?? null"
+            :publication="mainPublication as TrackPublication | null"
             :is-local="false"
             class="main-video"
-            :class="{ 'fill-container': !isScreenSharing || isCameraFullScreen }"
+            :class="{ 'fill-container': !isScreenShareEnabled || isCameraFullScreen }"
           />
           <div
-            v-if="isScreenSharing && !isCameraFullScreen && cameraTrackPub"
+            v-if="isScreenShareEnabled && !isCameraFullScreen && isCameraEnabled && cameraTrackPub"
             class="camera-overlay"
             :style="cameraOverlayStyle"
           >
-            <ParticipantView :publication="cameraTrackPub ?? null" :is-local="false" />
+            <ParticipantView :publication="cameraTrackPub as TrackPublication | null" :is-local="false" />
           </div>
-          <ParticipantView :publication="audioTrackPub ?? null" :is-local="false" class="audio-handler" />
+          <ParticipantView :publication="audioTrackPub as TrackPublication | null" :is-local="false" class="audio-handler" />
 
           <div
             v-if="!userHasUnmuted"
@@ -57,6 +57,7 @@ import { storeToRefs } from 'pinia';
 import { useStreamingStore } from '../../stores/streamingStore';
 import { useParticipantTracks } from '../../composables/useParticipantTracks';
 import ParticipantView from './ParticipantView.vue';
+import type { TrackPublication } from 'livekit-client';
 
 const streamingStore = useStreamingStore();
 const {
@@ -67,20 +68,28 @@ const {
   cameraOverlayPosition,
   cameraOverlaySize,
   isCameraFullScreen,
-  isScreenSharing,
+  // Ya no traemos 'isScreenSharing' desde el store para la lógica de la UI
 } = storeToRefs(streamingStore);
 const { connectToView, disconnect } = streamingStore;
 
 const userHasUnmuted = ref(false);
 
-const { cameraTrackPub, screenShareTrackPub, audioTrackPub } =
-  useParticipantTracks(adminParticipant);
+// Obtenemos los nuevos y robustos estados reactivos desde el composable.
+// Esta es ahora la única "fuente de la verdad" para el estado de los tracks.
+const {
+  cameraTrackPub,
+  screenShareTrackPub,
+  audioTrackPub,
+  isCameraEnabled,
+  isScreenShareEnabled,
+} = useParticipantTracks(adminParticipant);
 
 const mainPublication = computed(() => {
   if (isCameraFullScreen.value) {
     return cameraTrackPub.value;
   }
-  if (isScreenSharing.value && screenShareTrackPub.value) {
+  // Usamos el estado reactivo del composable en lugar del store
+  if (isScreenShareEnabled.value && screenShareTrackPub.value) {
     return screenShareTrackPub.value;
   }
   return cameraTrackPub.value;
@@ -97,7 +106,6 @@ const unmutePlayer = async () => {
   userHasUnmuted.value = true;
   if (room.value) {
     try {
-      // Esta es la función oficial de LiveKit para habilitar el audio
       await room.value.startAudio();
       console.log('Audio context iniciado por gesto del usuario.');
     } catch (e) {
@@ -105,6 +113,7 @@ const unmutePlayer = async () => {
     }
   }
 };
+
 watch(adminParticipant, (newAdmin, _oldAdmin) => {
   if (newAdmin) {
     console.log(`[LiveStreamPlayer] ¡Detectado admin en el store! ID: ${newAdmin.identity}`);
@@ -114,13 +123,11 @@ watch(adminParticipant, (newAdmin, _oldAdmin) => {
 }, { immediate: true });
 
 onMounted(() => {
-  // Cuando el componente se monta, intenta conectarse automáticamente
   console.log('[LiveStreamPlayer] Montado. Conectando para ver...');
   connectToView();
 });
 
 onUnmounted(() => {
-  // Cuando el componente se destruye (por ej. si el stream termina), nos desconectamos
   console.log('[LiveStreamPlayer] Desmontado. Desconectando...');
   if (room.value) {
     disconnect();
