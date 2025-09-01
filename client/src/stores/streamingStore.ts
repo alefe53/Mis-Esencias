@@ -445,6 +445,14 @@ error,
 }
 }
 
+function unsubscribeFromStreamStatus() {
+    if (realtimeChannel) {
+      console.log('[REALTIME] Desuscribiendo del canal de eventos.');
+      supabase.removeChannel(realtimeChannel);
+      realtimeChannel = null;
+    }
+  }
+
 async function toggleCamera(enabled: boolean) {
 if (room.value?.localParticipant)
 await room.value.localParticipant.setCameraEnabled(enabled)
@@ -639,5 +647,6 @@ updateCameraOverlaySize,
 setOverlayPosition,
 setOverlaySize,
 setLiveStatus,
+unsubscribeFromStreamStatus,
 }
 })

@@ -211,6 +211,7 @@ onUnmounted(() => {
   if (observer) {
     observer.disconnect()
   }
+  streamingStore.unsubscribeFromStreamStatus();
 })
 </script>
 
@@ -365,6 +366,10 @@ onUnmounted(() => {
 /* ===== NUEVO: Estilo para el disparador de carga ===== */
 .load-trigger {
   height: 50px;
+}
+.stream-area.fade-in-item {
+  opacity: 1 !important;
+  transform: none !important;
 }
 
 @media (max-width: 991px) {
