@@ -379,24 +379,35 @@ isConnecting.value = false
 }
 
 async function disconnect() {
-if (!room.value || isDisconnecting.value) return
-isDisconnecting.value = true
-try {
-const isAdminStream = room.value.localParticipant?.permissions?.canPublish
-if (isAdminStream) {
-if (isRecording.value) {
-await stopRecording()
-}
-if (isStreamLive.value) {
-await endStream()
-}
-await room.value.disconnect()
-}
-} catch (error) {
-console.error('Error durante la desconexión:', error)
-} finally {
-_resetState()
-}
+  if (!room.value || isDisconnecting.value) return;
+
+  console.log('[STREAMING STORE] Iniciando proceso de desconexión...');
+  isDisconnecting.value = true;
+  
+  try {
+    const isAdminStream = room.value.localParticipant?.permissions?.canPublish;
+    
+    if (isAdminStream) {
+      if (isRecording.value) {
+        console.log('[STREAMING STORE] Deteniendo grabación como parte de la desconexión...');
+        await stopRecording();
+      }
+      if (isStreamLive.value) {
+        console.log('[STREAMING STORE] Deteniendo stream EN VIVO como parte de la desconexión...');
+        await endStream();
+      }
+    }
+    
+    await room.value.disconnect();
+    console.log('[STREAMING STORE] Desconexión de la sala de LiveKit completada.');
+
+  } catch (error) {
+    console.error('Error durante el proceso de desconexión:', error);
+  } finally {
+    console.log('[STREAMING STORE] Reseteando estado local de la tienda.');
+    _resetState();
+    isDisconnecting.value = false; 
+  }
 }
 
 function listenToStreamStatus() {
