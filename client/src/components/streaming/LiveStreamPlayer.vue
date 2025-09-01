@@ -19,7 +19,6 @@
             class="main-video"
             :class="{ 'fill-container': !isScreenSharing || isCameraFullScreen }"
           />
-
           <div
             v-if="isScreenSharing && !isCameraFullScreen && cameraTrackPub"
             class="camera-overlay"
@@ -27,7 +26,6 @@
           >
             <ParticipantView :publication="cameraTrackPub ?? null" />
           </div>
-
           <ParticipantView :publication="audioTrackPub ?? null" class="audio-handler" />
 
           <div
@@ -41,20 +39,16 @@
         </div>
       </template>
 
-      <div v-else-if="room && !adminParticipant" class="stream-placeholder">
-        <p>Esperando la señal del streamer...</p>
-      </div>
       <div v-else-if="isConnecting" class="stream-placeholder">
         <p>Conectando al stream...</p>
       </div>
-      <div v-else class="stream-placeholder cta" @click="handleWatchClick">
-        <div class="play-icon">▶</div>
-        <p>Ver la transmisión en vivo</p>
+      
+      <div v-else class="stream-placeholder">
+        <p>Esperando la señal del streamer...</p>
       </div>
     </div>
   </div>
 </template>
-
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';

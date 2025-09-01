@@ -11,7 +11,6 @@
         <div class="title-background-container" :style="containerStyle">
           <h2 class="feed-title" :style="textGlowStyle">Comunidad Fenicia</h2>
         </div>
-
         <SubscriptionButton v-if="!isMobile" mode="corner-float" />
       </div>
       <p class="fenicia-subtitle">
@@ -19,7 +18,7 @@
         <img src="/ojo.png" alt="Ojo que todo lo ve" class="inline-icon" />
         que todo lo ve. ¡Portate Bien!
       </p>
-      
+
       <button @click="forceLiveStatus" style="margin: 1rem auto; display: block; background-color: #ef4444; color: white; padding: 10px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer;">
         Forzar Estado EN VIVO (TEST)
       </button>
@@ -102,13 +101,13 @@ const handleResize = () => {
   isMobile.value = window.innerWidth < 992
 }
 
-// PASO 2: AÑADE ESTA NUEVA VARIABLE REACTIVA (REF)
+// PASO 2: DEFINE LA VARIABLE REACTIVA (REF) AQUÍ
 const forceRerenderKey = ref(0);
 
 function forceLiveStatus() {
   console.log('Llamando a la acción setLiveStatus para poner isLive en true...');
   streamingStore.setLiveStatus(true);
-  
+
   // PASO 3: INCREMENTA LA KEY PARA FORZAR EL RE-RENDERIZADO
   console.log('Forzando re-renderizado del componente...');
   forceRerenderKey.value++;
