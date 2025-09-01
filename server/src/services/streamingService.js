@@ -26,8 +26,8 @@ export const generateToken = async (
   if (!config.livekit.API_KEY || !config.livekit.API_SECRET) {
     console.error(
       '[STREAMING ERROR] API Key o API Secret de LiveKit no están definidas en el backend.',
-    )
-    return
+    );
+    return;
   }
 
   const at = new AccessToken(
@@ -37,7 +37,7 @@ export const generateToken = async (
       identity: participantIdentity,
       name: participantName,
     },
-  )
+  );
 
   at.addGrant({
     room: ROOM_NAME,
@@ -45,12 +45,12 @@ export const generateToken = async (
     canPublish: isAdmin,
     canSubscribe: true,
     canPublishData: true,
-  })
+  });
 
-  const jwtToken = await at.toJwt()
+  const jwtToken = await at.toJwt();
 
-  return jwtToken
-}
+  return jwtToken;
+};
 
 export const startRecording = async () => {
   console.log('--- Iniciando Proceso de Grabación (Backend) ---')
