@@ -16,6 +16,7 @@
         <div class="video-wrapper">
           <ParticipantView
             :publication="mainPublication ?? null"
+            :is-local="false"
             class="main-video"
             :class="{ 'fill-container': !isScreenSharing || isCameraFullScreen }"
           />
@@ -24,9 +25,9 @@
             class="camera-overlay"
             :style="cameraOverlayStyle"
           >
-            <ParticipantView :publication="cameraTrackPub ?? null" />
+            <ParticipantView :publication="cameraTrackPub ?? null" :is-local="false" />
           </div>
-          <ParticipantView :publication="audioTrackPub ?? null" class="audio-handler" />
+          <ParticipantView :publication="audioTrackPub ?? null" :is-local="false" class="audio-handler" />
 
           <div
             v-if="!userHasUnmuted"
@@ -51,7 +52,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useStreamingStore } from '../../stores/streamingStore';
 import { useParticipantTracks } from '../../composables/useParticipantTracks';
@@ -68,15 +69,13 @@ const {
   isCameraFullScreen,
   isScreenSharing,
 } = storeToRefs(streamingStore);
-const { connectToView } = streamingStore;
+const { connectToView, disconnect } = streamingStore;
 
 const userHasUnmuted = ref(false);
 
-// Obtenemos TODOS los tracks del admin
 const { cameraTrackPub, screenShareTrackPub, audioTrackPub } =
   useParticipantTracks(adminParticipant);
 
-// La lógica para decidir qué video mostrar (cámara o pantalla) sigue igual
 const mainPublication = computed(() => {
   if (isCameraFullScreen.value) {
     return cameraTrackPub.value;
@@ -93,23 +92,34 @@ const cameraOverlayStyle = computed(() => ({
   width: `${cameraOverlaySize.value.width}%`,
 }));
 
-const handleWatchClick = () => {
-  if (isConnecting.value) return;
-  connectToView();
-};
-
 const unmutePlayer = async () => {
+  if (userHasUnmuted.value) return;
   userHasUnmuted.value = true;
   if (room.value) {
     try {
-      // Esta función es clave para permitir que el audio se reproduzca
+      // Esta es la función oficial de LiveKit para habilitar el audio
       await room.value.startAudio();
-      console.log('Audio context started by user gesture.');
+      console.log('Audio context iniciado por gesto del usuario.');
     } catch (e) {
-      console.error('Could not start audio:', e);
+      console.error('No se pudo iniciar el audio:', e);
     }
   }
 };
+
+onMounted(() => {
+  // Cuando el componente se monta, intenta conectarse automáticamente
+  console.log('[LiveStreamPlayer] Montado. Conectando para ver...');
+  connectToView();
+});
+
+onUnmounted(() => {
+  // Cuando el componente se destruye (por ej. si el stream termina), nos desconectamos
+  console.log('[LiveStreamPlayer] Desmontado. Desconectando...');
+  if (room.value) {
+    disconnect();
+  }
+});
+
 </script>
 
 <style scoped>
@@ -132,7 +142,6 @@ const unmutePlayer = async () => {
   justify-content: center;
   align-items: center;
 }
-
 .livestream-player-container {
   border: 1px solid #ef4444;
   box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
@@ -184,7 +193,6 @@ const unmutePlayer = async () => {
   height: 100%;
   position: relative;
 }
-
 .main-video {
   width: 100%;
   height: 100%;
@@ -195,26 +203,9 @@ const unmutePlayer = async () => {
 .main-video.fill-container :deep(video) {
   object-fit: cover;
 }
-
 .stream-placeholder {
   color: #9ca3af;
   font-style: italic;
-}
-.stream-placeholder.cta {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  font-size: 1.2rem;
-  transition: transform 0.2s ease;
-}
-.stream-placeholder.cta:hover {
-  transform: scale(1.05);
-  color: #fff;
-}
-.play-icon {
-  font-size: 3rem;
-  line-height: 1;
 }
 .unmute-overlay {
   position: absolute;
@@ -231,9 +222,9 @@ const unmutePlayer = async () => {
   z-index: 10;
   opacity: 0;
   transition: opacity 0.3s ease;
+  cursor: pointer;
 }
-.video-wrapper:hover .unmute-overlay,
-.unmute-overlay:not(:active):not(:hover) {
+.video-wrapper:hover .unmute-overlay {
   opacity: 1;
 }
 .unmute-icon {
@@ -243,19 +234,13 @@ const unmutePlayer = async () => {
   margin-top: 0.5rem;
   font-weight: bold;
 }
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
-  }
-}
 .audio-handler {
   display: none;
   visibility: hidden;
+}
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
 }
 </style>

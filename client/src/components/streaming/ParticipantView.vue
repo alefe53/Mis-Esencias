@@ -4,30 +4,35 @@
 
 <script setup lang="ts">
 import { ref, watch, onUnmounted } from 'vue';
-import { TrackEvent, type TrackPublication, type RemoteTrack } from 'livekit-client';
+import { TrackEvent, type TrackPublication } from 'livekit-client';
 
+// La clave es la nueva prop "isLocal" y el manejo del evento "Subscribed".
 const props = defineProps<{
-  publication: TrackPublication | null
+  publication: TrackPublication | null,
+  isLocal: boolean
 }>();
 
 const containerRef = ref<HTMLDivElement | null>(null);
 
+// Función para mostrar el video/audio en el DOM
 const attach = (pub: TrackPublication) => {
   if (!pub.track || !containerRef.value) {
     return;
   }
   
-  detach();
+  detach(); // Limpiamos cualquier elemento anterior
 
   const element = pub.track.attach();
   
-  if (pub.source === 'camera') {
+  // Usamos la nueva prop para decidir si espejar el video
+  if (pub.source === 'camera' && props.isLocal) {
     element.classList.add('mirrored');
   }
 
   containerRef.value.appendChild(element);
 };
 
+// Función para limpiar el DOM
 const detach = () => {
   if (containerRef.value) {
     containerRef.value.innerHTML = '';
@@ -42,18 +47,18 @@ const handleSubscribed = () => {
 };
 
 watch(() => props.publication, (newPub, oldPub) => {
+  // Limpiamos listeners del track anterior
   if (oldPub) {
     oldPub.off(TrackEvent.Subscribed, handleSubscribed);
     detach();
   }
 
   if (newPub) {
-    if (newPub.track) {
+    // Si el track ya está listo (porque ya estábamos suscritos), lo mostramos
+    if (newPub.isSubscribed && newPub.track) {
       attach(newPub);
     } else {
-      // ✅ LA CORRECCIÓN ESTÁ AQUÍ
-      // El evento 'Subscribed' nos notifica, y entonces llamamos a nuestra
-      // función 'handleSubscribed' que tiene acceso a la publicación completa.
+      // Si no, esperamos a que el evento 'Subscribed' nos avise
       newPub.on(TrackEvent.Subscribed, handleSubscribed);
     }
   }
@@ -61,12 +66,12 @@ watch(() => props.publication, (newPub, oldPub) => {
 
 
 onUnmounted(() => {
+  // Aseguramos la limpieza al destruir el componente
   if (props.publication) {
     props.publication.off(TrackEvent.Subscribed, handleSubscribed);
   }
   detach();
 });
-
 </script>
 
 <style scoped>
@@ -81,11 +86,12 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
 }
+/* :deep() permite aplicar estilos a los elementos hijos creados dinámicamente */
 .participant-view :deep(video),
 .participant-view :deep(audio) {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: contain; /* 'contain' evita que el video se corte */
   position: absolute;
   top: 0;
   left: 0;
@@ -94,6 +100,7 @@ onUnmounted(() => {
   transform: scaleX(-1);
 }
 .participant-view :deep(audio) {
+  /* El audio no necesita ser visible */
   visibility: hidden;
 }
 </style>

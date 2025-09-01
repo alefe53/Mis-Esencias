@@ -151,18 +151,17 @@ _broadcastStreamState()
 })
 .on(RoomEvent.ParticipantDisconnected, () => nextTick(_updateRoomState))
 .on(RoomEvent.ConnectionStateChanged, (state: ConnectionState) => {
-         console.log('[STREAM DEBUG] 4. Estado de conexión de LiveKit cambió a:', state);
-   
-if (state === ConnectionState.Connected) {
-isConnecting.value = false
-localParticipant.value = newRoom.localParticipant
-    if (newRoom.localParticipant.permissions?.canPublish) {
-      fetchMediaDevices();
-    }
-nextTick(_updateRoomState)
-} else if (state === ConnectionState.Disconnected) {
-_resetState()
-}
+    console.log('[STREAM DEBUG] Estado de conexión de LiveKit cambió a:', state);
+    if (state === ConnectionState.Connected) {
+      isConnecting.value = false
+      localParticipant.value = newRoom.localParticipant
+            if (newRoom.localParticipant.permissions?.canPublish) {
+        fetchMediaDevices();
+      }
+      nextTick(_updateRoomState)
+    } else if (state === ConnectionState.Disconnected) {
+      _resetState()
+    }
 })
 .on(RoomEvent.TrackSubscribed, () => nextTick(_updateRoomState))
 .on(RoomEvent.TrackUnsubscribed, () => nextTick(_updateRoomState))
