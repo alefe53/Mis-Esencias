@@ -316,7 +316,12 @@ onUnmounted(() => {
   vertical-align: text-bottom;
   margin: 0 0.2em;
 }
-.stream-area,
+.stream-area {
+  margin-bottom: 1rem; 
+
+  aspect-ratio: 16 / 9;
+  min-height: 200px; 
+}
 .chat-area,
 .posts-area {
   margin-bottom: 1rem; /* Margen reducido */
@@ -390,6 +395,7 @@ onUnmounted(() => {
     margin: 0 auto;
     padding: 1rem 2rem 0 180px;
     height: calc(100vh - 80px);
+    
   }
   .title-area {
     grid-area: title;
