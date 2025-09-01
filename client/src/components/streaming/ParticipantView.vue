@@ -3,73 +3,70 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onUnmounted, watch, nextTick } from 'vue'
-import { Track, type TrackPublication } from 'livekit-client'
+import { ref, watch, onUnmounted } from 'vue';
+import { TrackEvent, type TrackPublication, type RemoteTrack } from 'livekit-client';
 
 const props = defineProps<{
   publication: TrackPublication | null
-  muted?: boolean
-}>()
+}>();
 
-const containerRef = ref<HTMLDivElement | null>(null)
-let currentElement: HTMLElement | null = null
+const containerRef = ref<HTMLDivElement | null>(null);
 
-const attachTrack = (pub: TrackPublication) => {
-  if (!pub.track || !containerRef.value) return
+const attach = (pub: TrackPublication) => {
+  if (!pub.track || !containerRef.value) {
+    return;
+  }
+  
+  detach();
 
-  const element = pub.track.attach()
-  currentElement = element
-
-  if (element instanceof HTMLVideoElement) {
-    element.muted = true
-    element.playsInline = true
+  const element = pub.track.attach();
+  
+  if (pub.source === 'camera') {
+    element.classList.add('mirrored');
   }
 
-  if (pub.source === Track.Source.Camera) {
-    element.classList.add('mirrored')
+  containerRef.value.appendChild(element);
+};
+
+const detach = () => {
+  if (containerRef.value) {
+    containerRef.value.innerHTML = '';
+  }
+};
+
+// Creamos una función manejadora para poder añadirla y quitarla del listener
+const handleSubscribed = () => {
+  if (props.publication) {
+    attach(props.publication);
+  }
+};
+
+watch(() => props.publication, (newPub, oldPub) => {
+  if (oldPub) {
+    oldPub.off(TrackEvent.Subscribed, handleSubscribed);
+    detach();
   }
 
-  containerRef.value.innerHTML = ''
-  containerRef.value.appendChild(element)
-}
-
-const detachTrack = () => {
-  if (currentElement) {
-    currentElement.remove()
-    currentElement = null
+  if (newPub) {
+    if (newPub.track) {
+      attach(newPub);
+    } else {
+      // ✅ LA CORRECCIÓN ESTÁ AQUÍ
+      // El evento 'Subscribed' nos notifica, y entonces llamamos a nuestra
+      // función 'handleSubscribed' que tiene acceso a la publicación completa.
+      newPub.on(TrackEvent.Subscribed, handleSubscribed);
+    }
   }
-}
+}, { immediate: true });
 
-watch(
-  () => props.publication,
-  (newPub, _oldPub) => {
-    nextTick(() => {
-      detachTrack()
-      if (newPub) {
-        attachTrack(newPub)
-      }
-    })
-  },
-  { immediate: true },
-)
-
-watch(
-  () => props.muted,
-  (isMuted) => {
-    if (!props.publication?.track) return
-    const audioElements = props.publication.track.attachedElements.filter(
-      (el) => el.tagName === 'AUDIO',
-    )
-    audioElements.forEach((audio) => {
-      ;(audio as HTMLAudioElement).muted = !!isMuted
-    })
-  },
-  { deep: true },
-)
 
 onUnmounted(() => {
-  detachTrack()
-})
+  if (props.publication) {
+    props.publication.off(TrackEvent.Subscribed, handleSubscribed);
+  }
+  detach();
+});
+
 </script>
 
 <style scoped>
@@ -88,7 +85,7 @@ onUnmounted(() => {
 .participant-view :deep(audio) {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   position: absolute;
   top: 0;
   left: 0;
