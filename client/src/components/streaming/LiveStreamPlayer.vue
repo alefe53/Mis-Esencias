@@ -52,7 +52,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useStreamingStore } from '../../stores/streamingStore';
 import { useParticipantTracks } from '../../composables/useParticipantTracks';
@@ -105,6 +105,13 @@ const unmutePlayer = async () => {
     }
   }
 };
+watch(adminParticipant, (newAdmin, _oldAdmin) => {
+  if (newAdmin) {
+    console.log(`[LiveStreamPlayer] ¡Detectado admin en el store! ID: ${newAdmin.identity}`);
+  } else {
+    console.log('[LiveStreamPlayer] El admin ha desaparecido del store.');
+  }
+}, { immediate: true });
 
 onMounted(() => {
   // Cuando el componente se monta, intenta conectarse automáticamente

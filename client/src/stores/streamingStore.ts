@@ -88,22 +88,28 @@ streamer = room.value.localParticipant
 } else {
 const remotePArray = Array.from(room.value.remoteParticipants.values())
     const adminId = import.meta.env.VITE_ADMIN_USER_ID;
-    console.log('[STREAM DEBUG] 6. Buscando al admin con ID:', adminId); // <--- AÑADIR ESTE LOG
+console.log(`[STREAMING STORE] Buscando admin con ID: ${adminId}`);
    
 streamer = remotePArray.find(
 (p) => p.identity === import.meta.env.VITE_ADMIN_USER_ID,
 )
+console.log(`[STREAMING STORE] Admin encontrado:`, streamer ? streamer.identity : 'NO ENCONTRADO');
+
 
 }
-  console.log('[STREAM DEBUG] 7. Streamer encontrado:', streamer ? streamer.identity : 'Nadie'); // <--- AÑADIR ESTE LOG
+  console.log('[STREAM DEBUG] . Streamer encontrado:', streamer ? streamer.identity : 'Nadie'); // <--- AÑADIR ESTE LOG
 
 
 if (streamer) {
 if (adminParticipant.value?.sid !== streamer.sid) {
+      console.log(`[STREAMING STORE] ¡Asignando nuevo admin participant! SID: ${streamer.sid}`);
+ 
 adminParticipant.value = streamer
 }
 } else {
 if (adminParticipant.value) {
+     console.log(`[STREAMING STORE] El admin se ha ido, limpiando participant.`);
+  
 adminParticipant.value = null
 }
 }
@@ -137,53 +143,52 @@ adminParticipant.value = participant
 }
 
 const _setupRoomListeners = (newRoom: Room) => {
-newRoom
-.on(RoomEvent.ParticipantConnected, (p) => {
+  newRoom
+    .on(RoomEvent.ParticipantConnected, (p) => {
+      nextTick(_updateRoomState);
+      if (newRoom.localParticipant.permissions?.canPublish) {
+        if (p.identity !== import.meta.env.VITE_ADMIN_USER_ID) {
+          setTimeout(() => {
+            _broadcastStreamState();
+          }, 500);
+        }
+      }
+    })
+    .on(RoomEvent.ParticipantDisconnected, () => nextTick(_updateRoomState))
+    .on(RoomEvent.ConnectionStateChanged, (state: ConnectionState) => {
+      console.log('[STREAM DEBUG] Estado de conexión de LiveKit cambió a:', state);
+      if (state === ConnectionState.Connected) {
+        isConnecting.value = false;
+        localParticipant.value = newRoom.localParticipant;
+        if (newRoom.localParticipant.permissions?.canPublish) {
+          fetchMediaDevices();
+          newRoom.on(RoomEvent.MediaDevicesChanged, fetchMediaDevices);
+        }
+        nextTick(_updateRoomState);
+      } else if (state === ConnectionState.Disconnected) {
+        _resetState();
+      }
+    })
+    .on(RoomEvent.TrackSubscribed, () => nextTick(_updateRoomState))
+    .on(RoomEvent.TrackUnsubscribed, () => nextTick(_updateRoomState))
+    .on(RoomEvent.LocalTrackPublished, _onTrackPublished)
+    .on(RoomEvent.LocalTrackUnpublished, _onTrackUnpublished)
+    .on(RoomEvent.TrackPublished, _onTrackPublished)
+    .on(RoomEvent.TrackUnpublished, _onTrackUnpublished)
+    .on(RoomEvent.DataReceived, (payload, participant) => {
+      if (participant?.identity === import.meta.env.VITE_ADMIN_USER_ID) {
+        const message = textDecoder.decode(payload);
+        const { topic, data } = JSON.parse(message);
 
-nextTick(_updateRoomState)
-if (newRoom.localParticipant.permissions?.canPublish) {
-if (p.identity !== import.meta.env.VITE_ADMIN_USER_ID) {
-setTimeout(() => {
-_broadcastStreamState()
-}, 500)
-}
-}
-})
-.on(RoomEvent.ParticipantDisconnected, () => nextTick(_updateRoomState))
-.on(RoomEvent.ConnectionStateChanged, (state: ConnectionState) => {
-    console.log('[STREAM DEBUG] Estado de conexión de LiveKit cambió a:', state);
-    if (state === ConnectionState.Connected) {
-      isConnecting.value = false
-      localParticipant.value = newRoom.localParticipant
-            if (newRoom.localParticipant.permissions?.canPublish) {
-        fetchMediaDevices();
-      }
-      nextTick(_updateRoomState)
-    } else if (state === ConnectionState.Disconnected) {
-      _resetState()
-    }
-})
-.on(RoomEvent.TrackSubscribed, () => nextTick(_updateRoomState))
-.on(RoomEvent.TrackUnsubscribed, () => nextTick(_updateRoomState))
-.on(RoomEvent.LocalTrackPublished, _onTrackPublished)
-.on(RoomEvent.LocalTrackUnpublished, _onTrackUnpublished)
-.on(RoomEvent.TrackPublished, _onTrackPublished)
-.on(RoomEvent.TrackUnpublished, _onTrackUnpublished)
-.on(RoomEvent.MediaDevicesChanged, fetchMediaDevices)
-.on(RoomEvent.DataReceived, (payload, participant) => {
-if (participant?.identity === import.meta.env.VITE_ADMIN_USER_ID) {
-const message = textDecoder.decode(payload)
-const { topic, data } = JSON.parse(message)
-
-if (topic === STREAM_STATE_UPDATE_TOPIC) {
-isScreenSharing.value = data.isScreenSharing
-isCameraFullScreen.value = data.isCameraFullScreen
-cameraOverlayPosition.value = data.cameraOverlayPosition
-cameraOverlaySize.value = data.cameraOverlaySize
-}
-}
-})
-}
+        if (topic === STREAM_STATE_UPDATE_TOPIC) {
+          isScreenSharing.value = data.isScreenSharing;
+          isCameraFullScreen.value = data.isCameraFullScreen;
+          cameraOverlayPosition.value = data.cameraOverlayPosition;
+          cameraOverlaySize.value = data.cameraOverlaySize;
+        }
+      }
+    });
+};
 
 const _resetState = () => {
 room.value = null
