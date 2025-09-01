@@ -145,7 +145,7 @@ const textGlowStyle = computed(() => {
 onMounted(() => {
   window.addEventListener('resize', handleResize)
   postStore.fetchInitialFeed()
-  streamingStore.checkInitialStreamStatus()
+
   streamingStore.listenToStreamStatus()
 
   observer = new IntersectionObserver(
