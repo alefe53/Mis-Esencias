@@ -52,6 +52,10 @@ const localScreenSharePublication = computed(() => {
 if (!localParticipant.value) return null
 return localParticipant.value.getTrackPublication(Track.Source.ScreenShare)
 })
+ function setLiveStatus(status: boolean) {
+    console.log(`Cambiando estado isLive a: ${status} a través de una acción.`);
+    isLive.value = status;
+  }
 
 const _broadcastStreamState = async () => {
 if (!room.value?.localParticipant?.permissions?.canPublish) return
@@ -620,5 +624,6 @@ updateCameraOverlayPosition,
 updateCameraOverlaySize,
 setOverlayPosition,
 setOverlaySize,
+setLiveStatus,
 }
 })

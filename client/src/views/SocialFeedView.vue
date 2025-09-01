@@ -101,12 +101,10 @@ const handleResize = () => {
   isMobile.value = window.innerWidth < 992
 }
 
-// ✅ FUNCIÓN PARA EL BOTÓN DE DIAGNÓSTICO AÑADIDA AQUÍ
 function forceLiveStatus() {
-  console.log('%cForzando manualmente el estado isLive a true...', 'color: #ef4444; font-weight: bold;');
-  streamingStore.isLive = true;
+  console.log('Llamando a la acción setLiveStatus para poner isLive en true...');
+  streamingStore.setLiveStatus(true);
 }
-
 const containerStyle = computed(() => {
   const defaultColor = '#fca311'
   if (!currentMoodId.value) {
