@@ -95,10 +95,10 @@ export function useCameraOverlay(room: Ref<Room | null>) {
     let newSize
     switch (size) {
       case 'small':
-        newSize = { width: 15 }
+        newSize = { width: 10 }
         break
       case 'medium':
-        newSize = { width: 25 }
+        newSize = { width: 20 }
         break
       case 'large':
         newSize = { width: 35 }
