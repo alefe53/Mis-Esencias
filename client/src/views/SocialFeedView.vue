@@ -19,15 +19,27 @@
         que todo lo ve. ¡Portate Bien!
       </p>
 
-      <button @click="forceLiveStatus" style="margin: 1rem auto; display: block; background-color: #ef4444; color: white; padding: 10px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer;">
+      <button
+        @click="forceLiveStatus"
+        style="
+          margin: 1rem auto;
+          display: block;
+          background-color: #ef4444;
+          color: white;
+          padding: 10px;
+          border-radius: 8px;
+          border: none;
+          font-weight: bold;
+          cursor: pointer;
+        "
+      >
         Forzar Estado EN VIVO (TEST)
       </button>
-
     </div>
     <transition name="stream-fade">
-    <div v-if="isLive" class="stream-area fade-in-item" ref="streamArea">
-      <LiveStreamPlayer />
-    </div>
+      <div v-if="isLive" class="stream-area fade-in-item" ref="streamArea">
+        <LiveStreamPlayer />
+      </div>
     </transition>
     <div class="chat-area fade-in-item" ref="chatArea">
       <div class="pin-banners-container">
@@ -61,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, computed, ref, watch, nextTick } from 'vue' 
+import { onMounted, onUnmounted, computed, ref, watch, nextTick } from 'vue'
 import gsap from 'gsap'
 import { storeToRefs } from 'pinia'
 import { usePostStore } from '../stores/postStore'
@@ -102,15 +114,15 @@ const handleResize = () => {
 }
 
 // PASO 2: DEFINE LA VARIABLE REACTIVA (REF) AQUÍ
-const forceRerenderKey = ref(0);
+const forceRerenderKey = ref(0)
 
 function forceLiveStatus() {
-  console.log('Llamando a la acción setLiveStatus para poner isLive en true...');
-  streamingStore.setLiveStatus(true);
+  console.log('Llamando a la acción setLiveStatus para poner isLive en true...')
+  streamingStore.setLiveStatus(true)
 
   // PASO 3: INCREMENTA LA KEY PARA FORZAR EL RE-RENDERIZADO
-  console.log('Forzando re-renderizado del componente...');
-  forceRerenderKey.value++;
+  console.log('Forzando re-renderizado del componente...')
+  forceRerenderKey.value++
 }
 
 const containerStyle = computed(() => {
@@ -170,15 +182,15 @@ onMounted(() => {
             scale: 0.98,
             duration: 0.8,
             ease: 'power3.out',
-          });
-          (streamArea.value as HTMLElement).scrollIntoView({
-          behavior: 'smooth',
-          block: 'center'
-        });
+          })
+          ;(streamArea.value as HTMLElement).scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+          })
         }
-      });
+      })
     }
-  });
+  })
 
   watch(loadTrigger, (newEl, oldEl) => {
     if (oldEl) {
@@ -211,7 +223,7 @@ onUnmounted(() => {
   if (observer) {
     observer.disconnect()
   }
-  streamingStore.unsubscribeFromStreamStatus();
+  streamingStore.unsubscribeFromStreamStatus()
 })
 </script>
 
@@ -318,10 +330,10 @@ onUnmounted(() => {
   margin: 0 0.2em;
 }
 .stream-area {
-  margin-bottom: 1rem; 
+  margin-bottom: 1rem;
 
   aspect-ratio: 16 / 9;
-  min-height: 200px; 
+  min-height: 200px;
 }
 .chat-area,
 .posts-area {
@@ -400,7 +412,6 @@ onUnmounted(() => {
     margin: 0 auto;
     padding: 1rem 2rem 0 180px;
     height: calc(100vh - 80px);
-    
   }
   .title-area {
     grid-area: title;

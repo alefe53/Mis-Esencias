@@ -18,16 +18,27 @@
             :publication="mainPublication as TrackPublication | null"
             :is-local="false"
             class="main-video"
-            :class="{ 'fill-container': !isScreenShareEnabled || isCameraFullScreen }"
+            :class="{
+              'fill-container': !isScreenSharing || isCameraFullScreen,
+            }"
           />
           <div
-            v-if="isScreenShareEnabled && !isCameraFullScreen && isCameraEnabled && cameraTrackPub"
+            v-if="
+              isScreenSharing && !isCameraFullScreen && cameraTrackPub
+            "
             class="camera-overlay"
             :style="cameraOverlayStyle"
           >
-            <ParticipantView :publication="cameraTrackPub as TrackPublication | null" :is-local="false" />
+            <ParticipantView
+              :publication="cameraTrackPub as TrackPublication | null"
+              :is-local="false"
+            />
           </div>
-          <ParticipantView :publication="audioTrackPub as TrackPublication | null" :is-local="false" class="audio-handler" />
+          <ParticipantView
+            :publication="audioTrackPub as TrackPublication | null"
+            :is-local="false"
+            class="audio-handler"
+          />
 
           <div
             v-if="!userHasUnmuted"
@@ -43,7 +54,7 @@
       <div v-else-if="isConnecting" class="stream-placeholder">
         <p>Conectando al stream...</p>
       </div>
-      
+
       <div v-else class="stream-placeholder">
         <p>Esperando la señal del streamer...</p>
       </div>
@@ -52,14 +63,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { storeToRefs } from 'pinia';
-import { useStreamingStore } from '../../stores/streamingStore';
-import { useParticipantTracks } from '../../composables/useParticipantTracks';
-import ParticipantView from './ParticipantView.vue';
-import type { TrackPublication } from 'livekit-client';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useStreamingStore } from '../../stores/streamingStore'
+import { useParticipantTracks } from '../../composables/useParticipantTracks'
+import ParticipantView from './ParticipantView.vue'
+import type { TrackPublication } from 'livekit-client'
 
-const streamingStore = useStreamingStore();
+const streamingStore = useStreamingStore()
 const {
   participantCount,
   adminParticipant,
@@ -69,71 +80,73 @@ const {
   cameraOverlaySize,
   isCameraFullScreen,
   // Ya no traemos 'isScreenSharing' desde el store para la lógica de la UI
-} = storeToRefs(streamingStore);
-const { connectToView, disconnect } = streamingStore;
+  isScreenSharing, // <-- ¡Importamos este! Es la única fuente de la verdad
+} = storeToRefs(streamingStore)
+const { connectToView, disconnect } = streamingStore
 
-const userHasUnmuted = ref(false);
+const userHasUnmuted = ref(false)
 
 // Obtenemos los nuevos y robustos estados reactivos desde el composable.
-// Esta es ahora la única "fuente de la verdad" para el estado de los tracks.
 const {
   cameraTrackPub,
   screenShareTrackPub,
   audioTrackPub,
-  isCameraEnabled,
-  isScreenShareEnabled,
-} = useParticipantTracks(adminParticipant);
+} = useParticipantTracks(adminParticipant)
 
 const mainPublication = computed(() => {
   if (isCameraFullScreen.value) {
-    return cameraTrackPub.value;
+    return cameraTrackPub.value
   }
-  // Usamos el estado reactivo del composable en lugar del store
-  if (isScreenShareEnabled.value && screenShareTrackPub.value) {
-    return screenShareTrackPub.value;
+  // Usamos el estado reactivo del store, que se actualiza con los eventos del admin
+  if (isScreenSharing.value && screenShareTrackPub.value) {
+    return screenShareTrackPub.value
   }
-  return cameraTrackPub.value;
-});
+  return cameraTrackPub.value
+})
 
 const cameraOverlayStyle = computed(() => ({
   top: `${cameraOverlayPosition.value.y}%`,
   left: `${cameraOverlayPosition.value.x}%`,
   width: `${cameraOverlaySize.value.width}%`,
-}));
+}))
 
 const unmutePlayer = async () => {
-  if (userHasUnmuted.value) return;
-  userHasUnmuted.value = true;
+  if (userHasUnmuted.value) return
+  userHasUnmuted.value = true
   if (room.value) {
     try {
-      await room.value.startAudio();
-      console.log('Audio context iniciado por gesto del usuario.');
+      await room.value.startAudio()
     } catch (e) {
-      console.error('No se pudo iniciar el audio:', e);
+      console.error('No se pudo iniciar el audio:', e)
     }
   }
-};
+}
 
-watch(adminParticipant, (newAdmin, _oldAdmin) => {
-  if (newAdmin) {
-    console.log(`[LiveStreamPlayer] ¡Detectado admin en el store! ID: ${newAdmin.identity}`);
-  } else {
-    console.log('[LiveStreamPlayer] El admin ha desaparecido del store.');
-  }
-}, { immediate: true });
+watch(
+  adminParticipant,
+  (newAdmin, _oldAdmin) => {
+    if (newAdmin) {
+      console.log(
+        `[LiveStreamPlayer] ¡Detectado admin en el store! ID: ${newAdmin.identity}`,
+      )
+    } else {
+      console.log('[LiveStreamPlayer] El admin ha desaparecido del store.')
+    }
+  },
+  { immediate: true },
+)
 
 onMounted(() => {
-  console.log('[LiveStreamPlayer] Montado. Conectando para ver...');
-  connectToView();
-});
+  console.log('[LiveStreamPlayer] Montado. Conectando para ver...')
+  connectToView()
+})
 
 onUnmounted(() => {
-  console.log('[LiveStreamPlayer] Desmontado. Desconectando...');
+  console.log('[LiveStreamPlayer] Desmontado. Desconectando...')
   if (room.value) {
-    disconnect();
+    disconnect()
   }
-});
-
+})
 </script>
 
 <style scoped>
@@ -253,8 +266,14 @@ onUnmounted(() => {
   visibility: hidden;
 }
 @keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-  70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
 }
 </style>

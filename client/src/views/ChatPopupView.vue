@@ -23,7 +23,7 @@ onMounted(() => {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  background-color: #1f2937; 
+  background-color: #1f2937;
 }
 
 .popup-container > :deep(.global-chat-container) {

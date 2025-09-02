@@ -20,7 +20,7 @@ export function useCameraOverlay(room: Ref<Room | null>) {
     await room.value.localParticipant.publishData(payload, { reliable: true })
   }
 
-  watch(room, newRoom => {
+  watch(room, (newRoom) => {
     if (newRoom) {
       newRoom.on(RoomEvent.DataReceived, (payload, participant) => {
         if (participant?.identity === import.meta.env.VITE_ADMIN_USER_ID) {

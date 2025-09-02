@@ -3,7 +3,7 @@ import gsap from 'gsap'
 
 export function useFadeInAnimation(targets: Ref<HTMLElement | null>[]) {
   const animate = (elements: (HTMLElement | null)[]) => {
-    const validElements = elements.filter(Boolean) as HTMLElement[];
+    const validElements = elements.filter(Boolean) as HTMLElement[]
 
     if (validElements.length > 0) {
       gsap.to(validElements, {
@@ -11,7 +11,7 @@ export function useFadeInAnimation(targets: Ref<HTMLElement | null>[]) {
         scale: 1,
         y: 0,
         duration: 0.8,
-        delay: 0.2, 
+        delay: 0.2,
         stagger: 0.2,
         ease: 'power3.out',
       })
@@ -19,15 +19,17 @@ export function useFadeInAnimation(targets: Ref<HTMLElement | null>[]) {
   }
 
   onMounted(() => {
-    const initialElements = targets.map(target => target.value).filter(el => el !== null);
-    animate(initialElements);
+    const initialElements = targets
+      .map((target) => target.value)
+      .filter((el) => el !== null)
+    animate(initialElements)
 
-    targets.forEach(targetRef => {
+    targets.forEach((targetRef) => {
       watch(targetRef, (newElement, oldElement) => {
         if (newElement && !oldElement) {
-          animate([newElement]);
+          animate([newElement])
         }
-      });
-    });
-  });
+      })
+    })
+  })
 }

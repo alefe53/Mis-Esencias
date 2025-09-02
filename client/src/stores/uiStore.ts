@@ -14,7 +14,7 @@ export const useUiStore = defineStore('ui', () => {
   const isToastVisible = ref(false)
   const toastMessage = ref('')
   const toastBackgroundColor = ref('#333')
-  let toastTimeout: number | undefined;
+  let toastTimeout: number | undefined
 
   const availableMoods = ref<Mood[]>([])
   const isMoodsLoading = ref(false)
@@ -27,7 +27,7 @@ export const useUiStore = defineStore('ui', () => {
       hasMoodGlowBeenActivated.value = true
     }
   }
-  
+
   // --- NUEVA ACCIÓN PARA ACTIVAR EL BOTÓN DESDE EL REPRODUCTOR ---
   function activateMoodGlow() {
     if (!hasMoodGlowBeenActivated.value) {
@@ -35,26 +35,25 @@ export const useUiStore = defineStore('ui', () => {
     }
   }
 
-
   async function fetchAvailableMoods() {
-    if (isMoodsLoading.value) return;
-    isMoodsLoading.value = true;
+    if (isMoodsLoading.value) return
+    isMoodsLoading.value = true
     try {
-      const response = await apiPublic.get('/moods');
-      availableMoods.value = response.data.data;
+      const response = await apiPublic.get('/moods')
+      availableMoods.value = response.data.data
     } catch (error) {
-      console.error('Error al obtener la lista de moods:', error);
-      availableMoods.value = [];
+      console.error('Error al obtener la lista de moods:', error)
+      availableMoods.value = []
     } finally {
-      isMoodsLoading.value = false;
+      isMoodsLoading.value = false
     }
   }
 
   async function ensureMoodsAvailable() {
     if (availableMoods.value.length > 0 || isMoodsLoading.value) {
-      return;
+      return
     }
-    await fetchAvailableMoods();
+    await fetchAvailableMoods()
   }
 
   function setTransitionState(isActive: boolean) {
@@ -73,23 +72,31 @@ export const useUiStore = defineStore('ui', () => {
     loginToastDismissed.value = false
   }
 
-  function showToast({ message, color = '#333', duration = 3500 }: { message: string, color?: string, duration?: number }) {
+  function showToast({
+    message,
+    color = '#333',
+    duration = 3500,
+  }: {
+    message: string
+    color?: string
+    duration?: number
+  }) {
     if (toastTimeout) {
-      clearTimeout(toastTimeout);
+      clearTimeout(toastTimeout)
     }
-    toastMessage.value = message;
-    toastBackgroundColor.value = color;
-    isToastVisible.value = true;
+    toastMessage.value = message
+    toastBackgroundColor.value = color
+    isToastVisible.value = true
     toastTimeout = window.setTimeout(() => {
-      isToastVisible.value = false;
-    }, duration);
+      isToastVisible.value = false
+    }, duration)
   }
 
   return {
     isMoodGlowEnabled,
     toggleMoodGlow,
-    hasMoodGlowBeenActivated, 
-    activateMoodGlow, 
+    hasMoodGlowBeenActivated,
+    activateMoodGlow,
     isGlobalTransitionActive,
     setTransitionState,
     hasShownInitialPrompt,
@@ -103,6 +110,6 @@ export const useUiStore = defineStore('ui', () => {
     showToast,
     availableMoods,
     isMoodsLoading,
-    ensureMoodsAvailable
+    ensureMoodsAvailable,
   }
 })

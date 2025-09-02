@@ -3,7 +3,7 @@
     <div class="background-layer"></div>
 
     <template v-if="!isPopupView">
-      <main style="position: relative; z-index: 10;">
+      <main style="position: relative; z-index: 10">
         <router-view />
       </main>
       <MoodGlowEffect v-if="isMoodGlowEnabled" />
@@ -69,8 +69,6 @@
           </nav>
         </header>
       </transition>
-
-
 
       <transition name="fade">
         <div class="auth-widget" v-if="!uiStore.isGlobalTransitionActive">

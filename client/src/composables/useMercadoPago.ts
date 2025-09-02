@@ -1,7 +1,10 @@
 import { ref } from 'vue'
 import { useSubscriptionStore } from '../stores/subscriptionStore'
 
-export function useMercadoPago(props: { selectedTierId: number; durationMonths: number }) {
+export function useMercadoPago(props: {
+  selectedTierId: number
+  durationMonths: number
+}) {
   const subscriptionStore = useSubscriptionStore()
   const isProcessing = ref(false)
   const mercadoPagoPreferenceId = ref<string | null>(null)

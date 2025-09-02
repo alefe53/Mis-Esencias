@@ -1,6 +1,9 @@
-import { defineStore } from 'pinia';
-import apiPublic from '../services/apiPublic';
-import type { EngineeringProjectSummary, EngineeringProjectDetails } from '../types';
+import { defineStore } from 'pinia'
+import apiPublic from '../services/apiPublic'
+import type {
+  EngineeringProjectSummary,
+  EngineeringProjectDetails,
+} from '../types'
 
 export const useEngineeringStore = defineStore('engineering', {
   state: () => ({
@@ -12,29 +15,29 @@ export const useEngineeringStore = defineStore('engineering', {
 
   actions: {
     async fetchProjects() {
-      if (this.projects.length > 0) return;
-      this.isLoadingProjects = true;
+      if (this.projects.length > 0) return
+      this.isLoadingProjects = true
       try {
-        const response = await apiPublic.get('/engineering');
-        this.projects = response.data.data;
+        const response = await apiPublic.get('/engineering')
+        this.projects = response.data.data
       } catch (error) {
-        console.error("Error al cargar los proyectos de ingeniería:", error);
+        console.error('Error al cargar los proyectos de ingeniería:', error)
       } finally {
-        this.isLoadingProjects = false;
+        this.isLoadingProjects = false
       }
     },
 
     async fetchProjectDetails(id: number) {
-      this.isLoadingDetails = true;
-      this.currentProjectDetails = null;
+      this.isLoadingDetails = true
+      this.currentProjectDetails = null
       try {
-        const response = await apiPublic.get(`/engineering/${id}`);
-        this.currentProjectDetails = response.data.data;
+        const response = await apiPublic.get(`/engineering/${id}`)
+        this.currentProjectDetails = response.data.data
       } catch (error) {
-        console.error(`Error al cargar detalles del proyecto ${id}:`, error);
+        console.error(`Error al cargar detalles del proyecto ${id}:`, error)
       } finally {
-        this.isLoadingDetails = false;
+        this.isLoadingDetails = false
       }
     },
   },
-});
+})

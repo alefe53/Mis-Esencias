@@ -9,14 +9,14 @@ export const useMusicCatalogStore = defineStore('musicCatalog', () => {
   const isLoading = ref(false)
 
   async function fetchCatalog() {
-    if (catalog.value.length > 0 || isLoading.value) return;
+    if (catalog.value.length > 0 || isLoading.value) return
 
     isLoading.value = true
     try {
-      const response = await api.get('/tracks/catalog');
-      catalog.value = response.data.data;
+      const response = await api.get('/tracks/catalog')
+      catalog.value = response.data.data
     } catch (error) {
-      console.error("Error al obtener el catálogo de música:", error)
+      console.error('Error al obtener el catálogo de música:', error)
       catalog.value = []
     } finally {
       isLoading.value = false
@@ -26,6 +26,6 @@ export const useMusicCatalogStore = defineStore('musicCatalog', () => {
   return {
     catalog,
     isLoading,
-    fetchCatalog
+    fetchCatalog,
   }
 })

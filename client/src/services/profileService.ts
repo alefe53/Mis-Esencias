@@ -1,6 +1,6 @@
 // src/services/profileService.ts
-import api from './api';
-import type { ProfileUpdatePayload } from '../types';
+import api from './api'
+import type { ProfileUpdatePayload } from '../types'
 
 /**
  * Llama al endpoint del backend para actualizar el perfil del usuario.
@@ -8,31 +8,29 @@ import type { ProfileUpdatePayload } from '../types';
  * @returns La respuesta de la API con el perfil actualizado.
  */
 export const updateProfile = async (payload: ProfileUpdatePayload) => {
-  const { data } = await api.put('/profile', payload);
-  return data;
-};
+  const { data } = await api.put('/profile', payload)
+  return data
+}
 
 export const getProfile = async () => {
-    const { data } = await api.get('/profile');
-    return data;
-};
+  const { data } = await api.get('/profile')
+  return data
+}
 
 export const uploadAvatar = async (avatarFile: File) => {
-  const formData = new FormData();
-  formData.append('avatar', avatarFile);
+  const formData = new FormData()
+  formData.append('avatar', avatarFile)
 
   const { data } = await api.post('/profile/avatar', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
-  });
+  })
 
-  
-
-  return data;
-};
+  return data
+}
 
 export const updatePassword = async (newPassword: string) => {
-  const { data } = await api.post('/profile/password', { newPassword });
-  return data;
-};
+  const { data } = await api.post('/profile/password', { newPassword })
+  return data
+}
