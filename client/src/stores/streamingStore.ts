@@ -517,33 +517,43 @@ color: '#ef4444',
 }
 
 async function toggleScreenShare() {
-if (!room.value?.localParticipant) return
+    if (!room.value?.localParticipant) return;
 
-if (isScreenSharing.value) {
-await room.value.localParticipant.setScreenShareEnabled(false)
-isScreenSharing.value = false
-isCameraFullScreen.value = false
-_broadcastStreamState()
-return
-}
+    if (isScreenSharing.value) {
+      await room.value.localParticipant.setScreenShareEnabled(false);
+      isScreenSharing.value = false;
+      isCameraFullScreen.value = false;
+      _broadcastStreamState();
+      return;
+    }
 
-try {
-await room.value.localParticipant.setScreenShareEnabled(true, {
-audio: true,
-})
-isScreenSharing.value = true
-_broadcastStreamState()
-} catch (error) {
-console.error('Falló al intentar compartir pantalla:', error)
-const uiStore = useUiStore()
-uiStore.showToast({
-message: 'No se pudo iniciar la compartición de pantalla.',
-color: '#ef4444',
-})
-isScreenSharing.value = false
-_broadcastStreamState()
-}
-}
+    const uiStore = useUiStore();
+    try {
+      const wasCameraEnabled = room.value.localParticipant.isCameraEnabled;
+
+      await room.value.localParticipant.setScreenShareEnabled(true, {
+        audio: true,
+      });
+
+      isScreenSharing.value = true;
+
+      if (wasCameraEnabled) {
+        await room.value.localParticipant.setCameraEnabled(true);
+      }
+
+      _broadcastStreamState();
+
+    } catch (error) {
+      console.error('Falló al intentar compartir pantalla:', error);
+      uiStore.showToast({
+        message: 'No se pudo iniciar la compartición de pantalla.',
+        color: '#ef4444',
+      });
+      isScreenSharing.value = false;
+      _broadcastStreamState();
+    }
+  }
+
 
 async function toggleCameraFullScreen() {
 if (!room.value?.localParticipant) return
