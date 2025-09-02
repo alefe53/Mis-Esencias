@@ -24,7 +24,10 @@
           />
           <div
             v-if="
-              isScreenSharing && !isCameraFullScreen && cameraTrackPub && isCameraOverlayEnabled
+              isScreenSharing &&
+              !isCameraFullScreen &&
+              cameraTrackPub &&
+              isCameraOverlayEnabled
             "
             class="camera-overlay"
             :style="cameraOverlayStyle"
@@ -88,11 +91,8 @@ const { connectToView, disconnect } = streamingStore
 const userHasUnmuted = ref(false)
 
 // Obtenemos los nuevos y robustos estados reactivos desde el composable.
-const {
-  cameraTrackPub,
-  screenShareTrackPub,
-  audioTrackPub,
-} = useParticipantTracks(adminParticipant)
+const { cameraTrackPub, screenShareTrackPub, audioTrackPub } =
+  useParticipantTracks(adminParticipant)
 
 const mainPublication = computed(() => {
   if (isCameraFullScreen.value) {

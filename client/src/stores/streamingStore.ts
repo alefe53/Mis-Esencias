@@ -35,10 +35,12 @@ export const useStreamingStore = defineStore('streaming', () => {
   const isScreenSharing = ref(false) // <-- ÚNICA FUENTE DE VERDAD
   const egressId = ref<string | null>(null)
 
-  const isCameraOverlayEnabled = ref(true);
+  const isCameraOverlayEnabled = ref(true)
 
   const localParticipant = shallowRef<LocalParticipant | null>(null)
-  const remoteParticipants = shallowRef<Map<string, RemoteParticipant>>(new Map())
+  const remoteParticipants = shallowRef<Map<string, RemoteParticipant>>(
+    new Map(),
+  )
   const adminParticipant = shallowRef<Participant | null>(null)
 
   const participantCount = ref(0)
@@ -55,7 +57,7 @@ export const useStreamingStore = defineStore('streaming', () => {
     console.log(`Cambiando estado isLive a: ${status} a través de una acción.`)
     isLive.value = status
   }
-  
+
   // --- FUNCIONES INTERNAS (helpers) ---
 
   const _broadcastStreamState = async () => {
@@ -66,16 +68,18 @@ export const useStreamingStore = defineStore('streaming', () => {
       cameraOverlayPosition: cameraOverlayPosition.value,
       cameraOverlaySize: cameraOverlaySize.value,
     }
-    const payload = textEncoder.encode(JSON.stringify({ topic: STREAM_STATE_UPDATE_TOPIC, data: state }))
+    const payload = textEncoder.encode(
+      JSON.stringify({ topic: STREAM_STATE_UPDATE_TOPIC, data: state }),
+    )
     await room.value.localParticipant.publishData(payload, { reliable: true })
   }
-  
+
   const _updateRoomState = () => {
     if (!room.value) return
     remoteParticipants.value = new Map(room.value.remoteParticipants)
     participantCount.value =
       room.value.remoteParticipants.size + (room.value.localParticipant ? 1 : 0)
-    
+
     let streamer: Participant | undefined
     if (room.value.localParticipant?.permissions?.canPublish) {
       streamer = room.value.localParticipant
@@ -85,7 +89,7 @@ export const useStreamingStore = defineStore('streaming', () => {
         (p) => p.identity === import.meta.env.VITE_ADMIN_USER_ID,
       )
     }
-    
+
     if (streamer) {
       if (adminParticipant.value?.sid !== streamer.sid) {
         adminParticipant.value = streamer
@@ -98,7 +102,10 @@ export const useStreamingStore = defineStore('streaming', () => {
   }
 
   // ✨ CORRECCIÓN CLAVE: Los listeners ahora actualizan el estado central del store
-  const _onTrackPublished = (pub: TrackPublication, participant: Participant) => {
+  const _onTrackPublished = (
+    pub: TrackPublication,
+    participant: Participant,
+  ) => {
     if (participant.isLocal) {
       if (pub.source === Track.Source.ScreenShare) {
         isScreenSharing.value = true
@@ -111,7 +118,10 @@ export const useStreamingStore = defineStore('streaming', () => {
     }
   }
 
-  const _onTrackUnpublished = (pub: TrackPublication, participant: Participant) => {
+  const _onTrackUnpublished = (
+    pub: TrackPublication,
+    participant: Participant,
+  ) => {
     if (participant.isLocal) {
       if (pub.source === Track.Source.ScreenShare) {
         isScreenSharing.value = false
@@ -253,23 +263,31 @@ export const useStreamingStore = defineStore('streaming', () => {
   }
 
   async function toggleCameraOverlay(enabled: boolean) {
-  if (!room.value?.localParticipant) return;
-  isCameraOverlayEnabled.value = enabled;
-  await _broadcastStreamState(); // Sincroniza el cambio con los espectadores
-}
+    if (!room.value?.localParticipant) return
+    isCameraOverlayEnabled.value = enabled
+    await _broadcastStreamState() // Sincroniza el cambio con los espectadores
+  }
   // ✨ FUNCIÓN CORREGIDA: Arranque de publicación
- async function startPublishing() {
-  if (!room.value || !room.value.localParticipant || isPublishing.value) return;
-  const uiStore = useUiStore();
-  try {
-    await room.value.localParticipant.setCameraEnabled(true, { deviceId: activeCameraId.value });
-    await room.value.localParticipant.setMicrophoneEnabled(true, { deviceId: activeMicId.value });
-    isPublishing.value = true;
-    isCameraOverlayEnabled.value = true; 
-    await _broadcastStreamState();
-  } catch (error) {
+  async function startPublishing() {
+    if (!room.value || !room.value.localParticipant || isPublishing.value)
+      return
+    const uiStore = useUiStore()
+    try {
+      await room.value.localParticipant.setCameraEnabled(true, {
+        deviceId: activeCameraId.value,
+      })
+      await room.value.localParticipant.setMicrophoneEnabled(true, {
+        deviceId: activeMicId.value,
+      })
+      isPublishing.value = true
+      isCameraOverlayEnabled.value = true
+      await _broadcastStreamState()
+    } catch (error) {
       console.error('Falló al publicar el stream:', error)
-      uiStore.showToast({ message: 'Error al empezar a transmitir.', color: '#ef4444' })
+      uiStore.showToast({
+        message: 'Error al empezar a transmitir.',
+        color: '#ef4444',
+      })
       isPublishing.value = false
     }
   }
@@ -422,7 +440,7 @@ export const useStreamingStore = defineStore('streaming', () => {
       realtimeChannel = null
     }
   }
-  
+
   // El botón de la cámara solo hace una cosa: encender/apagar la cámara.
   async function toggleCamera(enabled: boolean) {
     if (room.value?.localParticipant) {
@@ -485,7 +503,7 @@ export const useStreamingStore = defineStore('streaming', () => {
       })
     }
   }
-  
+
   // ✨ FUNCIÓN CORREGIDA: Lógica de compartir pantalla robusta
   async function toggleScreenShare() {
     if (!room.value?.localParticipant) return
@@ -499,7 +517,9 @@ export const useStreamingStore = defineStore('streaming', () => {
       } else {
         // --- INICIAR COMPARTICIÓN ---
         const wasCameraEnabled = room.value.localParticipant.isCameraEnabled
-        await room.value.localParticipant.setScreenShareEnabled(true, { audio: true })
+        await room.value.localParticipant.setScreenShareEnabled(true, {
+          audio: true,
+        })
 
         // Si la cámara estaba encendida y la compartición la apagó, la reactivamos.
         if (wasCameraEnabled && !room.value.localParticipant.isCameraEnabled) {

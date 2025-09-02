@@ -13,7 +13,10 @@
           />
           <div
             v-if="
-              !isCameraFullScreen && isScreenSharing && localCameraPublication && isCameraOverlayEnabled
+              !isCameraFullScreen &&
+              isScreenSharing &&
+              localCameraPublication &&
+              isCameraOverlayEnabled
             "
             ref="cameraOverlayRef"
             class="camera-overlay"
@@ -182,7 +185,6 @@ import { useInteractableOverlay } from '../composables/useInteractableOverlay'
 
 const streamingStore = useStreamingStore()
 
-
 const {
   room,
   isConnecting,
@@ -190,7 +192,7 @@ const {
   isStreamLive,
   isScreenSharing,
   isCameraFullScreen,
-  isCameraOverlayEnabled, 
+  isCameraOverlayEnabled,
   localParticipant,
   participantCount,
   availableCameras,
@@ -276,7 +278,8 @@ const enablePreview = async () => {
       localVideoTrack.value.attach(previewVideoRef.value)
     }
   } catch (error: any) {
-    permissionError.value = 'Permiso denegado para la cámara o el micrófono. Por favor, revisa la configuración de tu navegador.'
+    permissionError.value =
+      'Permiso denegado para la cámara o el micrófono. Por favor, revisa la configuración de tu navegador.'
   } finally {
     isCheckingPermissions.value = false
   }
