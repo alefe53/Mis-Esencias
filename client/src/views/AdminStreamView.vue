@@ -13,7 +13,7 @@
           />
           <div
             v-if="
-              !isCameraFullScreen && isScreenSharing && localCameraPublication
+              !isCameraFullScreen && isScreenSharing && localCameraPublication && isCameraOverlayEnabled
             "
             ref="cameraOverlayRef"
             class="camera-overlay"
@@ -133,6 +133,9 @@
             >
               {{ isCameraFullScreen ? 'Volver a Overlay' : 'Cámara Completa' }}
             </button>
+            <button @click="toggleCameraOverlay(!isCameraOverlayEnabled)">
+              {{ isCameraOverlayEnabled ? 'Overlay On' : 'Overlay Off' }}
+            </button>
           </div>
           <button
             v-if="!isPublishing"
@@ -179,13 +182,15 @@ import { useInteractableOverlay } from '../composables/useInteractableOverlay'
 
 const streamingStore = useStreamingStore()
 
+
 const {
   room,
   isConnecting,
   isPublishing,
   isStreamLive,
-  isScreenSharing, // <-- Lo importamos directamente del store
+  isScreenSharing,
   isCameraFullScreen,
+  isCameraOverlayEnabled, 
   localParticipant,
   participantCount,
   availableCameras,
@@ -206,6 +211,7 @@ const {
   setOverlayPosition,
   setOverlaySize,
   toggleCameraFullScreen,
+  toggleCameraOverlay, // <-- AGREGADO
   connectWithoutPublishing,
   startPublishing,
   stopPublishing,
@@ -230,24 +236,18 @@ useInteractableOverlay(cameraOverlayRef, cameraResizeHandleRef, {
   onResizeEnd: updateCameraOverlaySize,
 })
 
-// El composable sigue siendo útil para obtener las publicaciones de forma reactiva
 const {
   cameraTrackPub: localCameraPublication,
   screenShareTrackPub: localScreenSharePublication,
 } = useParticipantTracks(localParticipant)
 
-// ✨ LÓGICA DE VIDEO SIMPLIFICADA Y ROBUSTA ✨
-// Ahora se basa en el estado unificado del store, que es más fiable.
 const mainPublication = computed(() => {
   if (isScreenSharing.value) {
-    // Si el modo "cámara completa" está activo, la cámara tiene prioridad
     if (isCameraFullScreen.value) {
       return localCameraPublication.value
     }
-    // Si no, la vista principal es la pantalla compartida
     return localScreenSharePublication.value
   }
-  // Si no se comparte pantalla, la vista principal siempre es la cámara
   return localCameraPublication.value
 })
 
@@ -257,7 +257,6 @@ const cameraOverlayStyle = computed(() => ({
   width: `${cameraOverlaySize.value.width}%`,
 }))
 
-// El resto de las funciones del script setup se mantienen igual
 const enablePreview = async () => {
   if (localVideoTrack.value) {
     localVideoTrack.value.stop()
@@ -277,12 +276,12 @@ const enablePreview = async () => {
       localVideoTrack.value.attach(previewVideoRef.value)
     }
   } catch (error: any) {
-    // ... (manejo de errores de permisos)
+    permissionError.value = 'Permiso denegado para la cámara o el micrófono. Por favor, revisa la configuración de tu navegador.'
   } finally {
     isCheckingPermissions.value = false
   }
 }
-// ... (resto de funciones: disablePreview, handleConnectWithoutPublishing, etc.)
+
 const disablePreview = () => {
   if (localVideoTrack.value) {
     localVideoTrack.value.stop()
@@ -348,6 +347,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* Las estilos no cambiaron. El problema está en la lógica. */
 .camera-overlay {
   position: absolute;
   aspect-ratio: 16 / 9;

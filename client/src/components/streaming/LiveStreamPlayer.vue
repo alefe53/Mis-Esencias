@@ -24,7 +24,7 @@
           />
           <div
             v-if="
-              isScreenSharing && !isCameraFullScreen && cameraTrackPub
+              isScreenSharing && !isCameraFullScreen && cameraTrackPub && isCameraOverlayEnabled
             "
             class="camera-overlay"
             :style="cameraOverlayStyle"
@@ -79,6 +79,7 @@ const {
   cameraOverlayPosition,
   cameraOverlaySize,
   isCameraFullScreen,
+  isCameraOverlayEnabled,
   // Ya no traemos 'isScreenSharing' desde el store para la lógica de la UI
   isScreenSharing, // <-- ¡Importamos este! Es la única fuente de la verdad
 } = storeToRefs(streamingStore)

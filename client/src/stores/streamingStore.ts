@@ -35,6 +35,8 @@ export const useStreamingStore = defineStore('streaming', () => {
   const isScreenSharing = ref(false) // <-- ÚNICA FUENTE DE VERDAD
   const egressId = ref<string | null>(null)
 
+  const isCameraOverlayEnabled = ref(true);
+
   const localParticipant = shallowRef<LocalParticipant | null>(null)
   const remoteParticipants = shallowRef<Map<string, RemoteParticipant>>(new Map())
   const adminParticipant = shallowRef<Participant | null>(null)
@@ -250,22 +252,22 @@ export const useStreamingStore = defineStore('streaming', () => {
     }
   }
 
+  async function toggleCameraOverlay(enabled: boolean) {
+  if (!room.value?.localParticipant) return;
+  isCameraOverlayEnabled.value = enabled;
+  await _broadcastStreamState(); // Sincroniza el cambio con los espectadores
+}
   // ✨ FUNCIÓN CORREGIDA: Arranque de publicación
-  async function startPublishing() {
-    if (!room.value || !room.value.localParticipant || isPublishing.value) return
-    const uiStore = useUiStore()
-    try {
-      // Habilitamos cámara y micrófono
-      await room.value.localParticipant.setCameraEnabled(true, { deviceId: activeCameraId.value })
-      await room.value.localParticipant.setMicrophoneEnabled(true, { deviceId: activeMicId.value })
-      
-      // Actualizamos el estado de publicación
-      isPublishing.value = true
-      
-      // Forzamos la sincronización inicial para los espectadores
-      await _broadcastStreamState()
-
-    } catch (error) {
+ async function startPublishing() {
+  if (!room.value || !room.value.localParticipant || isPublishing.value) return;
+  const uiStore = useUiStore();
+  try {
+    await room.value.localParticipant.setCameraEnabled(true, { deviceId: activeCameraId.value });
+    await room.value.localParticipant.setMicrophoneEnabled(true, { deviceId: activeMicId.value });
+    isPublishing.value = true;
+    isCameraOverlayEnabled.value = true; 
+    await _broadcastStreamState();
+  } catch (error) {
       console.error('Falló al publicar el stream:', error)
       uiStore.showToast({ message: 'Error al empezar a transmitir.', color: '#ef4444' })
       isPublishing.value = false
@@ -601,6 +603,7 @@ export const useStreamingStore = defineStore('streaming', () => {
     adminParticipant,
     cameraOverlayPosition,
     cameraOverlaySize,
+    isCameraOverlayEnabled,
     connectWithoutPublishing,
     startPublishing,
     stopPublishing,
@@ -624,5 +627,6 @@ export const useStreamingStore = defineStore('streaming', () => {
     setOverlaySize,
     setLiveStatus,
     unsubscribeFromStreamStatus,
+    toggleCameraOverlay,
   }
 })
