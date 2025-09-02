@@ -179,7 +179,6 @@ const streamingStore = useStreamingStore()
 const {
   room,
   isConnecting,
-  isScreenSharing,
   localParticipant,
   participantCount,
   availableCameras,
@@ -232,21 +231,24 @@ const {
   screenShareTrackPub: localScreenSharePublication,
 } = useParticipantTracks(localParticipant)
 
+const isScreenSharing = computed(() => !!localScreenSharePublication.value);
+
 const mainPublication = computed(() => {
-  if (isCameraFullScreen.value && localCameraPublication.value) {
-    return localCameraPublication.value
+  if (isScreenSharing.value) {
+    if (isCameraFullScreen.value) {
+      return localCameraPublication.value;
+    }
+    return localScreenSharePublication.value;
   }
-  if (isScreenSharing.value && localScreenSharePublication.value) {
-    return localScreenSharePublication.value
-  }
-  return localCameraPublication.value
-})
+  return localCameraPublication.value;
+});
 
 const cameraOverlayStyle = computed(() => ({
   top: `${cameraOverlayPosition.value.y}%`,
   left: `${cameraOverlayPosition.value.x}%`,
   width: `${cameraOverlaySize.value.width}%`,
 }))
+
 
 const enablePreview = async () => {
   if (localVideoTrack.value) {

@@ -517,43 +517,41 @@ color: '#ef4444',
 }
 
 async function toggleScreenShare() {
-    if (!room.value?.localParticipant) return;
+  if (!room.value?.localParticipant) return;
+  const uiStore = useUiStore();
 
-    if (isScreenSharing.value) {
+  const isCurrentlySharing = room.value.localParticipant.isScreenShareEnabled;
+
+  try {
+    if (isCurrentlySharing) {
       await room.value.localParticipant.setScreenShareEnabled(false);
-      isScreenSharing.value = false;
-      isCameraFullScreen.value = false;
-      _broadcastStreamState();
-      return;
-    }
-
-    const uiStore = useUiStore();
-    try {
+    } else {
       const wasCameraEnabled = room.value.localParticipant.isCameraEnabled;
 
       await room.value.localParticipant.setScreenShareEnabled(true, {
         audio: true,
       });
 
-      isScreenSharing.value = true;
-
-      if (wasCameraEnabled) {
+      if (wasCameraEnabled && !room.value.localParticipant.isCameraEnabled) {
+        console.log('[Streaming Store] La compartición de pantalla desactivó la cámara. Reactivándola...');
         await room.value.localParticipant.setCameraEnabled(true);
       }
-
-      _broadcastStreamState();
-
-    } catch (error) {
-      console.error('Falló al intentar compartir pantalla:', error);
+    }
+  } catch (error: any) {
+    console.error('Falló al cambiar el estado de compartir pantalla:', error);
+    if (error.name === 'NotAllowedError') {
       uiStore.showToast({
+        message: 'Permiso para compartir pantalla denegado.',
+        color: '#ef4444',
+      });
+    } else {
+       uiStore.showToast({
         message: 'No se pudo iniciar la compartición de pantalla.',
         color: '#ef4444',
       });
-      isScreenSharing.value = false;
-      _broadcastStreamState();
     }
   }
-
+}
 
 async function toggleCameraFullScreen() {
 if (!room.value?.localParticipant) return
