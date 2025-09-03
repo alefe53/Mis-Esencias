@@ -243,16 +243,16 @@ const {
   screenShareTrackPub: localScreenSharePublication,
 } = useParticipantTracks(localParticipant)
 
-const mainPublication = computed(() => {
-  if (isScreenSharing.value) {
-    if (isCameraFullScreen.value) {
-      return localCameraPublication.value
-    }
-    return localScreenSharePublication.value
-  }
-  return localCameraPublication.value
-})
 
+const mainPublication = computed(() => {
+  if (isScreenSharing.value && localScreenSharePublication.value) {
+    if (isCameraFullScreen.value) {
+      return localCameraPublication.value;
+    }
+    return localScreenSharePublication.value;
+  }
+  return localCameraPublication.value;
+});
 const cameraOverlayStyle = computed(() => ({
   top: `${cameraOverlayPosition.value.y}%`,
   left: `${cameraOverlayPosition.value.x}%`,
