@@ -253,10 +253,13 @@ onUnmounted(() => {
   flex-direction: column;
   padding: 0 1rem;
   box-sizing: border-box;
+  min-height: 100vh;
 }
+
 .title-area {
   padding-top: 1rem;
 }
+
 .feed-title-container {
   display: flex;
   justify-content: center;
@@ -311,6 +314,7 @@ onUnmounted(() => {
   position: relative;
   z-index: 2;
 }
+
 .fenicia-subtitle {
   font-family: 'Playfair Display', serif;
   font-style: italic;
@@ -318,33 +322,36 @@ onUnmounted(() => {
   color: white;
   text-align: center;
   font-size: 0.9rem;
-  margin-bottom: 1rem; /* Margen reducido */
+  margin-bottom: 1rem;
   text-shadow:
     0 0 7px black,
     0 0 4px black;
 }
+
 .inline-icon {
   height: 1.7em;
   width: auto;
   vertical-align: text-bottom;
   margin: 0 0.2em;
 }
+
 .stream-area {
   margin-bottom: 1rem;
-
   aspect-ratio: 16 / 9;
-  min-height: 200px;
 }
+
 .chat-area,
 .posts-area {
-  margin-bottom: 1rem; /* Margen reducido */
+  margin-bottom: 1rem;
 }
+
 .chat-area {
   position: relative;
-  height: 70vh;
+  max-height: 70vh; 
   display: flex;
   flex-direction: column;
 }
+
 .pin-banners-container {
   position: absolute;
   top: 0;
@@ -354,36 +361,43 @@ onUnmounted(() => {
   padding: 1rem;
   pointer-events: none;
 }
+
 .pin-banners-container > :deep(*) {
   pointer-events: auto;
 }
+
 .chat-area > :deep(.global-chat-container) {
   flex-grow: 1;
   min-height: 0;
 }
+
 .posts-area {
-  padding-bottom: 1rem; /* Padding reducido */
+  padding-bottom: 1rem;
 }
+
 .loading-spinner {
   text-align: center;
   font-size: 1.5rem;
-  padding: 2rem; /* Padding reducido para el spinner */
+  padding: 2rem;
   color: #999;
 }
+
 .fade-in-item {
   opacity: 0;
   transform: scale(0.95) translateY(20px);
 }
 
-/* ===== NUEVO: Estilo para el disparador de carga ===== */
 .load-trigger {
   height: 50px;
 }
+
 .stream-area.fade-in-item {
   opacity: 1 !important;
   transform: none !important;
 }
 
+
+/* --- MEDIA QUERY PARA PANTALLAS CHICAS --- */
 @media (max-width: 991px) {
   .feed-title-container {
     flex-direction: column;
@@ -398,6 +412,7 @@ onUnmounted(() => {
   }
 }
 
+/* --- MEDIA QUERY PARA ESCRITORIO --- */
 @media (min-width: 992px) {
   .social-feed-layout {
     display: grid;
@@ -412,35 +427,45 @@ onUnmounted(() => {
     margin: 0 auto;
     padding: 1rem 2rem 0 180px;
     height: calc(100vh - 80px);
+    min-height: auto; 
   }
+
   .title-area {
     grid-area: title;
     padding-top: 0;
   }
+
   .stream-area {
     grid-area: stream;
   }
+
   .chat-area {
     grid-area: chat;
     height: 100%;
+    max-height: none; 
   }
+
   .posts-area {
     grid-area: posts;
     overflow-y: auto;
     padding-right: 1rem;
   }
+
   .posts-area::-webkit-scrollbar {
     width: 8px;
   }
+
   .posts-area::-webkit-scrollbar-track {
     background: transparent;
   }
+
   .posts-area::-webkit-scrollbar-thumb {
     background-color: #4a525d;
     border-radius: 10px;
     border: 2px solid transparent;
     background-clip: content-box;
   }
+
   .feed-title-container {
     position: sticky;
     top: 0;
