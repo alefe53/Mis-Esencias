@@ -265,9 +265,9 @@ export const useStreamingStore = defineStore('streaming', () => {
   async function toggleCameraOverlay(enabled: boolean) {
     if (!room.value?.localParticipant) return
     isCameraOverlayEnabled.value = enabled
-    await _broadcastStreamState() // Sincroniza el cambio con los espectadores
+    await _broadcastStreamState() 
   }
-  // ✨ FUNCIÓN CORREGIDA: Arranque de publicación
+  
   async function startPublishing() {
     if (!room.value || !room.value.localParticipant || isPublishing.value)
       return
@@ -441,12 +441,20 @@ export const useStreamingStore = defineStore('streaming', () => {
     }
   }
 
-  // El botón de la cámara solo hace una cosa: encender/apagar la cámara.
   async function toggleCamera(enabled: boolean) {
-    if (room.value?.localParticipant) {
-      await room.value.localParticipant.setCameraEnabled(enabled)
+        if (!room.value?.localParticipant) return;
+        
+        try {
+            await room.value.localParticipant.setCameraEnabled(enabled);
+        } catch (error) {
+            console.error("Error al cambiar el estado de la cámara:", error);
+            const uiStore = useUiStore();
+            uiStore.showToast({
+                message: 'No se pudo cambiar el estado de la cámara.',
+                color: '#ef4444',
+            });
+        }
     }
-  }
 
   async function toggleMicrophone(enabled: boolean) {
     if (room.value?.localParticipant) {
@@ -504,43 +512,45 @@ export const useStreamingStore = defineStore('streaming', () => {
     }
   }
 
-  // ✨ FUNCIÓN CORREGIDA: Lógica de compartir pantalla robusta
   async function toggleScreenShare() {
-    if (!room.value?.localParticipant) return
-    const uiStore = useUiStore()
-    const isCurrentlySharing = room.value.localParticipant.isScreenShareEnabled
+        if (!room.value?.localParticipant) return;
+        const uiStore = useUiStore();
+        const isCurrentlySharing = room.value.localParticipant.isScreenShareEnabled;
 
-    try {
-      if (isCurrentlySharing) {
-        // --- DETENER COMPARTICIÓN ---
-        await room.value.localParticipant.setScreenShareEnabled(false)
-      } else {
-        // --- INICIAR COMPARTICIÓN ---
-        const wasCameraEnabled = room.value.localParticipant.isCameraEnabled
-        await room.value.localParticipant.setScreenShareEnabled(true, {
-          audio: true,
-        })
+        try {
+            if (isCurrentlySharing) {
+                await room.value.localParticipant.setScreenShareEnabled(false);
+            } else {
+                const wasCameraEnabled = room.value.localParticipant.isCameraEnabled;
 
-        // Si la cámara estaba encendida y la compartición la apagó, la reactivamos.
-        if (wasCameraEnabled && !room.value.localParticipant.isCameraEnabled) {
-          await room.value.localParticipant.setCameraEnabled(true)
+                await room.value.localParticipant.setScreenShareEnabled(true, {
+                    audio: true, 
+                });
+                if (wasCameraEnabled && !room.value.localParticipant.isCameraEnabled) {
+                    console.log('La compartición de pantalla desactivó la cámara. Reactivándola...');
+                    await nextTick(); // 
+                    await room.value.localParticipant.setCameraEnabled(true);
+                }
+            }
+        } catch (error: any) {
+            console.error('Falló al cambiar el estado de compartir pantalla:', error);
+            if (error.name === 'NotAllowedError') {
+                uiStore.showToast({
+                    message: 'Permiso para compartir pantalla denegado.',
+                    color: '#f97316',
+                });
+                if (isScreenSharing.value) {
+                  isScreenSharing.value = false;
+                  _broadcastStreamState();
+                }
+            } else {
+                uiStore.showToast({
+                    message: 'No se pudo iniciar la compartición de pantalla.',
+                    color: '#ef4444',
+                });
+            }
         }
-      }
-    } catch (error: any) {
-      console.error('Falló al cambiar el estado de compartir pantalla:', error)
-      if (error.name === 'NotAllowedError') {
-        uiStore.showToast({
-          message: 'Permiso para compartir pantalla denegado.',
-          color: '#ef4444',
-        })
-      } else {
-        uiStore.showToast({
-          message: 'No se pudo iniciar la compartición de pantalla.',
-          color: '#ef4444',
-        })
-      }
     }
-  }
 
   async function toggleCameraFullScreen() {
     if (!room.value?.localParticipant) return
