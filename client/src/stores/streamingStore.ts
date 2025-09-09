@@ -35,6 +35,10 @@ export const useStreamingStore = defineStore('streaming', () => {
   const isScreenSharing = ref(false) // <-- ÚNICA FUENTE DE VERDAD
   const egressId = ref<string | null>(null)
 
+  
+  const isCameraEnabled = ref(false)
+  const isMicrophoneEnabled = ref(false)
+
   const isCameraOverlayEnabled = ref(true)
 
   const localParticipant = shallowRef<LocalParticipant | null>(null)
@@ -106,12 +110,23 @@ export const useStreamingStore = defineStore('streaming', () => {
     pub: TrackPublication,
     participant: Participant,
   ) => {
+    // Si es track local publicado, actualizamos los estados reactivos.
     if (participant.isLocal) {
+      // screen share
       if (pub.source === Track.Source.ScreenShare) {
         isScreenSharing.value = true
       }
-      _broadcastStreamState() // Sincroniza con espectadores cada vez que algo se publica
+      // cámara
+      if (pub.source === Track.Source.Camera) {
+        isCameraEnabled.value = true
+      }
+      // micrófono (al publicar audio local)
+      if (pub.track?.kind === 'audio') {
+        isMicrophoneEnabled.value = true
+      }
+      _broadcastStreamState()
     } else if (participant.identity === import.meta.env.VITE_ADMIN_USER_ID) {
+      // si administradores remotos publican screen share
       if (pub.source === Track.Source.ScreenShare) {
         isScreenSharing.value = true
       }
@@ -125,9 +140,15 @@ export const useStreamingStore = defineStore('streaming', () => {
     if (participant.isLocal) {
       if (pub.source === Track.Source.ScreenShare) {
         isScreenSharing.value = false
-        isCameraFullScreen.value = false // Resetea al dejar de compartir
+        isCameraFullScreen.value = false
       }
-      _broadcastStreamState() // Sincroniza con espectadores
+      if (pub.source === Track.Source.Camera) {
+        isCameraEnabled.value = false
+      }
+      if (pub.track?.kind === 'audio') {
+        isMicrophoneEnabled.value = false
+      }
+      _broadcastStreamState()
     } else if (participant.identity === import.meta.env.VITE_ADMIN_USER_ID) {
       if (pub.source === Track.Source.ScreenShare) {
         isScreenSharing.value = false
@@ -152,6 +173,9 @@ export const useStreamingStore = defineStore('streaming', () => {
       .on(RoomEvent.ConnectionStateChanged, (state: ConnectionState) => {
         if (state === ConnectionState.Connected) {
           isConnecting.value = false
+          isCameraEnabled.value = !!newRoom.localParticipant?.isCameraEnabled
+          isMicrophoneEnabled.value = !!newRoom.localParticipant?.isMicrophoneEnabled
+
           localParticipant.value = newRoom.localParticipant
           if (newRoom.localParticipant.permissions?.canPublish) {
             fetchMediaDevices()
@@ -442,19 +466,32 @@ export const useStreamingStore = defineStore('streaming', () => {
   }
 
   async function toggleCamera(enabled: boolean) {
-        if (!room.value?.localParticipant) return;
-        
-        try {
-            await room.value.localParticipant.setCameraEnabled(enabled);
-        } catch (error) {
-            console.error("Error al cambiar el estado de la cámara:", error);
-            const uiStore = useUiStore();
-            uiStore.showToast({
-                message: 'No se pudo cambiar el estado de la cámara.',
-                color: '#ef4444',
-            });
-        }
+    if (!room.value?.localParticipant) return
+    const uiStore = useUiStore()
+
+    if (isCameraEnabled.value === enabled) return
+
+    const previous = isCameraEnabled.value
+    isCameraEnabled.value = enabled
+
+    try {
+      await room.value.localParticipant.setCameraEnabled(enabled, {
+        deviceId: activeCameraId.value || undefined,
+      })
+
+      await new Promise((r) => setTimeout(r, 150))
+    } catch (error) {
+      console.error('Error al cambiar el estado de la cámara:', error)
+      isCameraEnabled.value = previous
+      uiStore.showToast({
+        message: 'No se pudo cambiar el estado de la cámara.',
+        color: '#ef4444',
+      })
+    } finally {
+      await _broadcastStreamState()
     }
+  }
+
 
   async function toggleMicrophone(enabled: boolean) {
     if (room.value?.localParticipant) {
@@ -463,11 +500,17 @@ export const useStreamingStore = defineStore('streaming', () => {
   }
 
   async function changeCamera(deviceId: string) {
+    activeCameraId.value = deviceId
+
     if (room.value && room.value.localParticipant?.isCameraEnabled) {
-      await room.value.switchActiveDevice('videoinput', deviceId)
-      activeCameraId.value = deviceId
+      try {
+        await room.value.switchActiveDevice('videoinput', deviceId)
+      } catch (err) {
+        console.error('Error al cambiar dispositivo de cámara:', err)
+      }
     }
   }
+
 
   async function changeMicrophone(deviceId: string) {
     if (room.value && room.value.localParticipant?.isMicrophoneEnabled) {
@@ -513,51 +556,71 @@ export const useStreamingStore = defineStore('streaming', () => {
   }
 
   async function toggleScreenShare() {
-        if (!room.value?.localParticipant) return;
-        const uiStore = useUiStore();
-        const isCurrentlySharing = room.value.localParticipant.isScreenShareEnabled;
+    if (!room.value?.localParticipant) return
+    const uiStore = useUiStore()
+    const isCurrentlySharing = room.value.localParticipant.isScreenShareEnabled
 
-        try {
-            if (isCurrentlySharing) {
-                await room.value.localParticipant.setScreenShareEnabled(false);
-            } else {
-                const wasCameraEnabled = room.value.localParticipant.isCameraEnabled;
+    try {
+      if (isCurrentlySharing) {
+        await room.value.localParticipant.setScreenShareEnabled(false)
+        // dejar que el evento LocalTrackUnpublished sincronice isScreenSharing
+      } else {
+        const wasCameraEnabled = room.value.localParticipant.isCameraEnabled
 
-                await room.value.localParticipant.setScreenShareEnabled(true, {
-                    audio: true, 
-                });
-                if (wasCameraEnabled && !room.value.localParticipant.isCameraEnabled) {
-                    console.log('La compartición de pantalla desactivó la cámara. Reactivándola...');
+        await room.value.localParticipant.setScreenShareEnabled(true, {
+          audio: true,
+        })
 
-                    await new Promise(resolve => setTimeout(resolve, 100)); 
-
-                    await room.value.localParticipant.setCameraEnabled(true);
-                }
+        // en algunos navegadores iniciar screenShare puede «apagar» la cámara;
+        // reintentamos reactivar si antes estaba prendida.
+        if (wasCameraEnabled) {
+          // esperamos a que el SDK estabilice los tracks y luego reactivamos
+          await new Promise((r) => setTimeout(r, 300))
+          // reintentar hasta 3 veces si no se publicó la cámara
+          let attempts = 0
+          while (
+            attempts < 3 &&
+            room.value.localParticipant &&
+            !room.value.localParticipant.isCameraEnabled
+          ) {
+            attempts++
+            try {
+              await room.value.localParticipant.setCameraEnabled(true, {
+                deviceId: activeCameraId.value || undefined,
+              })
+              // esperar un ratito y comprobar
+              await new Promise((r) => setTimeout(r, 200))
+            } catch (err) {
+              console.warn('Reintento para activar cámara tras screen share falló', err)
             }
-        } catch (error: any) {
-            console.error('Falló al cambiar el estado de compartir pantalla:', error);
-            if (error.name === 'NotAllowedError') {
-                uiStore.showToast({
-                    message: 'Permiso para compartir pantalla denegado.',
-                    color: '#f97316',
-                });
-                if (isScreenSharing.value) {
-                  isScreenSharing.value = false;
-                  _broadcastStreamState();
-                }
-            } else {
-                uiStore.showToast({
-                    message: 'No se pudo iniciar la compartición de pantalla.',
-                    color: '#ef4444',
-                });
-            }
+          }
         }
+      }
+    } catch (error: any) {
+      console.error('Falló al cambiar el estado de compartir pantalla:', error)
+      if (error.name === 'NotAllowedError') {
+        uiStore.showToast({
+          message: 'Permiso para compartir pantalla denegado.',
+          color: '#f97316',
+        })
+        if (isScreenSharing.value) {
+          isScreenSharing.value = false
+          _broadcastStreamState()
+        }
+      } else {
+        uiStore.showToast({
+          message: 'No se pudo iniciar la compartición de pantalla.',
+          color: '#ef4444',
+        })
+      }
     }
+  }
+
 
   async function toggleCameraFullScreen() {
     if (!room.value?.localParticipant) return
     isCameraFullScreen.value = !isCameraFullScreen.value
-    await _broadcastStreamState() // Notifica a todos del cambio
+    await _broadcastStreamState() 
   }
 
   async function updateCameraOverlayPosition(pos: { x: number; y: number }) {
@@ -636,6 +699,8 @@ export const useStreamingStore = defineStore('streaming', () => {
     cameraOverlayPosition,
     cameraOverlaySize,
     isCameraOverlayEnabled,
+    isCameraEnabled,
+    isMicrophoneEnabled,
     connectWithoutPublishing,
     startPublishing,
     stopPublishing,

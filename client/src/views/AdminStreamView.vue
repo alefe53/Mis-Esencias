@@ -54,26 +54,23 @@
       </div>
       <div class="controls-section" v-if="room">
         <div class="device-controls">
+          <!-- Usamos los refs reactivos isCameraEnabled / isMicrophoneEnabled -->
           <button
-            @click="toggleCamera(!localParticipant?.isCameraEnabled)"
+            @click="toggleCamera(!isCameraEnabled)"
             :disabled="!isPublishing"
-            :class="{ 'is-off': !localParticipant?.isCameraEnabled }"
+            :class="{ 'is-off': !isCameraEnabled }"
           >
-            {{
-              localParticipant?.isCameraEnabled ? '📷 Apagar' : '📷 Encender'
-            }}
+            {{ isCameraEnabled ? '📷 Apagar' : '📷 Encender' }}
           </button>
+
           <button
-            @click="toggleMicrophone(!localParticipant?.isMicrophoneEnabled)"
+            @click="toggleMicrophone(!isMicrophoneEnabled)"
             :disabled="!isPublishing"
-            :class="{ 'is-off': !localParticipant?.isMicrophoneEnabled }"
+            :class="{ 'is-off': !isMicrophoneEnabled }"
           >
-            {{
-              localParticipant?.isMicrophoneEnabled
-                ? '🎤 Silenciar'
-                : '🎤 Activar'
-            }}
+            {{ isMicrophoneEnabled ? '🎤 Silenciar' : '🎤 Activar' }}
           </button>
+
           <button
             @click="toggleScreenShare"
             :class="{ 'is-sharing': isScreenSharing }"
@@ -82,6 +79,7 @@
             {{ isScreenSharing ? '🖥️ Dejar de Compartir' : '🖥️ Compartir' }}
           </button>
         </div>
+
         <div class="device-selectors">
           <div class="device-selector">
             <label for="cam-select">Cámara:</label>
@@ -118,6 +116,7 @@
             </select>
           </div>
         </div>
+
         <div class="stream-actions">
           <div class="info">
             <p>👀 Espectadores: {{ participantCount }}</p>
@@ -140,6 +139,7 @@
               {{ isCameraOverlayEnabled ? 'Overlay On' : 'Overlay Off' }}
             </button>
           </div>
+
           <button
             v-if="!isPublishing"
             @click="startPublishing"
@@ -150,6 +150,7 @@
           <button v-else @click="stopPublishing" class="pause-stream-btn">
             ⏸️ Dejar de Publicar
           </button>
+
           <button
             v-if="isPublishing && !isStreamLive"
             @click="goLive"
@@ -185,6 +186,7 @@ import { useInteractableOverlay } from '../composables/useInteractableOverlay'
 
 const streamingStore = useStreamingStore()
 
+// extraemos los refs del store, incluyendo los nuevos isCameraEnabled/isMicrophoneEnabled
 const {
   room,
   isConnecting,
@@ -201,6 +203,8 @@ const {
   activeMicId,
   cameraOverlayPosition,
   cameraOverlaySize,
+  isCameraEnabled,
+  isMicrophoneEnabled,
 } = storeToRefs(streamingStore)
 
 const {
@@ -242,7 +246,6 @@ const {
   cameraTrackPub: localCameraPublication,
   screenShareTrackPub: localScreenSharePublication,
 } = useParticipantTracks(localParticipant)
-
 
 const mainPublication = computed(() => {
   if (isScreenSharing.value && localScreenSharePublication.value) {
