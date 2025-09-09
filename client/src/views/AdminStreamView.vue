@@ -15,20 +15,31 @@
             v-if="
               !isCameraFullScreen &&
               isScreenSharing &&
-              localCameraPublication &&
               isCameraOverlayEnabled
             "
             ref="cameraOverlayRef"
             class="camera-overlay"
             :style="cameraOverlayStyle"
           >
+            <!-- Primero intentamos mostrar la publicación de cámara -->
             <ParticipantView
+              v-if="localCameraPublication?.track"
               class="overlay-participant"
               :publication="localCameraPublication as TrackPublication | null"
               :is-local="true"
             />
+            <!-- Si no hay publicación de cámara, usamos el preview local como fallback -->
+            <video
+              v-else
+              ref="overlayPreviewRef"
+              autoplay
+              playsinline
+              muted
+              class="overlay-preview"
+            ></video>
           </div>
         </template>
+
         <div v-else class="placeholder">
           <video
             ref="previewVideoRef"
@@ -52,9 +63,9 @@
           </div>
         </div>
       </div>
+
       <div class="controls-section" v-if="room">
         <div class="device-controls">
-          <!-- Usamos los refs reactivos isCameraEnabled / isMicrophoneEnabled -->
           <button
             @click="toggleCamera(!isCameraEnabled)"
             :disabled="!isPublishing"
@@ -121,6 +132,7 @@
           <div class="info">
             <p>👀 Espectadores: {{ participantCount }}</p>
           </div>
+
           <div v-if="isScreenSharing" class="overlay-buttons">
             <button @click="setOverlayPosition('top-left')">↖️</button>
             <button @click="setOverlayPosition('top-right')">↗️</button>
@@ -171,7 +183,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, computed } from 'vue'
+import { onMounted, onUnmounted, ref, computed, nextTick, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useStreamingStore } from '../stores/streamingStore'
 import ParticipantView from '../components/streaming/ParticipantView.vue'
@@ -186,7 +198,6 @@ import { useInteractableOverlay } from '../composables/useInteractableOverlay'
 
 const streamingStore = useStreamingStore()
 
-// extraemos los refs del store, incluyendo los nuevos isCameraEnabled/isMicrophoneEnabled
 const {
   room,
   isConnecting,
@@ -217,7 +228,7 @@ const {
   setOverlayPosition,
   setOverlaySize,
   toggleCameraFullScreen,
-  toggleCameraOverlay, // <-- AGREGADO
+  toggleCameraOverlay,
   connectWithoutPublishing,
   startPublishing,
   stopPublishing,
@@ -229,6 +240,7 @@ const {
 
 const videoContainerRef = ref<HTMLDivElement | null>(null)
 const previewVideoRef = ref<HTMLVideoElement | null>(null)
+const overlayPreviewRef = ref<HTMLVideoElement | null>(null)
 const localVideoTrack = ref<LocalVideoTrack | null>(null)
 const permissionError = ref<string>('')
 const isCheckingPermissions = ref(true)
@@ -247,21 +259,24 @@ const {
   screenShareTrackPub: localScreenSharePublication,
 } = useParticipantTracks(localParticipant)
 
+// mainPublication igual que antes
 const mainPublication = computed(() => {
   if (isScreenSharing.value && localScreenSharePublication.value) {
     if (isCameraFullScreen.value) {
-      return localCameraPublication.value;
+      return localCameraPublication.value
     }
-    return localScreenSharePublication.value;
+    return localScreenSharePublication.value
   }
-  return localCameraPublication.value;
-});
+  return localCameraPublication.value
+})
+
 const cameraOverlayStyle = computed(() => ({
   top: `${cameraOverlayPosition.value.y}%`,
   left: `${cameraOverlayPosition.value.x}%`,
   width: `${cameraOverlaySize.value.width}%`,
 }))
 
+/* ---------- preview local (para overlay fallback) ---------- */
 const enablePreview = async () => {
   if (localVideoTrack.value) {
     localVideoTrack.value.stop()
@@ -290,12 +305,102 @@ const enablePreview = async () => {
 
 const disablePreview = () => {
   if (localVideoTrack.value) {
-    localVideoTrack.value.stop()
-    localVideoTrack.value.detach()
+    try {
+      localVideoTrack.value.stop()
+      localVideoTrack.value.detach()
+    } catch {}
     localVideoTrack.value = null
   }
 }
 
+/* ---------- overlay preview attach/detach logic ---------- */
+async function attachOverlayPreview() {
+  // sólo attach si existe el elemento y tenemos preview track
+  if (!overlayPreviewRef.value || !localVideoTrack.value) return
+  try {
+    // detach first to be safe
+    try { localVideoTrack.value.detach(overlayPreviewRef.value) } catch {}
+    localVideoTrack.value.attach(overlayPreviewRef.value)
+    // ensure play
+    await nextTick()
+    try { await overlayPreviewRef.value.play().catch(()=>{}) } catch {}
+    overlayPreviewRef.value.muted = true
+    overlayPreviewRef.value.playsInline = true
+    overlayPreviewRef.value.autoplay = true
+  } catch (e) {
+    console.warn('[overlay] attach failed', e)
+  }
+}
+
+function detachOverlayPreview() {
+  if (!overlayPreviewRef.value) return
+  try {
+    if (localVideoTrack.value) {
+      try { localVideoTrack.value.detach(overlayPreviewRef.value) } catch {}
+    }
+    // best-effort cleanup
+    try { overlayPreviewRef.value.srcObject = null } catch {}
+  } catch (e) {
+    // ignore
+  }
+}
+
+// Si la publicación de cámara llega (o se va), actualizamos el overlay:
+watch(
+  () => localCameraPublication?.value,
+  async (newPub, _oldPub) => {
+    console.log('[overlay] cameraPublication changed:', {
+      hasNew: !!newPub,
+      newTrack: !!newPub?.track,
+    })
+
+    // Si hay track de cámara publicado, no usamos preview fallback
+    if (newPub && newPub.track) {
+      // Aseguramos que cualquier preview quede detachado
+      detachOverlayPreview()
+      return
+    }
+
+    // Si no hay publicación de cámara y estamos compartiendo pantalla, adjuntamos preview local
+    if (!newPub?.track && isScreenSharing.value && localVideoTrack.value) {
+      await attachOverlayPreview()
+    } else {
+      detachOverlayPreview()
+    }
+  },
+  { immediate: true },
+)
+
+// También observamos el preview local por si se crea/destruye
+watch(
+  () => localVideoTrack.value,
+  async (_t) => {
+    if (!localCameraPublication?.value?.track && isScreenSharing.value && localVideoTrack.value) {
+      await attachOverlayPreview()
+    } else {
+      detachOverlayPreview()
+    }
+  }
+)
+
+// preview enable on mount if needed
+onMounted(() => {
+  if (!room.value) {
+    enablePreview()
+  }
+  // logs para diagnosticar
+  console.log('[AdminStreamView] mount, isScreenSharing=', isScreenSharing.value)
+})
+
+onUnmounted(() => {
+  detachOverlayPreview()
+  disablePreview()
+  if (room.value) {
+    disconnect()
+  }
+})
+
+/* ---------- restantes helpers (botones y selects) ---------- */
 const handleConnectWithoutPublishing = async () => {
   if (!localVideoTrack.value) {
     alert('La cámara no está lista. Por favor, concede los permisos.')
@@ -315,8 +420,8 @@ const onMicChange = (event: Event) => {
   changeMicrophone(deviceId)
 }
 
+/* chat popup (igual que antes) */
 let chatPopupWindow: Window | null = null
-
 const openChatPopup = () => {
   const width = 400
   const height = 700
@@ -329,31 +434,15 @@ const openChatPopup = () => {
     chatPopupWindow.focus()
   }
 }
-
 const closeChatPopup = () => {
   if (chatPopupWindow && !chatPopupWindow.closed) {
     chatPopupWindow.close()
   }
 }
-
-onMounted(() => {
-  if (!room.value) {
-    enablePreview()
-  }
-  openChatPopup()
-})
-
-onUnmounted(() => {
-  disablePreview()
-  closeChatPopup()
-  if (room.value) {
-    disconnect()
-  }
-})
 </script>
 
 <style scoped>
-/* Las estilos no cambiaron. El problema está en la lógica. */
+/* Todo el CSS previo (sin cambios relevantes) */
 .camera-overlay {
   position: absolute;
   aspect-ratio: 16 / 9;
@@ -366,6 +455,15 @@ onUnmounted(() => {
 }
 .camera-overlay .overlay-participant {
   pointer-events: none;
+}
+/* preview video fallback styling */
+.overlay-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* espejo si es local */
+  display: block;
+  background: #000;
 }
 .fullscreen-camera {
   position: absolute;
