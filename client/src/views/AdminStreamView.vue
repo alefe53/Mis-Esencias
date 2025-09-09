@@ -369,7 +369,7 @@ function detachOverlayPreview() {
 // Si la publicación de cámara llega (o se va), actualizamos el overlay:
 watch(
   () => localCameraPublication?.value,
-  async (newPub, oldPub) => {
+  async (newPub, _oldPub) => {
     console.log('[overlay] cameraPublication changed:', {
       hasNew: !!newPub,
       newTrack: !!newPub?.track,
