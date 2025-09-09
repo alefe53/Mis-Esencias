@@ -528,7 +528,9 @@ export const useStreamingStore = defineStore('streaming', () => {
                 });
                 if (wasCameraEnabled && !room.value.localParticipant.isCameraEnabled) {
                     console.log('La compartición de pantalla desactivó la cámara. Reactivándola...');
-                    await nextTick(); // 
+
+                    await new Promise(resolve => setTimeout(resolve, 100)); 
+
                     await room.value.localParticipant.setCameraEnabled(true);
                 }
             }
