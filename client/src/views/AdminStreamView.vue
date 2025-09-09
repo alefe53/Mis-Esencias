@@ -315,22 +315,43 @@ const disablePreview = () => {
 
 /* ---------- overlay preview attach/detach logic ---------- */
 async function attachOverlayPreview() {
-  // sólo attach si existe el elemento y tenemos preview track
-  if (!overlayPreviewRef.value || !localVideoTrack.value) return
+  // Si no hay elemento de overlay, no hacemos nada
+  if (!overlayPreviewRef.value) return
+
   try {
-    // detach first to be safe
-    try { localVideoTrack.value.detach(overlayPreviewRef.value) } catch {}
-    localVideoTrack.value.attach(overlayPreviewRef.value)
-    // ensure play
+    // Si no tenemos preview local, intentamos crear uno *on demand*
+    if (!localVideoTrack.value) {
+      try {
+        console.log('[overlay] creando preview local on-demand...')
+        localVideoTrack.value = await createLocalVideoTrack({
+          resolution: { width: 640, height: 360, frameRate: 15 },
+        })
+        // No adjuntamos el preview principal (previewVideoRef) para no interferir,
+        // solo lo usaremos para el overlay.
+      } catch (err) {
+        console.warn('[overlay] fallo creando preview on-demand:', err)
+        return
+      }
+    }
+
+    // detach previos (best-effort)
+    try { localVideoTrack.value?.detach(overlayPreviewRef.value) } catch {}
+    // attach al elemento overlay
+    localVideoTrack.value?.attach(overlayPreviewRef.value)
+
+    // asegurar reproducción automática
     await nextTick()
-    try { await overlayPreviewRef.value.play().catch(()=>{}) } catch {}
+    try { await overlayPreviewRef.value?.play().catch(()=>{}) } catch {}
     overlayPreviewRef.value.muted = true
     overlayPreviewRef.value.playsInline = true
     overlayPreviewRef.value.autoplay = true
+
+    console.log('[overlay] preview attached')
   } catch (e) {
     console.warn('[overlay] attach failed', e)
   }
 }
+
 
 function detachOverlayPreview() {
   if (!overlayPreviewRef.value) return
@@ -338,31 +359,30 @@ function detachOverlayPreview() {
     if (localVideoTrack.value) {
       try { localVideoTrack.value.detach(overlayPreviewRef.value) } catch {}
     }
-    // best-effort cleanup
     try { overlayPreviewRef.value.srcObject = null } catch {}
   } catch (e) {
-    // ignore
+    console.warn('[overlay] detach error', e)
   }
 }
+
 
 // Si la publicación de cámara llega (o se va), actualizamos el overlay:
 watch(
   () => localCameraPublication?.value,
-  async (newPub, _oldPub) => {
+  async (newPub, oldPub) => {
     console.log('[overlay] cameraPublication changed:', {
       hasNew: !!newPub,
       newTrack: !!newPub?.track,
+      isScreenSharing: isScreenSharing.value,
+      isCameraEnabled: isCameraEnabled.value,
     })
 
-    // Si hay track de cámara publicado, no usamos preview fallback
     if (newPub && newPub.track) {
-      // Aseguramos que cualquier preview quede detachado
       detachOverlayPreview()
       return
     }
 
-    // Si no hay publicación de cámara y estamos compartiendo pantalla, adjuntamos preview local
-    if (!newPub?.track && isScreenSharing.value && localVideoTrack.value) {
+    if (!newPub?.track && isScreenSharing.value) {
       await attachOverlayPreview()
     } else {
       detachOverlayPreview()
@@ -370,6 +390,7 @@ watch(
   },
   { immediate: true },
 )
+
 
 // También observamos el preview local por si se crea/destruye
 watch(
@@ -406,7 +427,7 @@ const handleConnectWithoutPublishing = async () => {
     alert('La cámara no está lista. Por favor, concede los permisos.')
     return
   }
-  disablePreview()
+  // No llamamos a disablePreview() aquí: conservamos el preview local
   await connectWithoutPublishing()
 }
 

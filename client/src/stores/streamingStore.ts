@@ -115,10 +115,14 @@ export const useStreamingStore = defineStore('streaming', () => {
       // screen share
       if (pub.source === Track.Source.ScreenShare) {
         isScreenSharing.value = true
+        console.log('[store] LocalTrackPublished', { source: pub.source, participant: participant.identity })
+
       }
       // cámara
       if (pub.source === Track.Source.Camera) {
         isCameraEnabled.value = true
+        console.log('[store] LocalTrackPublished', { source: pub.source, participant: participant.identity })
+
       }
       // micrófono (al publicar audio local)
       if (pub.track?.kind === 'audio') {
