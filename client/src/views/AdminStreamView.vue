@@ -261,4 +261,124 @@ onUnmounted(() => {
 .pause-stream-btn {
   background-color: #d97706;
 }
+.admin-stream-layout {
+  position: fixed; /* Lo fijamos a la ventana del navegador */
+  top: 0;
+  left: 0;
+  width: 100vw; /* Ocupa todo el ancho */
+  height: 100vh; /* Ocupa todo el alto */
+  background-color: rgba(17, 24, 39, 0.95); /* Un fondo oscuro semitransparente */
+  z-index: 2000; /* Un z-index alto para ponerlo al frente de todo */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  box-sizing: border-box; /* Asegura que el padding no desborde la pantalla */
+}
+
+/* El panel principal que ya tenías */
+.stream-panel-full {
+  width: 100%;
+  max-width: 1280px; /* Un ancho máximo para pantallas grandes */
+  height: 95%; /* Que ocupe casi toda la altura disponible */
+  display: flex;
+  flex-direction: column;
+  background-color: #1f2937;
+  border-radius: 8px;
+  padding: 1rem;
+  gap: 1rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.video-container {
+  flex-grow: 1; /* Permite que el contenedor de video ocupe el espacio sobrante */
+  background-color: black;
+  border-radius: 6px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.preview-video {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  z-index: 1;
+  transform: scaleX(-1);
+}
+
+.placeholder-content {
+  position: relative;
+  z-index: 2;
+  background-color: rgba(0, 0, 0, 0.6);
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  color: white;
+}
+
+.main-video {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.camera-overlay {
+  position: absolute;
+  bottom: 2%;
+  right: 1%;
+  width: 20%;
+  aspect-ratio: 16 / 9;
+  border: 2px solid #4b5563;
+  border-radius: 8px;
+  overflow: hidden;
+  z-index: 10;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+.overlay-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.controls-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #374151;
+}
+
+.device-controls, .stream-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.start-publish-btn, .pause-stream-btn {
+  background-color: #1d4ed8;
+  padding: 0.6rem 1.2rem;
+  font-weight: bold;
+}
+.pause-stream-btn {
+  background-color: #d97706;
+}
 </style>
