@@ -35,6 +35,7 @@ export const useStreamingStore = defineStore('streaming', () => {
   const isRecording = ref(false)
   const isScreenSharing = ref(false) // <-- ÚNICA FUENTE DE VERDAD
   const egressId = ref<string | null>(null)
+  const isIntentionalDisconnect = ref(false);
 
   
   const isCameraEnabled = ref(false)
@@ -211,6 +212,10 @@ export const useStreamingStore = defineStore('streaming', () => {
         }
       })
   }
+  async function intentionallyDisconnect() {
+    isIntentionalDisconnect.value = true;
+    await disconnect();
+  }
 
   const _resetState = () => {
     room.value = null
@@ -224,6 +229,7 @@ export const useStreamingStore = defineStore('streaming', () => {
     isScreenSharing.value = false
     egressId.value = null
     isConnecting.value = false
+    isIntentionalDisconnect.value = false;
     isPublishing.value = false
     isDisconnecting.value = false
     isCameraFullScreen.value = false
@@ -403,31 +409,26 @@ export const useStreamingStore = defineStore('streaming', () => {
     }
   }
 
-  async function disconnect() {
-    if (!room.value || isDisconnecting.value) return
+async function disconnect() {
+    if (!room.value || isDisconnecting.value) return;
 
-    isDisconnecting.value = true
-
+    isDisconnecting.value = true;
     try {
-      const isAdminStream = room.value.localParticipant?.permissions?.canPublish
-
-      if (isAdminStream) {
-        if (isRecording.value) {
-          await stopRecording()
-        }
+      if (room.value.localParticipant?.permissions?.canPublish) {
         if (isStreamLive.value) {
-          await endStream()
+          await endStream();
         }
       }
-
-      await room.value.disconnect()
+      await room.value.disconnect();
     } catch (error) {
-      console.error('Error durante el proceso de desconexión:', error)
+      console.error('Error durante el proceso de desconexión:', error);
     } finally {
-      _resetState()
-      isDisconnecting.value = false
+      _resetState();
+      // isDisconnecting ya se resetea en _resetState, pero lo dejamos por claridad
+      isDisconnecting.value = false;
     }
   }
+
 
   function listenToStreamStatus() {
     if (realtimeChannel) return
@@ -739,6 +740,8 @@ export const useStreamingStore = defineStore('streaming', () => {
     isCameraOverlayEnabled,
     isCameraEnabled,
     isMicrophoneEnabled,
+    isIntentionalDisconnect,
+    intentionallyDisconnect,
     connectWithoutPublishing,
     startPublishing,
     stopPublishing,

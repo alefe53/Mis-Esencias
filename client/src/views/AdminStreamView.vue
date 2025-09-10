@@ -217,7 +217,7 @@ const {
   cameraOverlaySize,
   isCameraEnabled,
   isMicrophoneEnabled,
-  
+  isIntentionalDisconnect,
 } = storeToRefs(streamingStore)
 
 const {
@@ -228,6 +228,7 @@ const {
   changeCamera,
   changeMicrophone,
   setOverlayPosition,
+  intentionallyDisconnect,
   setOverlaySize,
   toggleCameraFullScreen,
   toggleCameraOverlay,
@@ -424,13 +425,25 @@ watch(
 )
 
 // preview enable on mount if needed
-onMounted(() => {
-  if (!room.value) {
-    enablePreview()
+onUnmounted(() => {
+  detachOverlayPreview();
+  disablePreview();
+  
+  // Si la desconexión NO fue intencional (fue por un re-render),
+  // simplemente registramos el evento y NO nos desconectamos.
+  if (!isIntentionalDisconnect.value) {
+    console.warn("AdminStreamView se desmontó inesperadamente. DESCONEXIÓN EVITADA.");
+    return;
   }
-  // logs para diagnosticar
-  console.log('[AdminStreamView] mount, isScreenSharing=', isScreenSharing.value)
-})
+
+  // Si fue intencional, la desconexión ya está en proceso.
+  // El `disconnect()` original en `onUnmounted` es redundante
+  // porque el botón ahora maneja todo el flujo.
+  if (room.value) {
+    console.log("Limpiando componente tras desconexión intencional.");
+    // La función disconnect() ya se llamó, no es necesario volver a llamarla.
+  }
+});
 
 onUnmounted(() => {
   detachOverlayPreview()
