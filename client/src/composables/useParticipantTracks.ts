@@ -1,83 +1,76 @@
-// RUTA: src/composables/useParticipantTracks.ts
-
-import { ref, watch, onUnmounted, type Ref } from 'vue'
+import { watch, onUnmounted, shallowRef, type Ref } from 'vue';
 import {
-  type Participant,
-  type TrackPublication,
-  Track,
-  ParticipantEvent,
-} from 'livekit-client'
+  type Participant,
+  type TrackPublication,
+  Track,
+  ParticipantEvent,
+} from 'livekit-client';
 
 export function useParticipantTracks(participant: Ref<Participant | null>) {
-  const cameraTrackPub = ref<TrackPublication | null>(null)
-  const screenShareTrackPub = ref<TrackPublication | null>(null)
-  const audioTrackPub = ref<TrackPublication | null>(null)
+  // ✅ CAMBIO CLAVE: Usamos shallowRef en lugar de ref.
+  // Esto previene que Vue "desarme" el objeto TrackPublication y conserve su tipo original.
+  const cameraTrackPub = shallowRef<TrackPublication | null>(null);
+  const screenShareTrackPub = shallowRef<TrackPublication | null>(null);
+  const audioTrackPub = shallowRef<TrackPublication | null>(null);
 
-  const updatePublications = () => {
-    if (!participant.value) {
-      cameraTrackPub.value = null
-      screenShareTrackPub.value = null
-      audioTrackPub.value = null
-      return
-    }
+  const updatePublications = () => {
+    if (!participant.value) {
+      cameraTrackPub.value = null;
+      screenShareTrackPub.value = null;
+      audioTrackPub.value = null;
+      return;
+    }
 
-    // Usamos getTrackPublication para obtener el estado actual de las publicaciones.
-    // Esto es fiable y nos da el estado más reciente.
-    cameraTrackPub.value =
-      participant.value.getTrackPublication(Track.Source.Camera) ?? null
-    screenShareTrackPub.value =
-      participant.value.getTrackPublication(Track.Source.ScreenShare) ?? null
-    audioTrackPub.value =
-      participant.value.getTrackPublication(Track.Source.Microphone) ?? null
-  }
+    cameraTrackPub.value =
+      participant.value.getTrackPublication(Track.Source.Camera) ?? null;
+    screenShareTrackPub.value =
+      participant.value.getTrackPublication(Track.Source.ScreenShare) ?? null;
+    audioTrackPub.value =
+      participant.value.getTrackPublication(Track.Source.Microphone) ?? null;
+  };
 
-  // Un solo handler para todos los eventos que indican un cambio en los tracks.
-  // Esto simplifica la lógica y evita redundancia.
-  const onTracksChanged = () => {
-    updatePublications()
-  }
+  const onTracksChanged = () => {
+    updatePublications();
+  };
 
-  watch(
-    participant,
-    (newP, oldP) => {
-      if (oldP) {
-        // Limpiamos todos los listeners del participante anterior para evitar fugas de memoria.
-        oldP.off(ParticipantEvent.TrackPublished, onTracksChanged)
-        oldP.off(ParticipantEvent.TrackUnpublished, onTracksChanged)
-        oldP.off(ParticipantEvent.TrackSubscribed, onTracksChanged)
-        oldP.off(ParticipantEvent.TrackUnsubscribed, onTracksChanged)
-        oldP.off(ParticipantEvent.TrackMuted, onTracksChanged)
-        oldP.off(ParticipantEvent.TrackUnmuted, onTracksChanged)
-      }
-      if (newP) {
-        // Actualizamos el estado inicial para el nuevo participante.
-        updatePublications()
-        // Nos suscribimos a todos los eventos relevantes.
-        newP.on(ParticipantEvent.TrackPublished, onTracksChanged)
-        newP.on(ParticipantEvent.TrackUnpublished, onTracksChanged)
-        newP.on(ParticipantEvent.TrackSubscribed, onTracksChanged)
-        newP.on(ParticipantEvent.TrackUnsubscribed, onTracksChanged)
-        newP.on(ParticipantEvent.TrackMuted, onTracksChanged)
-        newP.on(ParticipantEvent.TrackUnmuted, onTracksChanged)
-      }
-    },
-    { immediate: true },
-  )
+  watch(
+    participant,
+    (newP, oldP) => {
+      if (oldP) {
+        oldP.off(ParticipantEvent.TrackPublished, onTracksChanged);
+        oldP.off(ParticipantEvent.TrackUnpublished, onTracksChanged);
+        oldP.off(ParticipantEvent.TrackSubscribed, onTracksChanged);
+        oldP.off(ParticipantEvent.TrackUnsubscribed, onTracksChanged);
+        oldP.off(ParticipantEvent.TrackMuted, onTracksChanged);
+        oldP.off(ParticipantEvent.TrackUnmuted, onTracksChanged);
+      }
+      if (newP) {
+        updatePublications();
+        newP.on(ParticipantEvent.TrackPublished, onTracksChanged);
+        newP.on(ParticipantEvent.TrackUnpublished, onTracksChanged);
+        newP.on(ParticipantEvent.TrackSubscribed, onTracksChanged);
+        newP.on(ParticipantEvent.TrackUnsubscribed, onTracksChanged);
+        newP.on(ParticipantEvent.TrackMuted, onTracksChanged);
+        newP.on(ParticipantEvent.TrackUnmuted, onTracksChanged);
+      }
+    },
+    { immediate: true },
+  );
 
-  onUnmounted(() => {
-    if (participant.value) {
-      participant.value.off(ParticipantEvent.TrackPublished, onTracksChanged)
-        participant.value.off(ParticipantEvent.TrackUnpublished, onTracksChanged)
-        participant.value.off(ParticipantEvent.TrackSubscribed, onTracksChanged)
-        participant.value.off(ParticipantEvent.TrackUnsubscribed, onTracksChanged)
-        participant.value.off(ParticipantEvent.TrackMuted, onTracksChanged)
-        participant.value.off(ParticipantEvent.TrackUnmuted, onTracksChanged)
-    }
-  })
+  onUnmounted(() => {
+    if (participant.value) {
+      participant.value.off(ParticipantEvent.TrackPublished, onTracksChanged);
+      participant.value.off(ParticipantEvent.TrackUnpublished, onTracksChanged);
+      participant.value.off(ParticipantEvent.TrackSubscribed, onTracksChanged);
+      participant.value.off(ParticipantEvent.TrackUnsubscribed, onTracksChanged);
+      participant.value.off(ParticipantEvent.TrackMuted, onTracksChanged);
+      participant.value.off(ParticipantEvent.TrackUnmuted, onTracksChanged);
+    }
+  });
 
-  return {
-    cameraTrackPub,
-    screenShareTrackPub,
-    audioTrackPub,
-  }
+  return {
+    cameraTrackPub,
+    screenShareTrackPub,
+    audioTrackPub,
+  };
 }

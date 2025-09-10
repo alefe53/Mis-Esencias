@@ -37,7 +37,7 @@ export const useStreamingStore = defineStore('streaming', () => {
   const egressId = ref<string | null>(null)
   const isIntentionalDisconnect = ref(false);
 
-  
+  const isCameraTogglePending = ref(false);
   const isCameraEnabled = ref(false)
   const isMicrophoneEnabled = ref(false)
 
@@ -741,6 +741,7 @@ async function disconnect() {
     isCameraEnabled,
     isMicrophoneEnabled,
     isIntentionalDisconnect,
+    isCameraTogglePending,
     intentionallyDisconnect,
     connectWithoutPublishing,
     startPublishing,
@@ -766,5 +767,6 @@ async function disconnect() {
     setLiveStatus,
     unsubscribeFromStreamStatus,
     toggleCameraOverlay,
+    
   }
 })

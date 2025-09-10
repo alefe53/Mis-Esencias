@@ -1,41 +1,24 @@
 <template>
   <div class="admin-stream-layout">
     <div class="stream-panel-full">
-      <div class="video-container" ref="videoContainerRef">
+      <div class="video-container">
         <template v-if="room">
           <ParticipantView
-            :publication="mainPublication as TrackPublication | null"
+            :publication="mainPublication"
             :is-local="true"
             class="main-video"
-            :class="{
-              'fill-container': !isScreenSharing || isCameraFullScreen,
-            }"
+            :class="{ 'fill-container': !isScreenSharing || isCameraFullScreen }"
           />
           <div
-            v-if="
-              !isCameraFullScreen &&
-              isScreenSharing &&
-              isCameraOverlayEnabled
-            "
-            ref="cameraOverlayRef"
+            v-if="!isCameraFullScreen && isScreenSharing && isCameraOverlayEnabled"
             class="camera-overlay"
-            :style="cameraOverlayStyle"
           >
-            <!-- Primero intentamos mostrar la publicación de cámara -->
-            <ParticipantView
-              v-if="localCameraPublication?.track"
-              class="overlay-participant"
-              :publication="localCameraPublication as TrackPublication | null"
-              :is-local="true"
-            />
-            <!-- Si no hay publicación de cámara, usamos el preview local como fallback -->
             <video
-              v-else
-              ref="overlayPreviewRef"
+              ref="overlayVideoRef"
               autoplay
               playsinline
               muted
-              class="overlay-preview"
+              class="overlay-video"
             ></video>
           </div>
         </template>
@@ -51,9 +34,7 @@
           <div class="placeholder-content">
             <p v-if="isCheckingPermissions">Verificando permisos...</p>
             <p v-else-if="permissionError">{{ permissionError }}</p>
-            <p v-else-if="!localVideoTrack">
-              Cámara lista para la vista previa.
-            </p>
+            <p v-else>Cámara lista para la vista previa.</p>
             <button
               @click="handleConnectWithoutPublishing"
               :disabled="isConnecting || !localVideoTrack || !!permissionError"
@@ -70,110 +51,37 @@
             @click="toggleCameraOverlay(!isCameraOverlayEnabled)"
             :disabled="!isPublishing"
             :class="{ 'is-off': !isCameraOverlayEnabled }"
+            title="Muestra u oculta tu cámara en el overlay (solo para ti)"
           >
             {{ isCameraOverlayEnabled ? '📷 Ocultar' : '📷 Mostrar' }}
           </button>
 
           <button
+            @click="publishCameraAction"
+            :disabled="!isPublishing || isCameraTogglePending"
+            :class="{ 'is-off': !isCameraEnabled }"
+            title="Publica o deja de publicar tu cámara para los espectadores"
+          >
+            {{ isCameraEnabled ? '📡 Dejar de Publicar' : '📡 Publicar Cámara' }}
+          </button>
+           <button
             @click="toggleMicrophone(!isMicrophoneEnabled)"
             :disabled="!isPublishing"
             :class="{ 'is-off': !isMicrophoneEnabled }"
           >
             {{ isMicrophoneEnabled ? '🎤 Silenciar' : '🎤 Activar' }}
           </button>
-
-          <button
+        </div>
+        
+        <div class="stream-actions">
+           <button
             @click="toggleScreenShare"
             :class="{ 'is-sharing': isScreenSharing }"
             :disabled="!isPublishing"
           >
             {{ isScreenSharing ? '🖥️ Dejar de Compartir' : '🖥️ Compartir' }}
           </button>
-        </div>
-
-        <div class="device-selectors">
-          <div class="device-selector">
-            <label for="cam-select">Cámara:</label>
-            <select
-              id="cam-select"
-              :value="activeCameraId"
-              @change="onCameraChange"
-              :disabled="isPublishing"
-            >
-              <option
-                v-for="cam in availableCameras"
-                :key="cam.id"
-                :value="cam.id"
-              >
-                {{ cam.label }}
-              </option>
-            </select>
-          </div>
-          <div class="device-selector">
-            <label for="mic-select">Micrófono:</label>
-            <select
-              id="mic-select"
-              :value="activeMicId"
-              @change="onMicChange"
-              :disabled="isPublishing"
-            >
-              <option
-                v-for="mic in availableMics"
-                :key="mic.id"
-                :value="mic.id"
-              >
-                {{ mic.label }}
-              </option>
-            </select>
-          </div>
-        </div>
-
-        <div class="stream-actions">
-          <div class="info">
-            <p>👀 Espectadores: {{ participantCount }}</p>
-          </div>
-
-          <div v-if="isScreenSharing" class="overlay-buttons">
-            <button @click="setOverlayPosition('top-left')">↖️</button>
-            <button @click="setOverlayPosition('top-right')">↗️</button>
-            <button @click="setOverlayPosition('bottom-left')">↙️</button>
-            <button @click="setOverlayPosition('bottom-right')">↘️</button>
-            <button @click="setOverlaySize('small')">S</button>
-            <button @click="setOverlaySize('medium')">M</button>
-            <button @click="setOverlaySize('large')">L</button>
-            <button
-              @click="toggleCameraFullScreen"
-              class="toggle-fullscreen-btn"
-            >
-              {{ isCameraFullScreen ? 'Volver a Overlay' : 'Cámara Completa' }}
-            </button>
-            <button @click="toggleCameraOverlay(!isCameraOverlayEnabled)">
-              {{ isCameraOverlayEnabled ? 'Overlay On' : 'Overlay Off' }}
-            </button>
-          </div>
-
-          <button
-            v-if="!isPublishing"
-            @click="startPublishing"
-            class="start-publish-btn"
-          >
-            🚀 Publicar Media
-          </button>
-          <button v-else @click="stopPublishing" class="pause-stream-btn">
-            ⏸️ Dejar de Publicar
-          </button>
-
-          <button
-            v-if="isPublishing && !isStreamLive"
-            @click="goLive"
-            class="go-live-btn"
-          >
-            🔴 Transmitir EN VIVO
-          </button>
-          <button v-if="isStreamLive" @click="endStream" class="stop-live-btn">
-            🛑 Detener EN VIVO
-          </button>
-          <button @click="disconnect" class="disconnect-btn">
+          <button @click="intentionallyDisconnect" class="disconnect-btn">
             🚪 Salir del Studio
           </button>
         </div>
@@ -183,319 +91,136 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, computed, nextTick, watch } from 'vue'
-import { storeToRefs } from 'pinia'
-import { useStreamingStore } from '../stores/streamingStore'
-import ParticipantView from '../components/streaming/ParticipantView.vue'
-import {
-  createLocalVideoTrack,
-  type LocalVideoTrack,
-  Room,
-  type TrackPublication,
-} from 'livekit-client'
-import { useParticipantTracks } from '../composables/useParticipantTracks'
-import { useInteractableOverlay } from '../composables/useInteractableOverlay'
+import { onMounted, onUnmounted, ref, computed, watch } from 'vue';
+import { storeToRefs } from 'pinia';
+import { useStreamingStore } from '../stores/streamingStore';
+import ParticipantView from '../components/streaming/ParticipantView.vue';
+import { createLocalVideoTrack, type LocalVideoTrack, type TrackPublication } from 'livekit-client';
+import { useParticipantTracks } from '../composables/useParticipantTracks';
 
-const streamingStore = useStreamingStore()
-const isCameraTogglePending = ref(false)
+const streamingStore = useStreamingStore();
 
 const {
   room,
   isConnecting,
   isPublishing,
-  isStreamLive,
   isScreenSharing,
   isCameraFullScreen,
   isCameraOverlayEnabled,
   localParticipant,
-  participantCount,
-  availableCameras,
-  availableMics,
-  activeCameraId,
-  activeMicId,
-  cameraOverlayPosition,
-  cameraOverlaySize,
   isCameraEnabled,
   isMicrophoneEnabled,
   isIntentionalDisconnect,
-} = storeToRefs(streamingStore)
+  isCameraTogglePending,
+  cameraOverlayPosition,
+  cameraOverlaySize
+} = storeToRefs(streamingStore);
 
 const {
-  disconnect,
+  intentionallyDisconnect,
   toggleCamera,
   toggleMicrophone,
   toggleScreenShare,
-  changeCamera,
-  changeMicrophone,
-  setOverlayPosition,
-  intentionallyDisconnect,
-  setOverlaySize,
-  toggleCameraFullScreen,
   toggleCameraOverlay,
   connectWithoutPublishing,
   startPublishing,
   stopPublishing,
-  goLive,
-  endStream,
-  updateCameraOverlayPosition,
-  updateCameraOverlaySize,
-} = streamingStore
+} = streamingStore;
 
-const videoContainerRef = ref<HTMLDivElement | null>(null)
-const previewVideoRef = ref<HTMLVideoElement | null>(null)
-const overlayPreviewRef = ref<HTMLVideoElement | null>(null)
-const localVideoTrack = ref<LocalVideoTrack | null>(null)
-const permissionError = ref<string>('')
-const isCheckingPermissions = ref(true)
-const cameraOverlayRef = ref<HTMLDivElement | null>(null)
-const cameraResizeHandleRef = ref<HTMLDivElement | null>(null)
+// --- Refs del Componente ---
+const previewVideoRef = ref<HTMLVideoElement | null>(null);
+const overlayVideoRef = ref<HTMLVideoElement | null>(null);
+const localVideoTrack = ref<LocalVideoTrack | null>(null);
+const permissionError = ref('');
+const isCheckingPermissions = ref(true);
 
-useInteractableOverlay(cameraOverlayRef, cameraResizeHandleRef, {
-  position: cameraOverlayPosition,
-  size: cameraOverlaySize,
-  onDragEnd: updateCameraOverlayPosition,
-  onResizeEnd: updateCameraOverlaySize,
-})
-
+// --- Lógica de Publicaciones y UI ---
 const {
   cameraTrackPub: localCameraPublication,
   screenShareTrackPub: localScreenSharePublication,
-} = useParticipantTracks(localParticipant)
+} = useParticipantTracks(localParticipant);
 
-// mainPublication igual que antes
-const mainPublication = computed(() => {
+const mainPublication = computed<TrackPublication | null>(() => {
   if (isScreenSharing.value && localScreenSharePublication.value) {
-    if (isCameraFullScreen.value) {
-      return localCameraPublication.value
-    }
-    return localScreenSharePublication.value
+    return isCameraFullScreen.value ? localCameraPublication.value : localScreenSharePublication.value;
   }
-  return localCameraPublication.value
-})
-
-
-
-const publishCameraAction = async () => {
-  if (!room?.value?.localParticipant) return
-
-  // bloquear mientras el SDK procesa (evita doble clicks)
-  isCameraTogglePending.value = true
-  try {
-    // Si queremos encender:
-    const desired = !isCameraEnabled.value
-    // Llamamos a la acción del store (que debe esperar al SDK)
-    await toggleCamera(desired)
-    // toggleCamera debe resolverse cuando setCameraEnabled() termina o lanzar error
-  } catch (err) {
-    console.error('[admin] publishCameraAction error', err)
-  } finally {
-    // Le damos un pequeño time buffer para que los eventos del SDK actualicen el store
-    await new Promise(r => setTimeout(r, 200))
-    isCameraTogglePending.value = false
-  }
-}
+  return localCameraPublication.value;
+});
 
 const cameraOverlayStyle = computed(() => ({
   top: `${cameraOverlayPosition.value.y}%`,
   left: `${cameraOverlayPosition.value.x}%`,
   width: `${cameraOverlaySize.value.width}%`,
-}))
+}));
 
-/* ---------- preview local (para overlay fallback) ---------- */
-const enablePreview = async () => {
-  if (localVideoTrack.value) {
-    localVideoTrack.value.stop()
-  }
-  permissionError.value = ''
-  isCheckingPermissions.value = true
+// --- Lógica de Acciones de la UI ---
+const publishCameraAction = async () => {
+  if (isCameraTogglePending.value) return;
+  await toggleCamera(!isCameraEnabled.value);
+};
 
+const handleConnectWithoutPublishing = async () => {
+  if (!localVideoTrack.value) return alert('La cámara no está lista.');
+  await connectWithoutPublishing();
+};
+
+// --- Lógica de Video Local Persistente ---
+const setupLocalVideo = async () => {
+  if (localVideoTrack.value) return;
+  isCheckingPermissions.value = true;
+  permissionError.value = '';
   try {
-    await Room.getLocalDevices('videoinput', true)
-    await Room.getLocalDevices('audioinput', true)
-
-    localVideoTrack.value = await createLocalVideoTrack({
-      resolution: { width: 1280, height: 720, frameRate: 30 },
-    })
-
+    const track = await createLocalVideoTrack({
+      resolution: { width: 1280, height: 720 },
+    });
+    localVideoTrack.value = track;
     if (previewVideoRef.value) {
-      localVideoTrack.value.attach(previewVideoRef.value)
+      track.attach(previewVideoRef.value);
     }
-  } catch (error: any) {
-    permissionError.value =
-      'Permiso denegado para la cámara o el micrófono. Por favor, revisa la configuración de tu navegador.'
+  } catch (error) {
+    permissionError.value = 'Permiso de cámara denegado. Revisa la configuración del navegador.';
   } finally {
-    isCheckingPermissions.value = false
+    isCheckingPermissions.value = false;
   }
-}
+};
 
-const disablePreview = () => {
+const cleanupLocalVideo = () => {
   if (localVideoTrack.value) {
-    try {
-      localVideoTrack.value.stop()
-      localVideoTrack.value.detach()
-    } catch {}
-    localVideoTrack.value = null
+    localVideoTrack.value.stop();
+    localVideoTrack.value = null;
   }
-}
+};
 
-/* ---------- overlay preview attach/detach logic ---------- */
-async function attachOverlayPreview() {
-  if (!overlayPreviewRef.value) {
-    console.warn('[overlay] no overlayPreviewRef available')
-    return
-  }
-
-  try {
-    if (!localVideoTrack.value) {
-      console.log('[overlay] creando preview local on-demand...')
-      localVideoTrack.value = await createLocalVideoTrack({
-        resolution: { width: 640, height: 360, frameRate: 15 },
-      })
-    }
-
-    // detach/attach seguro
-    try { localVideoTrack.value.detach(overlayPreviewRef.value) } catch {}
-    localVideoTrack.value.attach(overlayPreviewRef.value)
-
-    await nextTick()
-    try { await overlayPreviewRef.value.play().catch(()=>{}) } catch (e) {
-      console.warn('[overlay] play error', e)
-    }
-    overlayPreviewRef.value.muted = true
-    overlayPreviewRef.value.playsInline = true
-    overlayPreviewRef.value.autoplay = true
-
-    console.log('[overlay] preview attached to element')
-  } catch (err) {
-    console.warn('[overlay] attachOverlayPreview error:', err)
-  }
-}
-
-
-
-function detachOverlayPreview() {
-  if (!overlayPreviewRef.value) return
-  try {
-    if (localVideoTrack.value) {
-      try { localVideoTrack.value.detach(overlayPreviewRef.value) } catch {}
-    }
-    try { overlayPreviewRef.value.srcObject = null } catch {}
-  } catch (e) {
-    console.warn('[overlay] detach error', e)
-  }
-}
-
-
-// Si la publicación de cámara llega (o se va), actualizamos el overlay:
+// ✅ SOLUCIÓN AL ERROR: Watcher simple y seguro con tipos
 watch(
-  () => localCameraPublication?.value,
-  async (newPub, _oldPub) => {
-    console.log('[overlay] cameraPublication changed:', {
-      hasNew: !!newPub,
-      newTrack: !!newPub?.track,
-      isScreenSharing: isScreenSharing.value,
-      isCameraEnabled: isCameraEnabled.value,
-    })
-
-    if (newPub && newPub.track) {
-      detachOverlayPreview()
-      return
-    }
-
-    if (!newPub?.track && isScreenSharing.value) {
-      await attachOverlayPreview()
-    } else {
-      detachOverlayPreview()
+  overlayVideoRef,
+  (videoEl) => {
+    // Si el elemento de video del overlay está disponible y estamos compartiendo pantalla
+    // y tenemos nuestro track local, lo vinculamos.
+    if (videoEl && isScreenSharing.value && localVideoTrack.value) {
+      localVideoTrack.value.attach(videoEl);
     }
   },
-  { immediate: true },
-)
+  { flush: 'post' } // flush: 'post' espera a que el DOM esté actualizado
+);
 
-
-// También observamos el preview local por si se crea/destruye
-watch(
-  () => localVideoTrack.value,
-  async (_t) => {
-    if (!localCameraPublication?.value?.track && isScreenSharing.value && localVideoTrack.value) {
-      await attachOverlayPreview()
-    } else {
-      detachOverlayPreview()
-    }
-  }
-)
-
-// preview enable on mount if needed
-onUnmounted(() => {
-  detachOverlayPreview();
-  disablePreview();
-  
-  // Si la desconexión NO fue intencional (fue por un re-render),
-  // simplemente registramos el evento y NO nos desconectamos.
-  if (!isIntentionalDisconnect.value) {
-    console.warn("AdminStreamView se desmontó inesperadamente. DESCONEXIÓN EVITADA.");
-    return;
-  }
-
-  // Si fue intencional, la desconexión ya está en proceso.
-  // El `disconnect()` original en `onUnmounted` es redundante
-  // porque el botón ahora maneja todo el flujo.
-  if (room.value) {
-    console.log("Limpiando componente tras desconexión intencional.");
-    // La función disconnect() ya se llamó, no es necesario volver a llamarla.
-  }
+// --- Ciclo de Vida del Componente (CORREGIDO) ---
+onMounted(() => {
+  setupLocalVideo();
 });
 
 onUnmounted(() => {
-  detachOverlayPreview()
-  disablePreview()
-  if (room.value) {
-    disconnect()
-  }
-})
+  cleanupLocalVideo();
 
-/* ---------- restantes helpers (botones y selects) ---------- */
-const handleConnectWithoutPublishing = async () => {
-  if (!localVideoTrack.value) {
-    alert('La cámara no está lista. Por favor, concede los permisos.')
-    return
+  if (room.value && !isIntentionalDisconnect.value) {
+    console.warn("AdminStreamView se desmontó inesperadamente. DESCONEXIÓN EVITADA.");
+    return;
   }
-  // No llamamos a disablePreview() aquí: conservamos el preview local
-  await connectWithoutPublishing()
-}
-
-const onCameraChange = (event: Event) => {
-  const deviceId = (event.target as HTMLSelectElement).value
-  changeCamera(deviceId)
-}
-
-const onMicChange = (event: Event) => {
-  const deviceId = (event.target as HTMLSelectElement).value
-  changeMicrophone(deviceId)
-}
-
-/* chat popup (igual que antes) */
-let chatPopupWindow: Window | null = null
-const openChatPopup = () => {
-  const width = 400
-  const height = 700
-  const left = window.screen.width - width - 50
-  const top = 100
-  const windowFeatures = `width=${width},height=${height},left=${left},top=${top},popup=true`
-  if (chatPopupWindow === null || chatPopupWindow.closed) {
-    chatPopupWindow = window.open('/chat-popup', 'chatWindow', windowFeatures)
-  } else {
-    chatPopupWindow.focus()
-  }
-}
-const closeChatPopup = () => {
-  if (chatPopupWindow && !chatPopupWindow.closed) {
-    chatPopupWindow.close()
-  }
-}
+});
 </script>
 
 <style scoped>
-/* Todo el CSS previo (sin cambios relevantes) */
+/* Tu CSS existente... */
 .camera-overlay {
   position: absolute;
   aspect-ratio: 16 / 9;
@@ -504,19 +229,20 @@ const closeChatPopup = () => {
   overflow: hidden;
   z-index: 10;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-  transition: all 0.3s ease;
 }
-.camera-overlay .overlay-participant {
-  pointer-events: none;
-}
-/* preview video fallback styling */
-.overlay-preview {
+.overlay-video { /* Estilo para el nuevo <video> del overlay */
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transform: scaleX(-1); /* espejo si es local */
-  display: block;
-  background: #000;
+  transform: scaleX(-1);
+}
+.preview-video {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  z-index: 1;
+  transform: scaleX(-1);
 }
 .fullscreen-camera {
   position: absolute;
