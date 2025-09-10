@@ -1,105 +1,108 @@
 <template>
-  <div class="participant-view" ref="containerRef"></div>
+  <div :class="['participant-view', { 'is-local': isLocal }]">
+    <video
+      ref="videoEl"
+      autoplay
+      playsinline
+      :muted="isLocal"
+      class="participant-video"
+    ></video>
+    <div v-if="!isVideoEnabled" class="no-video-placeholder">
+      <slot name="placeholder">Sin video</slot>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onUnmounted } from 'vue'
-import { TrackEvent, type TrackPublication, type Track } from 'livekit-client' // <-- Añade 'Track' a los imports
+import { ref, watch, onUnmounted } from 'vue';
+import { type TrackPublication, type Track } from 'livekit-client';
 
 const props = defineProps<{
-  publication: TrackPublication | null
-  isLocal: boolean
-}>()
+  publication: TrackPublication | null;
+  isLocal?: boolean;
+}>();
 
-const containerRef = ref<HTMLDivElement | null>(null)
+const videoEl = ref<HTMLVideoElement | null>(null);
+const isVideoEnabled = ref(false);
 
-// Función para mostrar el video/audio en el DOM
-// La hacemos más simple: ahora recibe el track directamente
+// Esta función ahora toma un Track, es más simple.
 const attach = (track: Track) => {
-  if (!containerRef.value) return
-
-  detach() // Limpiamos cualquier elemento anterior
-
-  const element = track.attach()
-
-  if (track.source === 'camera' && props.isLocal) {
-    element.classList.add('mirrored')
+  if (!videoEl.value) return;
+  try {
+    track.attach(videoEl.value);
+    isVideoEnabled.value = true;
+  } catch (e) {
+    console.error('Error al adjuntar el track:', e);
   }
+};
 
-  containerRef.value.appendChild(element)
-}
-
-// Función para limpiar el DOM
-const detach = () => {
-  if (containerRef.value) {
-    containerRef.value.innerHTML = ''
+// Esta función ahora toma un Track, es más simple.
+const detach = (track: Track) => {
+  if (!videoEl.value) return;
+  try {
+    track.detach(videoEl.value);
+  } catch (e) {
+    console.error('Error al desadjuntar el track:', e);
+  } finally {
+    videoEl.value.srcObject = null;
+    isVideoEnabled.value = false;
   }
-}
+};
 
-// ✨ LÓGICA CORREGIDA ✨
-// Ahora, el manejador del evento recibe el 'track' como argumento
-const handleSubscribed = (track: Track) => {
-  attach(track)
-}
-
+// ✅ LÓGICA CLAVE CORREGIDA Y SIMPLIFICADA
+// Usamos un solo 'watch' para observar directamente la propiedad 'track'
+// dentro de la publicación que recibimos como prop.
 watch(
-  () => props.publication,
-  (newPub, oldPub) => {
-    if (oldPub) {
-      // Limpiamos el listener del track anterior para evitar fugas de memoria
-      oldPub.off(TrackEvent.Subscribed, handleSubscribed)
-      detach()
+  () => props.publication?.track,
+  (newTrack, oldTrack) => {
+    if (oldTrack) {
+      // Si había un track anterior, lo desadjuntamos.
+      detach(oldTrack);
     }
-
-    if (newPub) {
-      // Si el track ya está listo y suscrito, lo mostramos
-      if (newPub.track) {
-        attach(newPub.track)
-      } else {
-        // Si no, esperamos a que el evento 'Subscribed' nos avise
-        // El evento nos pasará el objeto 'track' directamente
-        newPub.on(TrackEvent.Subscribed, handleSubscribed)
+    if (newTrack) {
+      // Si hay un nuevo track (porque nos suscribimos o es local), lo adjuntamos.
+      attach(newTrack);
+    } else {
+      // Si no hay track, nos aseguramos de que el video esté limpio.
+      if (videoEl.value) {
+        videoEl.value.srcObject = null;
       }
+      isVideoEnabled.value = false;
     }
   },
-  { immediate: true },
-)
+  { immediate: true } // 'immediate' se asegura de que se ejecute al montar el componente.
+);
 
 onUnmounted(() => {
-  if (props.publication) {
-    props.publication.off(TrackEvent.Subscribed, handleSubscribed)
+  // Limpieza final
+  if (props.publication?.track) {
+    detach(props.publication.track);
   }
-  detach()
-})
+});
 </script>
 
 <style scoped>
 .participant-view {
+  position: relative;
   width: 100%;
   height: 100%;
-  position: relative;
-  background-color: #000;
-  border-radius: 8px;
+  background: #000;
   overflow: hidden;
+}
+.participant-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.no-video-placeholder {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-/* :deep() permite aplicar estilos a los elementos hijos creados dinámicamente */
-.participant-view :deep(video),
-.participant-view :deep(audio) {
-  width: 100%;
-  height: 100%;
-  object-fit: contain; /* 'contain' evita que el video se corte */
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-.participant-view :deep(video.mirrored) {
-  transform: scaleX(-1);
-}
-.participant-view :deep(audio) {
-  /* El audio no necesita ser visible */
-  visibility: hidden;
+  color: #b0b0b0;
+  font-weight: 600;
+  pointer-events: none;
 }
 </style>
