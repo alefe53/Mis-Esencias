@@ -67,11 +67,11 @@
       <div class="controls-section" v-if="room">
         <div class="device-controls">
           <button
-            @click="toggleCamera(!isCameraEnabled)"
+            @click="toggleCameraOverlay(!isCameraOverlayEnabled)"
             :disabled="!isPublishing"
-            :class="{ 'is-off': !isCameraEnabled }"
+            :class="{ 'is-off': !isCameraOverlayEnabled }"
           >
-            {{ isCameraEnabled ? '📷 Apagar' : '📷 Encender' }}
+            {{ isCameraOverlayEnabled ? '📷 Ocultar' : '📷 Mostrar' }}
           </button>
 
           <button
@@ -197,6 +197,7 @@ import { useParticipantTracks } from '../composables/useParticipantTracks'
 import { useInteractableOverlay } from '../composables/useInteractableOverlay'
 
 const streamingStore = useStreamingStore()
+const isCameraTogglePending = ref(false)
 
 const {
   room,
@@ -216,6 +217,7 @@ const {
   cameraOverlaySize,
   isCameraEnabled,
   isMicrophoneEnabled,
+  
 } = storeToRefs(streamingStore)
 
 const {
@@ -270,6 +272,28 @@ const mainPublication = computed(() => {
   return localCameraPublication.value
 })
 
+
+
+const publishCameraAction = async () => {
+  if (!room?.value?.localParticipant) return
+
+  // bloquear mientras el SDK procesa (evita doble clicks)
+  isCameraTogglePending.value = true
+  try {
+    // Si queremos encender:
+    const desired = !isCameraEnabled.value
+    // Llamamos a la acción del store (que debe esperar al SDK)
+    await toggleCamera(desired)
+    // toggleCamera debe resolverse cuando setCameraEnabled() termina o lanzar error
+  } catch (err) {
+    console.error('[admin] publishCameraAction error', err)
+  } finally {
+    // Le damos un pequeño time buffer para que los eventos del SDK actualicen el store
+    await new Promise(r => setTimeout(r, 200))
+    isCameraTogglePending.value = false
+  }
+}
+
 const cameraOverlayStyle = computed(() => ({
   top: `${cameraOverlayPosition.value.y}%`,
   left: `${cameraOverlayPosition.value.x}%`,
@@ -315,42 +339,37 @@ const disablePreview = () => {
 
 /* ---------- overlay preview attach/detach logic ---------- */
 async function attachOverlayPreview() {
-  // Si no hay elemento de overlay, no hacemos nada
-  if (!overlayPreviewRef.value) return
+  if (!overlayPreviewRef.value) {
+    console.warn('[overlay] no overlayPreviewRef available')
+    return
+  }
 
   try {
-    // Si no tenemos preview local, intentamos crear uno *on demand*
     if (!localVideoTrack.value) {
-      try {
-        console.log('[overlay] creando preview local on-demand...')
-        localVideoTrack.value = await createLocalVideoTrack({
-          resolution: { width: 640, height: 360, frameRate: 15 },
-        })
-        // No adjuntamos el preview principal (previewVideoRef) para no interferir,
-        // solo lo usaremos para el overlay.
-      } catch (err) {
-        console.warn('[overlay] fallo creando preview on-demand:', err)
-        return
-      }
+      console.log('[overlay] creando preview local on-demand...')
+      localVideoTrack.value = await createLocalVideoTrack({
+        resolution: { width: 640, height: 360, frameRate: 15 },
+      })
     }
 
-    // detach previos (best-effort)
-    try { localVideoTrack.value?.detach(overlayPreviewRef.value) } catch {}
-    // attach al elemento overlay
-    localVideoTrack.value?.attach(overlayPreviewRef.value)
+    // detach/attach seguro
+    try { localVideoTrack.value.detach(overlayPreviewRef.value) } catch {}
+    localVideoTrack.value.attach(overlayPreviewRef.value)
 
-    // asegurar reproducción automática
     await nextTick()
-    try { await overlayPreviewRef.value?.play().catch(()=>{}) } catch {}
+    try { await overlayPreviewRef.value.play().catch(()=>{}) } catch (e) {
+      console.warn('[overlay] play error', e)
+    }
     overlayPreviewRef.value.muted = true
     overlayPreviewRef.value.playsInline = true
     overlayPreviewRef.value.autoplay = true
 
-    console.log('[overlay] preview attached')
-  } catch (e) {
-    console.warn('[overlay] attach failed', e)
+    console.log('[overlay] preview attached to element')
+  } catch (err) {
+    console.warn('[overlay] attachOverlayPreview error:', err)
   }
 }
+
 
 
 function detachOverlayPreview() {

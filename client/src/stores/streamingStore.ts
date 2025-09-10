@@ -20,6 +20,7 @@ import { useUiStore } from './uiStore'
 const STREAM_STATE_UPDATE_TOPIC = 'stream-state-update'
 const textEncoder = new TextEncoder()
 const textDecoder = new TextDecoder()
+const isCameraTogglePending = ref(false);
 
 export const useStreamingStore = defineStore('streaming', () => {
   // --- ESTADO CENTRALIZADO ---
@@ -469,32 +470,65 @@ export const useStreamingStore = defineStore('streaming', () => {
     }
   }
 
+// streamingStore.ts - reemplazar toggleCamera
+  const cameraToggleWaitTimeoutMs = 4000
+
   async function toggleCamera(enabled: boolean) {
     if (!room.value?.localParticipant) return
     const uiStore = useUiStore()
 
+    // Si ya en el estado deseado, no hacemos nada
     if (isCameraEnabled.value === enabled) return
 
-    const previous = isCameraEnabled.value
-    isCameraEnabled.value = enabled
+    // Marcamos pendiente para la UI si hace falta
+    isCameraTogglePending.value = true
+
+    // Preparar un listener temporal para capturar LocalTrackPublished de la cámara
+    let settled = false
+    const onLocalTrackPublished = (pub: any, participant: any) => {
+      try {
+        if (participant?.isLocal && pub?.source === Track.Source.Camera) {
+          isCameraEnabled.value = true
+          settled = true
+        }
+      } catch {}
+    }
+    // si hay evento local en room
+    try {
+      room.value.on(RoomEvent.LocalTrackPublished, onLocalTrackPublished)
+    } catch {}
 
     try {
+      // Llamada al SDK
       await room.value.localParticipant.setCameraEnabled(enabled, {
         deviceId: activeCameraId.value || undefined,
       })
 
-      await new Promise((r) => setTimeout(r, 150))
+      // Esperamos que el evento LocalTrackPublished confirme el estado
+      const start = Date.now()
+      while (!settled && Date.now() - start < cameraToggleWaitTimeoutMs) {
+        await new Promise(r => setTimeout(r, 100))
+      }
+
+      // Si no se resolvió por evento, consultamos el estado final del SDK
+      isCameraEnabled.value = !!room.value.localParticipant?.isCameraEnabled
+
+      // Broadcast del estado por si queremos sincronizar overlays
+      await _broadcastStreamState()
     } catch (error) {
-      console.error('Error al cambiar el estado de la cámara:', error)
-      isCameraEnabled.value = previous
+      console.error('toggleCamera error:', error)
       uiStore.showToast({
         message: 'No se pudo cambiar el estado de la cámara.',
         color: '#ef4444',
       })
+      // revertir si algo
+      isCameraEnabled.value = !!room.value.localParticipant?.isCameraEnabled
     } finally {
-      await _broadcastStreamState()
+      try { room.value.off(RoomEvent.LocalTrackPublished, onLocalTrackPublished) } catch {}
+      isCameraTogglePending.value = false
     }
   }
+
 
 
   async function toggleMicrophone(enabled: boolean) {
