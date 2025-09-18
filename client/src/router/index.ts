@@ -117,6 +117,11 @@ const routes = [
         name: 'admin-stream',
         component: AdminStreamView,
       },
+      {
+      path: 'stream-v2', // Nueva ruta
+      name: 'admin-stream-v2',
+      component: () => import('../views/AdminStreamViewV2.vue'),
+      },
     ],
   },
   {

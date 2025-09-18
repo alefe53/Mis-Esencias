@@ -14,6 +14,9 @@
       <router-link to="/admin/stream" class="nav-button">
         Transmitir en Vivo
       </router-link>
+      <router-link to="/admin/stream-v2" class="nav-button" style="background-color: #059669;">
+        Transmitir en Vivo (V2)
+      </router-link>
     </div>
 
     <router-view />
