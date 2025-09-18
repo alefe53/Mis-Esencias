@@ -107,6 +107,9 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
 
   async function leaveStudio(intentional = true) {
     console.log(`[STORE] 🚦 Action: leaveStudio (intentional: ${intentional})`);
+    if (streamState.broadcastState === 'live') {
+      await stopBroadcast();
+    }
     if (intentional && room.value) {
       await room.value.disconnect();
     } else if (!room.value) {
@@ -236,6 +239,42 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
     _writableState.cameraOverlay.position = newPosition;
     console.log(`[STORE] -> ✅ New position set to "${newPosition}"`);
   }
+   function toggleCameraFocus() {
+    const newState = !streamState.cameraOverlay.isCameraFocus;
+    console.log(`[STORE] 🚦 Action: toggleCameraFocus to ${newState}`);
+    _writableState.cameraOverlay.isCameraFocus = newState;
+  }
+
+  async function startBroadcast() {
+    if (streamState.broadcastState === 'live') return;
+    console.log('[STORE] 🚦 Action: startBroadcast');
+    _writableState.broadcastState = 'starting';
+    try {
+      await api.post('/streaming/status', { isLive: true });
+      _writableState.broadcastState = 'live';
+      console.log('[STORE] -> ✅ Broadcast is now LIVE.');
+      uiStore.showToast({ message: '¡Estás en vivo!', color: '#10b981' });
+    } catch (error) {
+      console.error('[STORE] -> ❌ Failed to start broadcast:', error);
+      _writableState.broadcastState = 'idle';
+      uiStore.showToast({ message: 'Error al iniciar transmisión.', color: '#ef4444' });
+    }
+  }
+  
+  async function stopBroadcast() {
+    if (streamState.broadcastState !== 'live') return;
+    console.log('[STORE] 🚦 Action: stopBroadcast');
+    _writableState.broadcastState = 'ending';
+    try {
+      await api.post('/streaming/status', { isLive: false });
+      _writableState.broadcastState = 'idle';
+      console.log('[STORE] -> ✅ Broadcast has ended.');
+    } catch (error) {
+      console.error('[STORE] -> ❌ Failed to stop broadcast:', error);
+      _writableState.broadcastState = 'live'; 
+    }
+  }
+
 
   return {
     streamState,
@@ -251,5 +290,8 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
     toggleScreenShare,
     setCameraOverlaySize,
     cycleCameraOverlayPosition,
+    toggleCameraFocus,
+    startBroadcast,
+    stopBroadcast
   };
 });

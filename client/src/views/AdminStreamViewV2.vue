@@ -16,25 +16,32 @@
         
         <template v-else>
           <ParticipantViewV2 
-            v-if="!streamState.isScreenSharing"
+            v-if="streamState.cameraOverlay.isCameraFocus"
             :publication="cameraPublication" 
             :is-local="true" 
             class="main-video"
           />
-
+          
           <ParticipantViewV2 
-            v-if="streamState.isScreenSharing"
+            v-else-if="streamState.isScreenSharing"
             :publication="screenSharePublication" 
             :is-local="false" 
             class="main-video"
           />
+
+          <ParticipantViewV2 
+            v-else
+            :publication="cameraPublication" 
+            :is-local="true" 
+            class="main-video"
+          />
           
           <CameraOverlay 
-            v-if="streamState.isScreenSharing && cameraPublication"
+            v-if="streamState.isScreenSharing && !streamState.cameraOverlay.isCameraFocus && cameraPublication"
             :publication="cameraPublication"
           />
 
-          <div v-if="!cameraPublication" class="no-video-placeholder">
+          <div v-if="!cameraPublication && !screenSharePublication" class="no-video-placeholder">
             📷 Cámara Apagada
           </div>
         </template>
@@ -52,6 +59,23 @@
           </button>
           
           <template v-else>
+            <button
+              v-if="streamState.broadcastState !== 'live'"
+              @click="startBroadcast"
+              :disabled="streamState.broadcastState === 'starting'"
+              class="start-broadcast-btn"
+            >
+              {{ streamState.broadcastState === 'starting' ? 'Empezando...' : '📡 Empezar Transmisión' }}
+            </button>
+            <button
+              v-if="streamState.broadcastState === 'live' || streamState.broadcastState === 'ending'"
+              @click="stopBroadcast"
+              :disabled="streamState.broadcastState === 'ending'"
+              class="stop-broadcast-btn"
+            >
+              {{ streamState.broadcastState === 'ending' ? 'Finalizando...' : '🔴 Finalizar Transmisión' }}
+            </button>
+            
             <button @click="toggleCamera" :class="{ 'is-off': !streamState.isCameraEnabled }" :disabled="isActionPending">
               {{ streamState.isCameraEnabled ? '📷 Apagar Cámara' : '📷 Encender Cámara' }}
             </button>
@@ -82,6 +106,9 @@
           <button @click="cycleCameraOverlayPosition" class="control-button" title="Cambiar posición del overlay">
             🔄 Posición
           </button>
+          <button @click="toggleCameraFocus" class="control-button" :class="{'is-active': streamState.cameraOverlay.isCameraFocus}" title="Destacar cámara">
+            👤 Destacar
+          </button>
         </div>
 
         <div class="stream-actions">
@@ -99,7 +126,6 @@ import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useStreamingStoreV2 } from '../stores/streamingStoreV2';
 import { useParticipantTracksV2 } from '../composables/streaming/useParticipantTracksV2';
-// ❗️ CORRECCIÓN: Importamos el tipo OverlaySize para usarlo en el handler
 import type { OverlaySize } from '../composables/streaming/useStreamStateV2'; 
 import ParticipantViewV2 from '../components/streaming/ParticipantViewV2.vue';
 import CameraOverlay from '../components/streaming/CameraOverlay.vue';
@@ -109,20 +135,18 @@ const { streamState, previewTrack, isActionPending, localParticipant } = storeTo
 const { 
   getPermissionsAndPreview, enterStudio, leaveStudio, 
   publishMedia, toggleCamera, toggleMicrophone, toggleScreenShare,
-  setCameraOverlaySize, cycleCameraOverlayPosition
+  setCameraOverlaySize, cycleCameraOverlayPosition,
+  toggleCameraFocus, startBroadcast, stopBroadcast
 } = streamingStore;
 
 const previewVideoRef = ref<HTMLVideoElement | null>(null);
 
 const { cameraPublication, screenSharePublication } = useParticipantTracksV2(localParticipant);
 
-// ❗️ CORRECCIÓN: Añadimos una función manejadora para el evento change del select
 const handleSizeChange = (event: Event) => {
   const target = event.target as HTMLSelectElement | null;
   if (target) {
-    // 🪵 LOG: El usuario cambió el tamaño del overlay
     console.log(`[ADMIN-VIEW] User changed overlay size to "${target.value}"`);
-    // Hacemos un "cast" para decirle a TypeScript que confiamos en que este string es del tipo OverlaySize
     const newSize = target.value as OverlaySize;
     setCameraOverlaySize(newSize);
   }
@@ -131,8 +155,9 @@ const handleSizeChange = (event: Event) => {
 // LOGS para depuración
 watch(cameraPublication, (pub) => console.log('[ADMIN-VIEW] 👂 Camera publication changed:', pub ? pub.trackSid : null));
 watch(screenSharePublication, (pub) => console.log('[ADMIN-VIEW] 👂 ScreenShare publication changed:', pub ? pub.trackSid : null));
+watch(() => streamState.value.broadcastState, (state) => console.log(`[ADMIN-VIEW] 👂 Broadcast state changed to: ${state}`));
+watch(() => streamState.value.cameraOverlay.isCameraFocus, (state) => console.log(`[ADMIN-VIEW] 👂 Camera focus state changed to: ${state}`));
 
-// Watcher para la vista previa inicial
 watch([previewVideoRef, previewTrack], ([videoEl, track]) => {
   if (videoEl && track) { track.attach(videoEl); } 
   else if (videoEl && !track) {
@@ -165,16 +190,19 @@ onUnmounted(() => {
 .placeholder-content { position: relative; z-index: 2; background-color: rgba(0, 0, 0, 0.6); padding: 1rem 2rem; border-radius: 8px; color: white; text-align: center; }
 .placeholder-content button { margin-top: 1rem; background-color: #2563eb; color: white; font-weight: bold; border-radius: 8px; padding: 0.6em 1.2em; font-size: 1em; cursor: pointer; border: none;}
 .controls-section { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; padding-top: 1rem; border-top: 1px solid #374151; }
-.device-controls, .stream-actions { display: flex; gap: 0.75rem; align-items: center; }
-.device-controls button, .stream-actions button { background-color: #4b5563; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
-.device-controls button:hover, .stream-actions button:hover { background-color: #6b7280; }
+.device-controls, .overlay-controls, .stream-actions { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+.device-controls button, .stream-actions button, .control-button { background-color: #4b5563; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+.device-controls button:hover, .stream-actions button:hover, .control-button:hover { background-color: #6b7280; }
 .device-controls button.is-off { background-color: #be123c; }
 .start-publish-btn { background-color: #1d4ed8 !important; }
 .disconnect-btn { background-color: #991b1b !important; }
+.start-broadcast-btn { background-color: #059669 !important; }
+.stop-broadcast-btn { background-color: #dc2626 !important; }
 button:disabled { background-color: #374151 !important; cursor: not-allowed; opacity: 0.7; }
 .device-controls button.is-sharing { background-color: #059669; box-shadow: 0 0 8px #10b981; }
 .main-video :deep(video) { object-fit: contain; }
-.overlay-controls { display: flex; gap: 0.75rem; align-items: center; background-color: rgba(30, 41, 59, 0.5); padding: 0.25rem 0.5rem; border-radius: 8px; }
-.control-select, .control-button { background-color: #4b5563; color: white; border: 1px solid #6b7280; padding: 0.4rem 0.8rem; border-radius: 6px; font-weight: 500; cursor: pointer; transition: all 0.2s; -webkit-appearance: none; -moz-appearance: none; appearance: none; }
-.control-select:hover, .control-button:hover { background-color: #6b7280; }
+.overlay-controls { background-color: rgba(30, 41, 59, 0.5); padding: 0.25rem 0.5rem; border-radius: 8px; }
+.control-select { background-color: #4b5563; color: white; border: 1px solid #6b7280; padding: 0.4rem 0.8rem; border-radius: 6px; font-weight: 500; cursor: pointer; transition: all 0.2s; -webkit-appearance: none; -moz-appearance: none; appearance: none; }
+.control-select:hover { background-color: #6b7280; }
+.control-button.is-active { background-color: #2563eb; border-color: #3b82f6; box-shadow: 0 0 8px #3b82f6; }
 </style>

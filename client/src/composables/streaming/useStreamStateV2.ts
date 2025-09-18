@@ -4,21 +4,22 @@ import { reactive, readonly } from 'vue';
 
 export type OverlaySize = 'sm' | 'md' | 'lg';
 export type OverlayPosition = 'bottom-left' | 'top-left' | 'top-right' | 'bottom-right';
-
+export type BroadcastState = 'idle' | 'starting' | 'live' | 'ending';
 
 export interface StreamStateV2 {
   isConnecting: boolean;
-  isPublishing: 'inactive' | 'pending' | 'active'; 
+  isPublishing: 'inactive' | 'pending' | 'active';
   permissionError: string;
-  
   isCameraEnabled: boolean;
   isMicrophoneEnabled: boolean;
   isScreenSharing: boolean;
+  broadcastState: BroadcastState;
 
   cameraOverlay: {
     isEnabled: boolean;
     size: OverlaySize;
     position: OverlayPosition;
+    isCameraFocus: boolean; 
   };
 }
 
@@ -29,10 +30,12 @@ const getDefaultState = (): StreamStateV2 => ({
   isCameraEnabled: false,
   isMicrophoneEnabled: false,
   isScreenSharing: false,
+  broadcastState: 'idle',
   cameraOverlay: {
     isEnabled: true,
-    size: 'md', 
-    position: 'bottom-left', 
+    size: 'md',
+    position: 'bottom-left',
+    isCameraFocus: false,
   },
 });
 
