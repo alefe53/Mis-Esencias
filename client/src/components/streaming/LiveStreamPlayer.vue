@@ -1,38 +1,5 @@
-// RUTA: src/components/streaming/LiveStreamPlayer.vue
-<template>
-  <div class="livestream-player" @click="handleInteraction">
-    <div class="main-video-area">
-      <ParticipantViewV2
-        v-if="mainPublication"
-        :publication="mainPublication"
-        :is-muted="isMuted"
-      />
-      <div v-else class="placeholder">
-        <p>{{ statusMessage }}</p>
-      </div>
-    </div>
-
-    <CameraOverlay
-      v-if="showOverlay"
-      :publication="cameraPublication"
-      :position="layoutState.position"
-      :size="layoutState.size"
-    />
-    
-    <div v-if="mainPublication" class="controls-overlay">
-      <div class="status-indicator">
-        <span class="live-dot"></span> EN VIVO
-      </div>
-      <button @click.stop="toggleMute" class="mute-button">
-        {{ isMuted ? '🔇 Activar Sonido' : '🔊 Silenciar' }}
-      </button>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted, shallowRef } from 'vue';
-// ✅ AÑADIDO: ParticipantEvent para una suscripción de eventos correcta
 import { Room, RoomEvent, Track, ParticipantEvent, type RemoteParticipant, type TrackPublication } from 'livekit-client';
 import ParticipantViewV2 from './ParticipantViewV2.vue';
 import CameraOverlay from './CameraOverlay.vue';
@@ -65,92 +32,145 @@ const showOverlay = computed(() => {
 
 const textDecoder = new TextDecoder();
 
-// ✅ REEMPLAZADO: Lógica de detección de admin mejorada
-const updateAdminParticipant = (r: Room) => {
-  for (const p of r.remoteParticipants.values()) {
-    const camPub = p.getTrackPublication(Track.Source.Camera);
-    const screenPub = p.getTrackPublication(Track.Source.ScreenShare);
+// Map para guardar handlers por participante para poder hacer off() luego
+const participantHandlers = new Map<RemoteParticipant, { onPublished: any, onUnpublished: any }>();
 
-    // Si el participante tiene CUALQUIER track de video, es nuestro admin
-    if (camPub || screenPub) {
-      console.log(`[LiveStreamPlayer] ✅ Admin detectado: ${p.identity}`);
-      adminParticipant.value = p;
-      cameraPublication.value = camPub ?? null;
-      screenSharePublication.value = screenPub ?? null;
+// Handler cuando un participante publica/unpublica track: lo marca admin si es video
+function attachParticipantListeners(p: RemoteParticipant) {
+  if (participantHandlers.has(p)) return;
 
-      // Limpiamos listeners anteriores para evitar duplicados
-      p.removeAllListeners(ParticipantEvent.TrackPublished);
-      p.removeAllListeners(ParticipantEvent.TrackUnpublished);
-
-      // Usamos ParticipantEvent, que es lo correcto para eventos de un participante específico
-      p.on(ParticipantEvent.TrackPublished, pub => {
-        console.log(`[LiveStreamPlayer] Admin publicó un track: ${pub.source}`);
-        if (pub.source === Track.Source.Camera) cameraPublication.value = pub;
-        if (pub.source === Track.Source.ScreenShare) screenSharePublication.value = pub;
-      });
-      p.on(ParticipantEvent.TrackUnpublished, pub => {
-        console.log(`[LiveStreamPlayer] Admin dejó de publicar un track: ${pub.source}`);
-        if (pub.source === Track.Source.Camera) cameraPublication.value = null;
-        if (pub.source === Track.Source.ScreenShare) screenSharePublication.value = null;
-      });
-      
-      return; // Salimos al encontrar al primer admin
+  const onPublished = (pub: TrackPublication) => {
+    try {
+      console.log(`[LiveStreamPlayer] Participant ${p.identity} published:`, pub.source);
+      if (pub.source === Track.Source.Camera) {
+        adminParticipant.value = p;
+        cameraPublication.value = pub;
+      }
+      if (pub.source === Track.Source.ScreenShare) {
+        adminParticipant.value = p;
+        screenSharePublication.value = pub;
+      }
+      // en cualquier caso logueamos para debugging
+      console.log('[LiveStreamPlayer] → after publish, cameraPub:', !!cameraPublication.value, 'screenPub:', !!screenSharePublication.value);
+    } catch (e) {
+      console.error('[LiveStreamPlayer] Error en onPublished handler', e);
     }
+  };
+
+  const onUnpublished = (pub: TrackPublication) => {
+    try {
+      console.log(`[LiveStreamPlayer] Participant ${p.identity} unpublished:`, pub.source);
+      if (pub.source === Track.Source.Camera && cameraPublication.value?.trackSid === pub.trackSid) {
+        cameraPublication.value = null;
+      }
+      if (pub.source === Track.Source.ScreenShare && screenSharePublication.value?.trackSid === pub.trackSid) {
+        screenSharePublication.value = null;
+      }
+    } catch (e) {
+      console.error('[LiveStreamPlayer] Error en onUnpublished handler', e);
+    }
+  };
+
+  // registramos
+  p.on(ParticipantEvent.TrackPublished, onPublished);
+  p.on(ParticipantEvent.TrackUnpublished, onUnpublished);
+
+  participantHandlers.set(p, { onPublished, onUnpublished });
+}
+
+function detachParticipantListeners(p: RemoteParticipant) {
+  const handlers = participantHandlers.get(p);
+  if (!handlers) return;
+  try {
+    p.off(ParticipantEvent.TrackPublished, handlers.onPublished);
+    p.off(ParticipantEvent.TrackUnpublished, handlers.onUnpublished);
+  } catch (e) {
+    // off puede no lanzar, pero por las dudas atrapamos
+    console.warn('[LiveStreamPlayer] Warning detaching handlers', e);
   }
-  // Si el bucle termina y no encontramos a nadie publicando
-  adminParticipant.value = null;
-  cameraPublication.value = null;
-  screenSharePublication.value = null;
-};
+  participantHandlers.delete(p);
+}
 
 onMounted(async () => {
   const newRoom = new Room({ adaptiveStream: true, dynacast: true });
 
-  newRoom
-    .on(RoomEvent.ParticipantConnected, () => updateAdminParticipant(newRoom))
-    .on(RoomEvent.ParticipantDisconnected, () => updateAdminParticipant(newRoom))
-    // ✅ REEMPLAZADO: Lógica de recepción de datos mejorada
-    .on(RoomEvent.DataReceived, (payload, participant) => {
-      try {
-        const data = JSON.parse(textDecoder.decode(payload));
-        // Asignamos al participante que envía datos como el admin si aún no lo tenemos
-        if (!adminParticipant.value && participant) {
-          adminParticipant.value = participant as RemoteParticipant;
-          console.log(`[LiveStreamPlayer] ℹ️ Admin asignado por Data Channel: ${participant.identity}`);
-        }
-        // Procesamos los datos solo si vienen del admin que tenemos identificado
-        if (participant?.identity === adminParticipant.value?.identity) {
-          console.log('📢 [LiveStreamPlayer] Datos de layout recibidos:', data);
-          Object.assign(layoutState, data);
-        }
-      } catch (e) {
-        console.error('[LiveStreamPlayer] ❌ Error procesando datos recibidos:', e);
-      }
-    })
-    .on(RoomEvent.Disconnected, () => {
-      statusMessage.value = 'La transmisión ha finalizado.';
+  // Al conectar, queremos ENSAMBLAR listeners para todos los participantes actuales
+  newRoom.on(RoomEvent.ParticipantConnected, (p: RemoteParticipant) => {
+    console.log('[LiveStreamPlayer] ParticipantConnected:', (p as any).identity);
+    attachParticipantListeners(p as RemoteParticipant);
+  });
+
+  newRoom.on(RoomEvent.ParticipantDisconnected, (p: RemoteParticipant) => {
+    console.log('[LiveStreamPlayer] ParticipantDisconnected:', (p as any).identity);
+    // si era nuestro admin, reseteamos
+    if (adminParticipant.value?.identity === (p as any).identity) {
+      adminParticipant.value = null;
       cameraPublication.value = null;
       screenSharePublication.value = null;
-    });
+    }
+    detachParticipantListeners(p as RemoteParticipant);
+  });
+
+  // DataReceived: aplicamos layout siempre (lo que evita depender exclusivamente de admin ya detectado)
+  newRoom.on(RoomEvent.DataReceived, (payload, participant) => {
+    try {
+      const str = textDecoder.decode(payload as Uint8Array);
+      const data = JSON.parse(str);
+      // Debug log
+      console.log('[LiveStreamPlayer] 📢 DataReceived raw:', data, 'from', participant?.identity);
+      // Si viene data válida, aplicamos layoutState inmediatamente
+      if (data && typeof data === 'object') {
+        Object.assign(layoutState, data);
+        // Si admin aún no estaba asignado, asignamos al que envió estos datos
+        if (!adminParticipant.value && participant) {
+          adminParticipant.value = participant as RemoteParticipant;
+          console.log('[LiveStreamPlayer] Assigned adminParticipant from DataReceived:', participant.identity);
+        }
+      }
+    } catch (e) {
+      console.error('[LiveStreamPlayer] ❌ Error procesando DataReceived:', e);
+    }
+  });
+
+  newRoom.on(RoomEvent.Disconnected, () => {
+    statusMessage.value = 'La transmisión ha finalizado.';
+    cameraPublication.value = null;
+    screenSharePublication.value = null;
+    // limpiar handlers
+    participantHandlers.forEach((_, p) => detachParticipantListeners(p));
+    participantHandlers.clear();
+  });
 
   try {
     const response = await apiPublic.get('/streaming/token?viewer=true');
     await newRoom.connect(import.meta.env.VITE_LIVEKIT_URL, response.data.token);
     console.log('[LiveStreamPlayer] ✅ Conectado a la sala.');
-    statusMessage.value = 'Conexión exitosa. Esperando al anfitrión...';
-    updateAdminParticipant(newRoom);
+
+    // attach listeners a los participantes ya presentes en la sala (caso reconexión o publish posterior)
+    for (const p of newRoom.remoteParticipants.values()) {
+      attachParticipantListeners(p as RemoteParticipant);
+    }
+
+    // guardar room
     room.value = newRoom;
+    statusMessage.value = 'Conexión exitosa. Esperando al anfitrión...';
   } catch (error) {
     console.error('[LiveStreamPlayer] ❌ Error al conectar:', error);
     statusMessage.value = 'No se pudo conectar a la transmisión.';
   }
 });
 
-onUnmounted(() => room.value?.disconnect());
+onUnmounted(() => {
+  // limpiar listeners y desconectar
+  participantHandlers.forEach((_, p) => detachParticipantListeners(p));
+  participantHandlers.clear();
+  room.value?.disconnect();
+});
 
 const toggleMute = () => isMuted.value = !isMuted.value;
 const handleInteraction = () => { if (isMuted.value) isMuted.value = false; };
 </script>
+
 
 <style scoped>
 .livestream-player { width: 100%; height: 100%; background-color: #000; position: relative; border-radius: 8px; overflow: hidden; cursor: pointer; }
