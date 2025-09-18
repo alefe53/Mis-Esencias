@@ -14,6 +14,7 @@ import {
 import { useStreamStateV2 } from '../composables/streaming/useStreamStateV2';
 import api from '../services/api';
 import { useUiStore } from './uiStore';
+import { appEmitter } from '../utils/eventEmitter';
 
 export const useStreamingStoreV2 = defineStore('streamingV2', () => {
   const uiStore = useUiStore();
@@ -31,15 +32,17 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
         console.log(`✅ [STORE-EVENT] LocalTrackPublished: ${pub.source}`, pub);
         if (pub.source === Track.Source.Camera) _writableState.isCameraEnabled = true;
         if (pub.source === Track.Source.Microphone) _writableState.isMicrophoneEnabled = true;
-        // ❗️ NUEVO: Reaccionamos a la publicación de la pantalla
         if (pub.source === Track.Source.ScreenShare) _writableState.isScreenSharing = true;
+        console.log("📢 [EMITTER] Emitting 'local-track-changed'");
+        appEmitter.emit('local-track-changed');
       })
       .on(RoomEvent.LocalTrackUnpublished, (pub: TrackPublication) => {
         console.log(`🛑 [STORE-EVENT] LocalTrackUnpublished: ${pub.source}`, pub);
         if (pub.source === Track.Source.Camera) _writableState.isCameraEnabled = false;
         if (pub.source === Track.Source.Microphone) _writableState.isMicrophoneEnabled = false;
-        // ❗️ NUEVO: Reaccionamos a la des-publicación de la pantalla
         if (pub.source === Track.Source.ScreenShare) _writableState.isScreenSharing = false;
+        console.log("📢 [EMITTER] Emitting 'local-track-changed'");
+        appEmitter.emit('local-track-changed');
       })
       .on(RoomEvent.Disconnected, () => {
         console.log('🚪 [STORE-EVENT] Disconnected from room. Cleaning up...');
