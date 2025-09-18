@@ -2,6 +2,10 @@
 
 import { reactive, readonly } from 'vue';
 
+export type OverlaySize = 'sm' | 'md' | 'lg';
+export type OverlayPosition = 'bottom-left' | 'top-left' | 'top-right' | 'bottom-right';
+
+
 export interface StreamStateV2 {
   isConnecting: boolean;
   isPublishing: 'inactive' | 'pending' | 'active'; 
@@ -13,9 +17,8 @@ export interface StreamStateV2 {
 
   cameraOverlay: {
     isEnabled: boolean;
-    isFullScreen: boolean;
-    size: 'xs' | 'sm' | 'md' | 'full';
-    position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+    size: OverlaySize;
+    position: OverlayPosition;
   };
 }
 
@@ -28,9 +31,8 @@ const getDefaultState = (): StreamStateV2 => ({
   isScreenSharing: false,
   cameraOverlay: {
     isEnabled: true,
-    isFullScreen: false,
-    size: 'sm',
-    position: 'bottom-right',
+    size: 'md', 
+    position: 'bottom-left', 
   },
 });
 

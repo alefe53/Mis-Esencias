@@ -37,7 +37,7 @@
           <div v-if="!cameraPublication" class="no-video-placeholder">
             📷 Cámara Apagada
           </div>
-          </template>
+        </template>
       </div>
 
       <div class="controls-section" v-if="localParticipant">
@@ -68,6 +68,22 @@
           </template>
         </div>
         
+        <div class="overlay-controls" v-if="streamState.isScreenSharing">
+          <select 
+            :value="streamState.cameraOverlay.size"
+            @change="handleSizeChange"
+            class="control-select"
+            aria-label="Seleccionar tamaño del overlay de cámara"
+          >
+            <option value="sm">Pequeña</option>
+            <option value="md">Mediana</option>
+            <option value="lg">Grande</option>
+          </select>
+          <button @click="cycleCameraOverlayPosition" class="control-button" title="Cambiar posición del overlay">
+            🔄 Posición
+          </button>
+        </div>
+
         <div class="stream-actions">
           <button @click="leaveStudio(true)" class="disconnect-btn">
             🚪 Salir del Studio
@@ -79,24 +95,44 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch, computed } from 'vue';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useStreamingStoreV2 } from '../stores/streamingStoreV2';
 import { useParticipantTracksV2 } from '../composables/streaming/useParticipantTracksV2';
+// ❗️ CORRECCIÓN: Importamos el tipo OverlaySize para usarlo en el handler
+import type { OverlaySize } from '../composables/streaming/useStreamStateV2'; 
 import ParticipantViewV2 from '../components/streaming/ParticipantViewV2.vue';
 import CameraOverlay from '../components/streaming/CameraOverlay.vue';
 
 const streamingStore = useStreamingStoreV2();
 const { streamState, previewTrack, isActionPending, localParticipant } = storeToRefs(streamingStore);
-const { getPermissionsAndPreview, enterStudio, leaveStudio, publishMedia, toggleCamera, toggleMicrophone, toggleScreenShare } = streamingStore;
+const { 
+  getPermissionsAndPreview, enterStudio, leaveStudio, 
+  publishMedia, toggleCamera, toggleMicrophone, toggleScreenShare,
+  setCameraOverlaySize, cycleCameraOverlayPosition
+} = streamingStore;
 
 const previewVideoRef = ref<HTMLVideoElement | null>(null);
 
 const { cameraPublication, screenSharePublication } = useParticipantTracksV2(localParticipant);
 
+// ❗️ CORRECCIÓN: Añadimos una función manejadora para el evento change del select
+const handleSizeChange = (event: Event) => {
+  const target = event.target as HTMLSelectElement | null;
+  if (target) {
+    // 🪵 LOG: El usuario cambió el tamaño del overlay
+    console.log(`[ADMIN-VIEW] User changed overlay size to "${target.value}"`);
+    // Hacemos un "cast" para decirle a TypeScript que confiamos en que este string es del tipo OverlaySize
+    const newSize = target.value as OverlaySize;
+    setCameraOverlaySize(newSize);
+  }
+};
+
+// LOGS para depuración
 watch(cameraPublication, (pub) => console.log('[ADMIN-VIEW] 👂 Camera publication changed:', pub ? pub.trackSid : null));
 watch(screenSharePublication, (pub) => console.log('[ADMIN-VIEW] 👂 ScreenShare publication changed:', pub ? pub.trackSid : null));
 
+// Watcher para la vista previa inicial
 watch([previewVideoRef, previewTrack], ([videoEl, track]) => {
   if (videoEl && track) { track.attach(videoEl); } 
   else if (videoEl && !track) {
@@ -138,4 +174,7 @@ onUnmounted(() => {
 button:disabled { background-color: #374151 !important; cursor: not-allowed; opacity: 0.7; }
 .device-controls button.is-sharing { background-color: #059669; box-shadow: 0 0 8px #10b981; }
 .main-video :deep(video) { object-fit: contain; }
+.overlay-controls { display: flex; gap: 0.75rem; align-items: center; background-color: rgba(30, 41, 59, 0.5); padding: 0.25rem 0.5rem; border-radius: 8px; }
+.control-select, .control-button { background-color: #4b5563; color: white; border: 1px solid #6b7280; padding: 0.4rem 0.8rem; border-radius: 6px; font-weight: 500; cursor: pointer; transition: all 0.2s; -webkit-appearance: none; -moz-appearance: none; appearance: none; }
+.control-select:hover, .control-button:hover { background-color: #6b7280; }
 </style>

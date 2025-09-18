@@ -11,7 +11,7 @@ import {
   type TrackPublication 
 } from 'livekit-client';
 
-import { useStreamStateV2 } from '../composables/streaming/useStreamStateV2';
+import { useStreamStateV2, type OverlaySize, type OverlayPosition } from '../composables/streaming/useStreamStateV2';
 import api from '../services/api';
 import { useUiStore } from './uiStore';
 import { appEmitter } from '../utils/eventEmitter';
@@ -219,6 +219,24 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
     }
   }
 
+  function setCameraOverlaySize(size: OverlaySize) {
+    console.log(`[STORE] 🚦 Action: setCameraOverlaySize to "${size}"`);
+    if (['sm', 'md', 'lg'].includes(size)) {
+      _writableState.cameraOverlay.size = size;
+    }
+  }
+
+  function cycleCameraOverlayPosition() {
+    console.log('[STORE] 🚦 Action: cycleCameraOverlayPosition');
+    const positions: OverlayPosition[] = ['bottom-left', 'top-left', 'top-right', 'bottom-right'];
+    const currentPosition = streamState.cameraOverlay.position;
+    const currentIndex = positions.indexOf(currentPosition);
+    const nextIndex = (currentIndex + 1) % positions.length; 
+    const newPosition = positions[nextIndex];
+    _writableState.cameraOverlay.position = newPosition;
+    console.log(`[STORE] -> ✅ New position set to "${newPosition}"`);
+  }
+
   return {
     streamState,
     previewTrack,
@@ -231,5 +249,7 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
     toggleCamera,
     toggleMicrophone,
     toggleScreenShare,
+    setCameraOverlaySize,
+    cycleCameraOverlayPosition,
   };
 });
