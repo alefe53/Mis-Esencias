@@ -59,6 +59,12 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
   // 4. LISTENERS DE EVENTOS (ACTÚAN COMO CONFIRMACIÓN)
   const setupRoomListeners = (newRoom: Room) => {
     newRoom
+        .on(RoomEvent.ParticipantConnected, () => {
+            console.log('👤 [STORE-EVENT] Un espectador se ha conectado. Enviando estado actual del layout...');
+            // Usamos un pequeño delay para asegurar que el participante recién conectado
+            // esté listo para recibir datos.
+            setTimeout(broadcastLayoutState, 500); 
+      })
       .on(RoomEvent.LocalTrackPublished, (pub: TrackPublication) => {
         console.log(`✅ [STORE-EVENT] LocalTrackPublished: ${pub.source}. Confirmando estado.`);
         if (pub.source === Track.Source.Camera) _writableState.isCameraEnabled = true;
@@ -77,6 +83,8 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
         console.log('🚪 [STORE-EVENT] Disconnected. Cleaning up...');
         resetState();
       });
+      
+      
   };
 
   // 5. ACCIONES HÍBRIDAS (ACTUALIZACIÓN DIRECTA + COMANDO)
