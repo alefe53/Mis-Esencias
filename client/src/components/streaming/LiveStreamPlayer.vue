@@ -58,9 +58,14 @@ const textDecoder = new TextDecoder();
 
 // --- Lógica de computadas para mostrar el video correcto ---
 const mainPublication = computed(() => {
-  if (layoutState.isCameraFocus) return cameraPublication.value;
-  if (layoutState.isScreenSharing) return screenSharePublication.value;
-  return cameraPublication.value;
+  // Si se pidió foco en cámara Y la publicación de cámara existe, mostrarla
+  if (layoutState.isCameraFocus && cameraPublication.value) return cameraPublication.value;
+
+  // Si se está compartiendo pantalla y existe la publicación de pantalla, mostrar pantalla
+  if (layoutState.isScreenSharing && screenSharePublication.value) return screenSharePublication.value;
+
+  // Fallback: si hay cámara devolverla; si no, pantalla; si no, null -> placeholder
+  return cameraPublication.value ?? screenSharePublication.value ?? null;
 });
 
 const showOverlay = computed(() => {
@@ -120,6 +125,26 @@ function setupParticipantListeners(participant: RemoteParticipant) {
 
   // También revisamos los tracks que ya pueda tener publicados.
   participant.getTrackPublications().forEach(pub => onTrackPublished(pub));
+
+  
+}
+
+function refreshPublicationsFromParticipant(participant?: RemoteParticipant | null) {
+  try {
+    const p = participant ?? adminParticipant.value;
+    if (!p) return;
+
+    const cam = p.getTrackPublication(Track.Source.Camera) ?? null;
+    const screen = p.getTrackPublication(Track.Source.ScreenShare) ?? null;
+
+    // Solo reasignamos si hay diferencia (esto dispara watchers y attach)
+    if (cam) cameraPublication.value = cam;
+    if (screen) screenSharePublication.value = screen;
+
+    console.log('[LiveStreamPlayer] 🔁 Refreshed pubs from participant', p.identity, { cam: !!cam, screen: !!screen });
+  } catch (e) {
+    console.warn('[LiveStreamPlayer] ⚠️ Error en refreshPublicationsFromParticipant', e);
+  }
 }
 
 /**
@@ -154,28 +179,49 @@ onMounted(async () => {
     })
     // El receptor de datos ahora es más simple y robusto.
     .on(RoomEvent.DataReceived, (payload, participant) => {
-      try {
-        const data = JSON.parse(textDecoder.decode(payload));
-        console.log(`[LiveStreamPlayer] 📡 Datos de layout recibidos de ${participant?.identity}:`, data);
-        
-        // Asignamos directamente, sin condiciones. Asumimos que solo el admin envía esto.
-        Object.assign(layoutState, data);
-        
-        // Si por alguna razón no teníamos al admin, el que envía datos es un buen candidato.
-        if (!adminParticipant.value && participant) {
-          adminParticipant.value = participant as RemoteParticipant;
-          console.log(`[LiveStreamPlayer] ✅ Admin asignado por Data Channel: ${participant.identity}`);
+        try {
+          const raw = textDecoder.decode(payload as Uint8Array);
+          const data = JSON.parse(raw);
+          console.log(`[LiveStreamPlayer] 📡 DataReceived desde ${participant?.identity}:`, data);
+
+          // Guardamos el estado previo para detectar transiciones (p.ej. foco activado)
+          const wasCameraFocus = layoutState.isCameraFocus;
+          const wasScreenSharing = layoutState.isScreenSharing;
+
+          // Aplicamos el layout inmediatamente
+          Object.assign(layoutState, data);
+
+          // Asegurarnos de que estamos escuchando a quien envió los datos
+          if (participant && !participantEventHandlers.has((participant as any).sid)) {
+            // setupParticipantListeners espera RemoteParticipant; hacemos cast seguro si hace falta
+            try { setupParticipantListeners(participant as RemoteParticipant); } catch (e) { /* ignore */ }
+          }
+
+          // Forzamos refresco inmediato de publications (por si ya existen)
+          refreshPublicationsFromParticipant(participant as RemoteParticipant);
+
+          // Si el layout acaba de pedir foco en la cámara (transición false->true), forzamos reattach
+          if (data.isCameraFocus && !wasCameraFocus) {
+            // Si ya existe la publicación de cámara, forzamos un detach/reattach reactivo.
+            const camPub = cameraPublication.value;
+            if (camPub) {
+              console.log('[LiveStreamPlayer] 🔧 Foco activado: forzando reattach de cameraPublication para evitar negro.');
+              // fuerza reattach: quitar y volver a poner con micro-tick
+              cameraPublication.value = null;
+              // nextTick o micro timeout para permitir que el DOM se actualice antes de re-asignar
+              setTimeout(() => {
+                cameraPublication.value = camPub;
+              }, 30);
+            } else {
+              // si no está aún, nos quedamos con la pantalla (por el fallback del computed)
+              console.log('[LiveStreamPlayer] ℹ️ Foco activado pero cameraPublication aún no está disponible.');
+            }
+          }
+
+        } catch (e) {
+          console.error('[LiveStreamPlayer] ❌ Error procesando DataReceived:', e);
         }
-      } catch (e) {
-        console.error('[LiveStreamPlayer] ❌ Error procesando datos recibidos:', e);
-      }
-    })
-    .on(RoomEvent.Disconnected, () => {
-      statusMessage.value = 'La transmisión ha finalizado.';
-      cameraPublication.value = null;
-      screenSharePublication.value = null;
-      room.value = null;
-    });
+      })
 
   try {
     const response = await apiPublic.get('/streaming/token?viewer=true');
