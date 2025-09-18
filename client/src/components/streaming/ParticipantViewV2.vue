@@ -11,50 +11,55 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onUnmounted, computed } from 'vue';
-import { type TrackPublication } from 'livekit-client';
+import { ref, watch, onUnmounted, computed, shallowRef } from 'vue';
+import type { Track, TrackPublication } from 'livekit-client';
 
 const props = defineProps<{
   publication: TrackPublication | null;
-  // CAMBIO: La prop ahora se llama 'isMuted' para mayor claridad
   isMuted?: boolean;
 }>();
 
 const videoEl = ref<HTMLVideoElement | null>(null);
 const audioEl = ref<HTMLAudioElement | null>(null);
+// Usamos shallowRef para evitar que Vue haga reactivo el objeto del track, que es complejo
+const attachedTrack = shallowRef<Track | null>(null);
 
 const isVideoEnabled = computed(() => {
-  return !!props.publication?.track && !props.publication?.isMuted;
+  return props.publication?.track && !props.publication.isMuted;
 });
 
-// El resto del script se mantiene exactamente igual
-watch(() => props.publication?.track, (_newTrack, oldTrack) => {
-  if (oldTrack) {
-    oldTrack.detach();
+// ✅ UNIFICADO: Un único watcher que reacciona al cambio más importante: la aparición del track.
+watch(() => props.publication?.track, (newTrack) => {
+  console.log(`[ParticipantViewV2] El track ha cambiado. Nuevo track: ${newTrack?.sid}`);
+
+  // Primero, siempre limpiamos el track anterior si existe.
+  if (attachedTrack.value) {
+    console.log(`[ParticipantViewV2] -> Desvinculando track anterior: ${attachedTrack.value.sid}`);
+    const element = attachedTrack.value.detach();
+    element.forEach(el => el.remove());
   }
-});
+  
+  attachedTrack.value = newTrack ?? null;
 
-watch(
-  [() => props.publication, videoEl, audioEl],
-  ([pub, vEl, aEl]) => {
-    if (pub && pub.track) {
-      if (pub.track.kind === 'video' && vEl) {
-        pub.track.attach(vEl);
-      } else if (pub.track.kind === 'audio' && aEl) {
-        pub.track.attach(aEl);
-      }
+  // Si hay un nuevo track y ya tenemos los elementos del DOM, lo vinculamos.
+  if (newTrack) {
+    if (newTrack.kind === 'video' && videoEl.value) {
+      console.log(`[ParticipantViewV2] -> Vinculando nuevo track de VIDEO ${newTrack.sid} al elemento <video>.`);
+      newTrack.attach(videoEl.value);
     }
-  },
-  { immediate: true }
-);
+    if (newTrack.kind === 'audio' && audioEl.value) {
+      console.log(`[ParticipantViewV2] -> Vinculando nuevo track de AUDIO ${newTrack.sid} al elemento <audio>.`);
+      newTrack.attach(audioEl.value);
+    }
+  }
+}, { immediate: true }); // ✅ REACTIVIDAD: Se ejecuta tan pronto como el componente se monta.
 
 onUnmounted(() => {
-  if (props.publication?.track) {
-    props.publication.track.detach();
+  if (attachedTrack.value) {
+    attachedTrack.value.detach();
   }
 });
 </script>
-
 <style scoped>
 /* Tus estilos se mantienen igual */
 .participant-view { width: 100%; height: 100%; position: relative; background-color: #000; overflow: hidden; }

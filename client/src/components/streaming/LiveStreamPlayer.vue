@@ -58,17 +58,20 @@ const textDecoder = new TextDecoder();
 
 // --- Lógica de computadas para mostrar el video correcto ---
 const mainPublication = computed(() => {
-  // Si se pidió foco en cámara Y la publicación de cámara existe, mostrarla
-  if (layoutState.isCameraFocus && cameraPublication.value) return cameraPublication.value;
-
-  // Si se está compartiendo pantalla y existe la publicación de pantalla, mostrar pantalla
-  if (layoutState.isScreenSharing && screenSharePublication.value) return screenSharePublication.value;
-
-  // Fallback: si hay cámara devolverla; si no, pantalla; si no, null -> placeholder
-  return cameraPublication.value ?? screenSharePublication.value ?? null;
+  // Si el modo "destacar" está activo Y LA CÁMARA EXISTE, muestra la cámara.
+  if (layoutState.isCameraFocus && cameraPublication.value) {
+    return cameraPublication.value;
+  }
+  // Si no, si se está compartiendo pantalla, muestra la pantalla.
+  if (layoutState.isScreenSharing && screenSharePublication.value) {
+    return screenSharePublication.value;
+  }
+  // Como última opción, muestra la cámara si está disponible.
+  return cameraPublication.value;
 });
 
 const showOverlay = computed(() => {
+  // El overlay solo se muestra si se comparte pantalla Y no estamos en modo "destacar".
   return layoutState.isScreenSharing && !layoutState.isCameraFocus && cameraPublication.value;
 });
 
