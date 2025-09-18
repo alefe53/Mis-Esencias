@@ -15,6 +15,11 @@ import { useStreamStateV2, type OverlaySize, type OverlayPosition } from '../com
 import api from '../services/api';
 import { useUiStore } from './uiStore';
 import { appEmitter } from '../utils/eventEmitter';
+import { supabase } from '../services/supabaseClient';
+import type { RealtimeChannel } from '@supabase/supabase-js';
+import apiPublic from '../services/apiPublic';
+
+let streamStatusChannel: RealtimeChannel | null = null;
 
 export const useStreamingStoreV2 = defineStore('streamingV2', () => {
   const uiStore = useUiStore();
@@ -244,6 +249,62 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
     console.log(`[STORE] 🚦 Action: toggleCameraFocus to ${newState}`);
     _writableState.cameraOverlay.isCameraFocus = newState;
   }
+
+async function checkStreamStatus() {
+    console.log('[STORE] 🚦 Action: checkStreamStatus');
+    try {
+      const { data } = await apiPublic.get('/streaming/status');
+      if (data.data.is_live) {
+        _writableState.broadcastState = 'live';
+        console.log('[STORE] -> ✅ El stream está EN VIVO según el servidor.');
+      } else {
+        _writableState.broadcastState = 'idle';
+        console.log('[STORE] -> ⚪️ El stream está inactivo según el servidor.');
+      }
+    } catch (error) {
+      console.error('[STORE] -> ❌ Error al verificar el estado del stream:', error);
+      // En caso de error, asumimos que no está en vivo para no mostrar un reproductor roto
+      _writableState.broadcastState = 'idle';
+    }
+  }
+
+  // NUEVO: Acción para suscribirse a los cambios en tiempo real
+  function subscribeToStreamStatusChanges() {
+    console.log('[STORE] 🚦 Action: subscribeToStreamStatusChanges');
+    if (streamStatusChannel) {
+        console.warn('[STORE] -> Ya existe una suscripción al estado del stream. Omitiendo.');
+        return;
+    }
+    
+    const channel = supabase.channel('public-events');
+
+    channel
+      .on('broadcast', { event: 'stream-status-change' }, (payload) => {
+        console.log('📢 [STORE-REALTIME] Nuevo evento de stream-status-change recibido!', payload);
+        const { isLive } = payload.payload;
+        _writableState.broadcastState = isLive ? 'live' : 'idle';
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ [STORE-REALTIME] Suscrito exitosamente al canal public-events.');
+        } else {
+          console.error(`[STORE-REALTIME] Falló la suscripción a Supabase Realtime. Estado: ${status}`);
+        }
+      });
+      
+    streamStatusChannel = channel;
+  }
+
+  // NUEVO: Acción para limpiar la suscripción al salir de la página
+  function unsubscribeFromStreamStatusChanges() {
+    console.log('[STORE] 🚦 Action: unsubscribeFromStreamStatusChanges');
+    if (streamStatusChannel) {
+      supabase.removeChannel(streamStatusChannel);
+      streamStatusChannel = null;
+      console.log('🧹 [STORE-REALTIME] Desuscrito del canal public-events.');
+    }
+  }
+
 async function startBroadcast() {
     if (streamState.broadcastState === 'live' || streamState.broadcastState === 'starting') {
         console.warn('[STORE] -> startBroadcast abortado. Ya está en vivo o iniciando.');
@@ -297,6 +358,9 @@ async function startBroadcast() {
     previewTrack,
     isActionPending,
     localParticipant,
+    checkStreamStatus,
+    subscribeToStreamStatusChanges,
+    unsubscribeFromStreamStatusChanges,
     getPermissionsAndPreview,
     enterStudio,
     leaveStudio,

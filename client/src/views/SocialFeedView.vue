@@ -72,6 +72,7 @@ import { useStreamingStoreV2 } from '../stores/streamingStoreV2';
 import LiveStreamPlayer from '../components/streaming/LiveStreamPlayer.vue';
 import SubscriptionButton from '../components/common/SubscriptionButton.vue';
 
+
 const postStore = usePostStore();
 const playerStore = usePlayerStore();
 const uiStore = useUiStore();
@@ -89,11 +90,20 @@ const { availableMoods } = storeToRefs(uiStore);
 const { temporaryPinnedMessages } = storeToRefs(globalChatStore);
 const { streamState } = storeToRefs(streamingStore);
 
+const { 
+  checkStreamStatus, 
+  subscribeToStreamStatusChanges, 
+  unsubscribeFromStreamStatusChanges 
+} = streamingStore;
+
+
+
 const isLive = computed(() => {
   const live = streamState.value.broadcastState === 'live';
   console.log(`[SocialFeedView] Checking broadcast state: ${streamState.value.broadcastState}. Is Live: ${live}`);
   return live;
 });
+
 
 const loadTrigger = ref<HTMLElement | null>(null);
 let observer: IntersectionObserver;
@@ -103,7 +113,6 @@ const handleResize = () => {
   isMobile.value = window.innerWidth < 992;
 };
 
-// ❗️ CORRECCIÓN: Aseguramos que las propiedades computadas siempre retornen un objeto de estilo válido.
 const containerStyle = computed((): CSSProperties => {
   const defaultColor = '#fca311';
   if (!currentMoodId.value) {
@@ -120,7 +129,7 @@ const containerStyle = computed((): CSSProperties => {
 });
 
 const textGlowStyle = computed((): CSSProperties => {
-  if (!currentMoodId.value) return {}; // Retorna un objeto vacío si no hay mood
+  if (!currentMoodId.value) return {}; 
   const currentMood = availableMoods.value.find(
     (m) => m.id === currentMoodId.value,
   );
@@ -130,7 +139,7 @@ const textGlowStyle = computed((): CSSProperties => {
       textShadow: `0 0 15px ${color}, 0 0 25px ${color}`,
     };
   }
-  return {}; // Retorna un objeto vacío como fallback
+  return {}; 
 });
 
 
@@ -138,7 +147,9 @@ onMounted(() => {
   window.addEventListener('resize', handleResize);
   postStore.fetchInitialFeed();
 
-  console.log('[SocialFeedView] 🚀 Component mounted. Current broadcast state is:', streamState.value.broadcastState);
+  console.log('[SocialFeedView] 🚀 Component mounted. Iniciando comprobación de stream...');
+  checkStreamStatus();
+  subscribeToStreamStatusChanges();
 
   observer = new IntersectionObserver(
     (entries) => {
@@ -186,11 +197,11 @@ onUnmounted(() => {
   if (observer) {
     observer.disconnect();
   }
+  unsubscribeFromStreamStatusChanges();
 });
 </script>
 
 <style scoped>
-/* (Tus estilos aquí, sin cambios) */
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,400..900&display=swap');
 @keyframes animated-border-glow { 0% { box-shadow: 0 0 10px 0 var(--mood-glow-color, #fca311), inset 0 0 10px 0 var(--mood-glow-color, #fca311); } 50% { box-shadow: 0 0 25px 3px var(--mood-glow-color, #fca311), inset 0 0 15px 2px var(--mood-glow-color, #fca311); } 100% { box-shadow: 0 0 10px 0 var(--mood-glow-color, #fca311), inset 0 0 10px 0 var(--mood-glow-color, #fca311); } }
 .social-feed-layout { display: flex; flex-direction: column; padding: 0 1rem; box-sizing: border-box; min-height: 100vh; }
