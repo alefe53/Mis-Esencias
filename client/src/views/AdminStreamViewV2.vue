@@ -15,11 +15,22 @@
         </template>
         
         <template v-else>
+          <video 
+            v-if="streamState.isPublishing !== 'active'" 
+            ref="mainStudioVideoRef" 
+            autoplay 
+            muted 
+            playsinline 
+            class="main-video"
+          ></video>
+          
           <ParticipantViewV2 
+            v-else
             :publication="localCameraPublication"
             :is-local="true"
             class="main-video"
           />
+
           <div v-if="streamState.isPublishing === 'active' && !streamState.isCameraEnabled" class="no-video-placeholder">
             Cámara Apagada
           </div>
@@ -67,38 +78,43 @@ import { useParticipantTracksV2 } from '../composables/streaming/useParticipantT
 
 const streamingStore = useStreamingStoreV2();
 
-// El estado es readonly, solo para mostrar
 const { streamState } = streamingStore; 
-// Estas son refs que necesitamos para la lógica de la vista
 const { previewTrack, isProcessing, localParticipant } = storeToRefs(streamingStore);
-// Acciones que llamaremos
 const { getPermissionsAndPreview, enterStudio, leaveStudio, publishMedia, toggleCamera, toggleMicrophone } = streamingStore;
 
-// Composable para obtener los tracks del participante local
 const { cameraPublication: localCameraPublication } = useParticipantTracksV2(localParticipant);
 
 const previewVideoRef = ref<HTMLVideoElement | null>(null);
+const mainStudioVideoRef = ref<HTMLVideoElement | null>(null); // Ref para el video principal
 
-// Watch para adjuntar el track de PREVIEW al elemento de video
+// Este watch se encarga de adjuntar el track a CUALQUIER elemento de video que esté visible
 watch(previewTrack, (track) => {
-  console.log('👀 CAMBIO EN PREVIEW TRACK:', track);
-  if (track && previewVideoRef.value) {
-    console.log('✅ Adjuntando track a elemento de video de PREVIEW.');
-    track.attach(previewVideoRef.value);
+  if (track) {
+    // Intenta adjuntar a ambos. Solo funcionará en el que esté montado en el DOM.
+    if (previewVideoRef.value) track.attach(previewVideoRef.value);
+    if (mainStudioVideoRef.value) track.attach(mainStudioVideoRef.value);
   }
 });
+
+// Watcher adicional para cuando el video del studio principal APARECE
+watch(mainStudioVideoRef, (videoEl) => {
+    if (videoEl && previewTrack.value) {
+        previewTrack.value.attach(videoEl);
+    }
+});
+
 
 onMounted(() => {
   getPermissionsAndPreview();
 });
 
 onUnmounted(() => {
-  // Aseguramos la limpieza al salir de la ruta
   leaveStudio();
 });
 </script>
 
 <style scoped>
+
 /* Copia y pega aquí los estilos de tu AdminStreamView.vue original */
 .admin-stream-layout { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(17, 24, 39, 0.95); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 1rem; box-sizing: border-box; }
 .stream-panel-full { width: 100%; max-width: 1280px; height: 95%; display: flex; flex-direction: column; background-color: #1f2937; border-radius: 8px; padding: 1rem; gap: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
