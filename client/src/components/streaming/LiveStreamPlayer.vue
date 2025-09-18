@@ -1,280 +1,150 @@
 <template>
-  <div class="livestream-player-container">
-    <div class="stream-header">
-      <div class="live-indicator">
-        <span class="live-dot"></span>
-        EN VIVO
-      </div>
-      <div class="viewer-count">
-        <span class="icon">👀</span>
-        <span>{{ participantCount }}</span>
+  <div class="livestream-player" @click="handleInteraction">
+    <div class="main-video-area">
+      <ParticipantViewV2
+        v-if="mainPublication"
+        :publication="mainPublication"
+        :is-muted="isMuted"
+      />
+      <div v-else class="placeholder">
+        <p>{{ statusMessage }}</p>
       </div>
     </div>
 
-    <div class="video-grid">
-      <template v-if="room && adminParticipant">
-        <div class="video-wrapper">
-          <ParticipantView
-            :publication="mainPublication as TrackPublication | null"
-            :is-local="false"
-            class="main-video"
-            :class="{
-              'fill-container': !isScreenSharing || isCameraFullScreen,
-            }"
-          />
-          <div
-            v-if="
-              isScreenSharing &&
-              !isCameraFullScreen &&
-              cameraTrackPub &&
-              isCameraOverlayEnabled
-            "
-            class="camera-overlay"
-            :style="cameraOverlayStyle"
-          >
-            <ParticipantView
-              :publication="cameraTrackPub as TrackPublication | null"
-              :is-local="false"
-            />
-          </div>
-          <ParticipantView
-            :publication="audioTrackPub as TrackPublication | null"
-            :is-local="false"
-            class="audio-handler"
-          />
-
-          <div
-            v-if="!userHasUnmuted"
-            class="unmute-overlay"
-            @click="unmutePlayer"
-          >
-            <span class="unmute-icon">🔇</span>
-            <span class="unmute-text">Toca para activar el sonido</span>
-          </div>
-        </div>
-      </template>
-
-      <div v-else-if="isConnecting" class="stream-placeholder">
-        <p>Conectando al stream...</p>
+    <CameraOverlay
+      v-if="showOverlay"
+      :publication="cameraPublication"
+      :position="layoutState.position"
+      :size="layoutState.size"
+    />
+    
+    <div v-if="mainPublication" class="controls-overlay">
+      <div class="status-indicator">
+        <span class="live-dot"></span> EN VIVO
       </div>
-
-      <div v-else class="stream-placeholder">
-        <p>Esperando la señal del streamer...</p>
-      </div>
+      <button @click.stop="toggleMute" class="mute-button">
+        {{ isMuted ? '🔇 Activar Sonido' : '🔊 Silenciar' }}
+      </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { storeToRefs } from 'pinia'
-import { useStreamingStore } from '../../stores/streamingStore'
-import { useParticipantTracks } from '../../composables/useParticipantTracks'
-import ParticipantView from './ParticipantView.vue'
-import type { TrackPublication } from 'livekit-client'
+import { ref, reactive, computed, onMounted, onUnmounted, shallowRef, watch } from 'vue';
+import { Room, RoomEvent, Track, DataPacket_Kind, type RemoteParticipant, type TrackPublication } from 'livekit-client';
+import ParticipantViewV2 from './ParticipantViewV2.vue';
+import CameraOverlay from './CameraOverlay.vue'; // Reutilizamos el overlay
+import apiPublic from '../../services/apiPublic';
+import type { OverlayPosition, OverlaySize } from '../../composables/streaming/useStreamStateV2';
 
-const streamingStore = useStreamingStore()
-const {
-  participantCount,
-  adminParticipant,
-  room,
-  isConnecting,
-  cameraOverlayPosition,
-  cameraOverlaySize,
-  isCameraFullScreen,
-  isCameraOverlayEnabled,
-  // Ya no traemos 'isScreenSharing' desde el store para la lógica de la UI
-  isScreenSharing, // <-- ¡Importamos este! Es la única fuente de la verdad
-} = storeToRefs(streamingStore)
-const { connectToView, disconnect } = streamingStore
+// Estado local del reproductor
+const room = shallowRef<Room | null>(null);
+const adminParticipant = shallowRef<RemoteParticipant | null>(null);
+const cameraPublication = shallowRef<TrackPublication | null>(null);
+const screenSharePublication = shallowRef<TrackPublication | null>(null);
+const isMuted = ref(true); // Empezamos en silencio para cumplir la política de autoplay
+const statusMessage = ref('Conectando a la transmisión...');
 
-const userHasUnmuted = ref(false)
+// Estado del layout que recibimos del admin
+const layoutState = reactive({
+  isScreenSharing: false,
+  isCameraFocus: false,
+  position: 'bottom-left' as OverlayPosition,
+  size: 'md' as OverlaySize,
+});
 
-// Obtenemos los nuevos y robustos estados reactivos desde el composable.
-const { cameraTrackPub, screenShareTrackPub, audioTrackPub } =
-  useParticipantTracks(adminParticipant)
-
+// Lógica para decidir qué se muestra
 const mainPublication = computed(() => {
-  if (isCameraFullScreen.value) {
-    return cameraTrackPub.value
-  }
-  // Usamos el estado reactivo del store, que se actualiza con los eventos del admin
-  if (isScreenSharing.value && screenShareTrackPub.value) {
-    return screenShareTrackPub.value
-  }
-  return cameraTrackPub.value
-})
+  if (layoutState.isCameraFocus) return cameraPublication.value;
+  if (layoutState.isScreenSharing) return screenSharePublication.value;
+  return cameraPublication.value;
+});
 
-const cameraOverlayStyle = computed(() => ({
-  top: `${cameraOverlayPosition.value.y}%`,
-  left: `${cameraOverlayPosition.value.x}%`,
-  width: `${cameraOverlaySize.value.width}%`,
-}))
+const showOverlay = computed(() => {
+  return layoutState.isScreenSharing && !layoutState.isCameraFocus && cameraPublication.value;
+});
 
-const unmutePlayer = async () => {
-  if (userHasUnmuted.value) return
-  userHasUnmuted.value = true
-  if (room.value) {
-    try {
-      await room.value.startAudio()
-    } catch (e) {
-      console.error('No se pudo iniciar el audio:', e)
+const textDecoder = new TextDecoder();
+
+const updateAdminState = (r: Room) => {
+  for (const p of r.remoteParticipants.values()) {
+    // Asumimos que el admin es el único que puede publicar
+    if (p.isCameraEnabled) {
+      console.log(`[LiveStreamPlayer] ✅ Admin encontrado: ${p.identity}`);
+      adminParticipant.value = p;
+      cameraPublication.value = p.getTrackPublication(Track.Source.Camera) ?? null;
+      screenSharePublication.value = p.getTrackPublication(Track.Source.ScreenShare) ?? null;
+
+      // Nos suscribimos a los eventos de este participante
+      p.on(RoomEvent.TrackPublished, pub => {
+        if (pub.source === Track.Source.Camera) cameraPublication.value = pub;
+        if (pub.source === Track.Source.ScreenShare) screenSharePublication.value = pub;
+      });
+      p.on(RoomEvent.TrackUnpublished, pub => {
+        if (pub.source === Track.Source.Camera) cameraPublication.value = null;
+        if (pub.source === Track.Source.ScreenShare) screenSharePublication.value = null;
+      });
+      
+      return;
     }
   }
-}
+  // Si no encontramos a nadie, reseteamos
+  adminParticipant.value = null;
+};
 
-watch(
-  adminParticipant,
-  (newAdmin, _oldAdmin) => {
-    if (newAdmin) {
-      console.log(
-        `[LiveStreamPlayer] ¡Detectado admin en el store! ID: ${newAdmin.identity}`,
-      )
-    } else {
-      console.log('[LiveStreamPlayer] El admin ha desaparecido del store.')
-    }
-  },
-  { immediate: true },
-)
+onMounted(async () => {
+  const newRoom = new Room({ adaptiveStream: true, dynacast: true });
 
-onMounted(() => {
-  console.log('[LiveStreamPlayer] Montado. Conectando para ver...')
-  connectToView()
-})
+  newRoom
+    .on(RoomEvent.ParticipantConnected, () => updateAdminState(newRoom))
+    .on(RoomEvent.ParticipantDisconnected, () => updateAdminState(newRoom))
+    .on(RoomEvent.DataReceived, (payload, participant) => {
+      // ¡AQUÍ ESTÁ LA MAGIA DE LA SINCRONIZACIÓN!
+      if (participant?.identity === adminParticipant.value?.identity) {
+        const data = JSON.parse(textDecoder.decode(payload));
+        console.log('📢 [LiveStreamPlayer] Datos de layout recibidos:', data);
+        Object.assign(layoutState, data); // Actualizamos nuestro estado local con lo que mandó el admin
+      }
+    })
+    .on(RoomEvent.Disconnected, () => {
+      statusMessage.value = 'La transmisión ha finalizado.';
+      cameraPublication.value = null;
+      screenSharePublication.value = null;
+    });
 
-onUnmounted(() => {
-  console.log('[LiveStreamPlayer] Desmontado. Desconectando...')
-  if (room.value) {
-    disconnect()
+  try {
+    const response = await apiPublic.get('/streaming/token?viewer=true');
+    await newRoom.connect(import.meta.env.VITE_LIVEKIT_URL, response.data.token);
+    console.log('[LiveStreamPlayer] ✅ Conectado a la sala.');
+    statusMessage.value = 'Conexión exitosa. Esperando al anfitrión...';
+    updateAdminState(newRoom);
+    room.value = newRoom;
+  } catch (error) {
+    console.error('[LiveStreamPlayer] ❌ Error al conectar:', error);
+    statusMessage.value = 'No se pudo conectar a la transmisión.';
   }
-})
+});
+
+onUnmounted(() => room.value?.disconnect());
+
+const toggleMute = () => isMuted.value = !isMuted.value;
+const handleInteraction = () => {
+    // Si el usuario hace click en el video y está muteado, le quitamos el mute.
+    if (isMuted.value) isMuted.value = false;
+};
 </script>
 
 <style scoped>
-.camera-overlay {
-  position: absolute;
-  min-width: 160px;
-  max-width: 80%;
-  aspect-ratio: 16 / 9;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  overflow: hidden;
-  z-index: 10;
-  transition:
-    top 0.3s ease,
-    left 0.3s ease,
-    width 0.3s ease,
-    opacity 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.livestream-player-container {
-  border: 1px solid #ef4444;
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
-  border-radius: 12px;
-  margin-bottom: 2.5rem;
-  background-color: #111827;
-  overflow: hidden;
-}
-.stream-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem 1rem;
-  background-color: rgba(239, 68, 68, 0.2);
-}
-.live-indicator {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: bold;
-  color: #f87171;
-  text-transform: uppercase;
-  font-size: 0.9rem;
-}
-.live-dot {
-  width: 10px;
-  height: 10px;
-  background-color: #ef4444;
-  border-radius: 50%;
-  animation: pulse 1.5s infinite;
-}
-.viewer-count {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #fca5a5;
-}
-.video-grid {
-  padding: 0;
-  aspect-ratio: 16 / 9;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  background-color: #000;
-}
-.video-wrapper {
-  width: 100%;
-  height: 100%;
-  position: relative;
-}
-.main-video {
-  width: 100%;
-  height: 100%;
-}
-.main-video :deep(video) {
-  object-fit: contain;
-}
-.main-video.fill-container :deep(video) {
-  object-fit: cover;
-}
-.stream-placeholder {
-  color: #9ca3af;
-  font-style: italic;
-}
-.unmute-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.6);
-  color: white;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  z-index: 10;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  cursor: pointer;
-}
-.video-wrapper:hover .unmute-overlay {
-  opacity: 1;
-}
-.unmute-icon {
-  font-size: 2.5rem;
-}
-.unmute-text {
-  margin-top: 0.5rem;
-  font-weight: bold;
-}
-.audio-handler {
-  display: none;
-  visibility: hidden;
-}
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
-  }
-}
+/* (Copia aquí los estilos del LiveStreamPlayer que propusiste, son excelentes) */
+.livestream-player { width: 100%; height: 100%; background-color: #000; position: relative; border-radius: 8px; overflow: hidden; cursor: pointer; }
+.main-video-area { width: 100%; height: 100%; }
+.placeholder { display: flex; justify-content: center; align-items: center; width: 100%; height: 100%; color: #a0a0a0; font-size: 1.2rem; }
+.controls-overlay { position: absolute; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: linear-gradient(to top, rgba(0,0,0,0.7), transparent); opacity: 0; transition: opacity 0.3s ease; pointer-events: none; }
+.livestream-player:hover .controls-overlay { opacity: 1; }
+.controls-overlay > * { pointer-events: auto; }
+.status-indicator { color: white; font-weight: bold; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; background-color: rgba(0,0,0,0.5); padding: 0.3rem 0.7rem; border-radius: 15px; }
+.live-dot { width: 10px; height: 10px; background-color: #e53e3e; border-radius: 50%; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(229, 62, 62, 0); } 100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(229, 62, 62, 0); } }
+.mute-button { background-color: rgba(255, 255, 255, 0.2); color: white; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 6px; padding: 0.5rem 1rem; cursor: pointer; font-weight: 500; transition: background-color 0.2s; }
+.mute-button:hover { background-color: rgba(255, 255, 255, 0.4); }
 </style>

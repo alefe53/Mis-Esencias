@@ -18,6 +18,7 @@ import { appEmitter } from '../utils/eventEmitter';
 import { supabase } from '../services/supabaseClient';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import apiPublic from '../services/apiPublic';
+import { DataPacket_Kind } from 'livekit-client';
 
 let streamStatusChannel: RealtimeChannel | null = null;
 
@@ -59,6 +60,8 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
         console.log('🧹 [STORE] Cleanup complete.');
       });
   };
+
+
   
   async function getPermissionsAndPreview() {
     console.log('[STORE] 🚦 Action: getPermissionsAndPreview');
@@ -126,6 +129,23 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
     }
   }
 
+  const broadcastLayoutState = () => {
+    if (!room.value) return;
+    
+    const layout = {
+      isScreenSharing: streamState.isScreenSharing,
+      isCameraFocus: streamState.cameraOverlay.isCameraFocus,
+      position: streamState.cameraOverlay.position,
+      size: streamState.cameraOverlay.size,
+    };
+
+    const data = new TextEncoder().encode(JSON.stringify(layout));
+    
+    // Enviamos los datos a todos los participantes
+    room.value.localParticipant.publishData(data, { reliable: true });
+    console.log('📡 [STORE-ADMIN] Enviando estado de layout:', layout);
+  };
+
   async function publishMedia() {
     console.log('[STORE] 🚦 Action: publishMedia');
     if (!room.value?.localParticipant || streamState.isPublishing !== 'inactive' || !previewTrack.value) {
@@ -146,6 +166,7 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
       console.log('[STORE] -> ✅ Microphone enabled.');
       
       _writableState.isPublishing = 'active';
+      broadcastLayoutState(); 
     } catch (e) {
       console.error('[STORE] -> ❌ Error publishing media:', e);
       uiStore.showToast({ message: 'Error al iniciar la publicación.', color: '#ef4444' });
@@ -216,6 +237,7 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
     try {
       await room.value.localParticipant.setScreenShareEnabled(newState, { audio: true });
       console.log(`[STORE] -> ✅ Screen share state successfully set to ${newState}`);
+      broadcastLayoutState();
     } catch (e: any) {
       console.error('[STORE] -> ❌ Error toggling screen share. Reverting state.', e);
       _writableState.isScreenSharing = currentState;
@@ -231,6 +253,7 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
     console.log(`[STORE] 🚦 Action: setCameraOverlaySize to "${size}"`);
     if (['sm', 'md', 'lg'].includes(size)) {
       _writableState.cameraOverlay.size = size;
+      broadcastLayoutState();
     }
   }
 
@@ -243,11 +266,13 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
     const newPosition = positions[nextIndex];
     _writableState.cameraOverlay.position = newPosition;
     console.log(`[STORE] -> ✅ New position set to "${newPosition}"`);
+    broadcastLayoutState();
   }
    function toggleCameraFocus() {
     const newState = !streamState.cameraOverlay.isCameraFocus;
     console.log(`[STORE] 🚦 Action: toggleCameraFocus to ${newState}`);
     _writableState.cameraOverlay.isCameraFocus = newState;
+    broadcastLayoutState();
   }
 
 async function checkStreamStatus() {
