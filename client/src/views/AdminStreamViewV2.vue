@@ -20,8 +20,8 @@
             :is-local="true" 
             class="main-video"
           />
-          <div v-if="!cameraPublication || !streamState.isCameraEnabled" class="no-video-placeholder">
-            📷 Cámara Apagada
+          <div v-if="!cameraPublication" class="no-video-placeholder">
+             📷 Cámara Apagada
           </div>
         </template>
       </div>
@@ -57,11 +57,11 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue';
+// ❗️ CORRECCIÓN: Importamos nextTick
+import { onMounted, onUnmounted, ref, watch, nextTick } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useStreamingStoreV2 } from '../stores/streamingStoreV2';
 import { useParticipantTracksV2 } from '../composables/streaming/useParticipantTracksV2';
-// ❗️ Revisa que la ruta sea la correcta para tu proyecto
 import ParticipantViewV2 from '../components/streaming/ParticipantViewV2.vue'; 
 
 const streamingStore = useStreamingStoreV2();
@@ -69,16 +69,27 @@ const { streamState, previewTrack, isActionPending, localParticipant } = storeTo
 const { getPermissionsAndPreview, enterStudio, leaveStudio, publishMedia, toggleCamera, toggleMicrophone } = streamingStore;
 
 const previewVideoRef = ref<HTMLVideoElement | null>(null);
-const { cameraPublication } = useParticipantTracksV2(localParticipant);
 
-// 🪵 LOG: Observando cambios en el participante local y la publicación de cámara
+// ❗️ CORRECCIÓN: Obtenemos la función `updatePublications` del composable
+const { cameraPublication, updatePublications } = useParticipantTracksV2(localParticipant);
+
+// 🪵 LOG: Observando cambios clave
 watch(localParticipant, (p) => console.log('[ADMIN-VIEW] 👂 Local participant changed:', p));
-watch(cameraPublication, (pub) => console.log('[ADMIN-VIEW] 👂 Camera publication changed:', pub));
+watch(cameraPublication, (pub) => console.log('[ADMIN-VIEW] 👂 Camera publication changed:', pub ? pub.trackSid : null));
 
+// ❗️ CORRECCIÓN: Watcher para forzar la actualización de publicaciones
+watch(() => streamState.value.isPublishing, async (newState, oldState) => {
+  // 🪵 LOG: El estado de publicación ha cambiado
+  console.log(`[ADMIN-VIEW] 👂 Publishing state changed from "${oldState}" to "${newState}"`);
+  if (newState === 'active' && oldState === 'pending') {
+    console.log('[ADMIN-VIEW] -> ✅ Publishing is active! Forcing publication update...');
+    // Esperamos al siguiente ciclo del DOM para asegurar que LiveKit haya actualizado el estado interno
+    await nextTick();
+    updatePublications();
+  }
+});
 
 watch([previewVideoRef, previewTrack], ([videoEl, track]) => {
-  // 🪵 LOG: Watcher de la vista previa
-  // console.log('[ADMIN-VIEW] 👂 Preview watcher fired', { videoEl, track });
   if (videoEl && track) {
     track.attach(videoEl);
   } else if (videoEl && !track) {
@@ -108,7 +119,7 @@ onUnmounted(() => {
 .video-container { flex-grow: 1; background-color: black; border-radius: 6px; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; min-height: 0; }
 .preview-video, .main-video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
 .preview-video { transform: scaleX(-1); }
-.main-video :deep(video) { transform: scaleX(-1); } /* Aplica el espejo al video dentro del componente hijo */
+.main-video :deep(video) { transform: scaleX(-1); }
 .no-video-placeholder { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #d1d5db; font-size: 1.5rem; background-color: #111827; z-index: 2; }
 .placeholder-content { position: relative; z-index: 2; background-color: rgba(0, 0, 0, 0.6); padding: 1rem 2rem; border-radius: 8px; color: white; text-align: center; }
 .placeholder-content button { margin-top: 1rem; background-color: #2563eb; color: white; font-weight: bold; border-radius: 8px; padding: 0.6em 1.2em; font-size: 1em; cursor: pointer; border: none;}

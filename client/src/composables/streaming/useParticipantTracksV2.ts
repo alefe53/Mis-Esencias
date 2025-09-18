@@ -9,7 +9,7 @@ export function useParticipantTracksV2(participant: Ref<Participant | null>) {
   const updatePublications = () => {
     const p = participant.value;
     // 🪵 LOG: Actualizando publicaciones
-    console.log(`[useParticipantTracks] -> Updating publications for participant: ${p?.identity}`);
+    console.log(`[useParticipantTracks] -> 🔄 Executing updatePublications for participant: ${p?.identity}`);
     if (!p) {
       cameraPublication.value = null;
       microphonePublication.value = null;
@@ -20,37 +20,37 @@ export function useParticipantTracksV2(participant: Ref<Participant | null>) {
     console.log('[useParticipantTracks] -> ✅ Done updating.', { cam: cameraPublication.value, mic: microphonePublication.value });
   };
 
+  const onPublicationsChanged = (pub: TrackPublication) => {
+    // 🪵 LOG: Evento de participante detectado, actualizando.
+    console.log('[useParticipantTracks] -> 👂 Participant event detected!', pub);
+    updatePublications();
+  };
+
   watch(participant, (newP, oldP) => {
-    // 🪵 LOG: El participante ha cambiado, reconfigurando listeners.
     console.log(`[useParticipantTracks] 👂 Participant watcher fired. New: ${newP?.identity}, Old: ${oldP?.identity}`);
     if (oldP) {
-      oldP.off(ParticipantEvent.TrackPublished, updatePublications);
-      oldP.off(ParticipantEvent.TrackUnpublished, updatePublications);
-      oldP.off(ParticipantEvent.TrackSubscribed, updatePublications);
-      oldP.off(ParticipantEvent.TrackUnsubscribed, updatePublications);
+      oldP.off(ParticipantEvent.TrackPublished, onPublicationsChanged);
+      oldP.off(ParticipantEvent.TrackUnpublished, onPublicationsChanged);
     }
     if (newP) {
-      newP.on(ParticipantEvent.TrackPublished, updatePublications);
-      newP.on(ParticipantEvent.TrackUnpublished, updatePublications);
-      newP.on(ParticipantEvent.TrackSubscribed, updatePublications);
-      newP.on(ParticipantEvent.TrackUnsubscribed, updatePublications);
-      updatePublications(); // Actualización inicial
+      newP.on(ParticipantEvent.TrackPublished, onPublicationsChanged);
+      newP.on(ParticipantEvent.TrackUnpublished, onPublicationsChanged);
+      updatePublications();
     }
   }, { immediate: true });
 
   onUnmounted(() => {
-    // 🪵 LOG: Desmontando el composable.
     console.log('[useParticipantTracks] 🧹 Unmounting. Cleaning up listeners.');
     if (participant.value) {
-      participant.value.off(ParticipantEvent.TrackPublished, updatePublications);
-      participant.value.off(ParticipantEvent.TrackUnpublished, updatePublications);
-      participant.value.off(ParticipantEvent.TrackSubscribed, updatePublications);
-      participant.value.off(ParticipantEvent.TrackUnsubscribed, updatePublications);
+      participant.value.off(ParticipantEvent.TrackPublished, onPublicationsChanged);
+      participant.value.off(ParticipantEvent.TrackUnpublished, onPublicationsChanged);
     }
   });
 
   return {
     cameraPublication,
     microphonePublication,
+    // ❗️ CORRECCIÓN: Exponemos la función para poder llamarla manualmente
+    updatePublications, 
   };
 }
