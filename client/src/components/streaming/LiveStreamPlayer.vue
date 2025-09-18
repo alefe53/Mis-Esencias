@@ -30,24 +30,29 @@
 </template>
 
 <script setup lang="ts">
-// RUTA: src/components/streaming/LiveStreamPlayer.vue
 
-import { ref, reactive, onMounted, onUnmounted, shallowRef, computed } from 'vue'; // 1. Agrega 'computed'
-import { Room, RoomEvent, Track, ParticipantEvent, type RemoteParticipant, type TrackPublication } from 'livekit-client';
+import { ref, reactive, onMounted, onUnmounted, shallowRef, computed } from 'vue';
+import { Room, RoomEvent, Track, type RemoteParticipant, type TrackPublication } from 'livekit-client';
 import { useStreamLayout } from '../../composables/streaming/useStreamLayout';
+// ▼▼▼ 1. IMPORTA EL NUEVO COMPOSABLE ▼▼▼
+import { useRemoteParticipantTracks } from '../../composables/streaming/useRemoteParticipantTracks';
 import ParticipantViewV2 from './ParticipantViewV2.vue';
 import CameraOverlay from './CameraOverlay.vue';
 import apiPublic from '../../services/apiPublic';
 import type { OverlayPosition, OverlaySize } from '../../composables/streaming/useStreamStateV2';
 
+// --- El <template> y <style> se mantienen IGUAL ---
+
 const room = shallowRef<Room | null>(null);
 const adminParticipant = shallowRef<RemoteParticipant | null>(null);
-const cameraPublication = shallowRef<TrackPublication | null>(null);
-const screenSharePublication = shallowRef<TrackPublication | null>(null);
 const isMuted = ref(true);
 const statusMessage = ref('Conectando a la transmisión...');
 
-// Estado local que se sincroniza desde el admin vía DataChannel
+// ▼▼▼ 2. USA EL NUEVO COMPOSABLE ▼▼▼
+// Él se encargará de mantener estas referencias actualizadas y reactivas.
+const { cameraPublication, screenSharePublication } = useRemoteParticipantTracks(adminParticipant);
+
+// El estado local que se sincroniza desde el admin vía DataChannel
 const layoutState = reactive({
   isScreenSharing: false,
   isCameraFocus: false,
@@ -56,73 +61,38 @@ const layoutState = reactive({
   size: 'md' as OverlaySize,
 });
 
-// 2. Transforma el objeto reactivo en una Ref Computada para que coincida con la firma de useStreamLayout
 const layoutStateRef = computed(() => layoutState);
 
-// Ahora le pasamos la Ref, y TypeScript estará contento.
+// ▼▼▼ 3. LA LÓGICA DE USESTREAMLAYOUT AHORA FUNCIONARÁ CORRECTAMENTE ▼▼▼
+// Porque tanto `layoutStateRef` como las `publications` son completamente reactivas.
+// Cualquier cambio en CUALQUIERA de ellas, recalculará la vista.
 const { mainViewPublication, overlayViewPublication, showOverlay } = useStreamLayout(
   layoutStateRef,
   { camera: cameraPublication, screen: screenSharePublication }
 );
 
 const textDecoder = new TextDecoder();
-const participantEventHandlers = new Map<string, { onTrackPublished: (pub: TrackPublication) => void; onTrackUnpublished: (pub: TrackPublication) => void }>();
 
-function setupParticipantListeners(participant: RemoteParticipant) {
-  if (participantEventHandlers.has(participant.sid)) {
-    return;
-  }
-
-  const onTrackPublished = (publication: TrackPublication) => {
-    if (publication.source === Track.Source.Camera || publication.source === Track.Source.ScreenShare) {
-      if (!adminParticipant.value) {
-        adminParticipant.value = participant;
-      }
-    }
-    if (publication.source === Track.Source.Camera) {
-      cameraPublication.value = publication;
-    }
-    if (publication.source === Track.Source.ScreenShare) {
-      screenSharePublication.value = publication;
-    }
-  };
-
-  const onTrackUnpublished = (publication: TrackPublication) => {
-    if (publication.source === Track.Source.Camera) {
-      cameraPublication.value = null;
-    }
-    if (publication.source === Track.Source.ScreenShare) {
-      screenSharePublication.value = null;
-    }
-  };
-
-  participantEventHandlers.set(participant.sid, { onTrackPublished, onTrackUnpublished });
-  participant.on(ParticipantEvent.TrackPublished, onTrackPublished);
-  participant.on(ParticipantEvent.TrackUnpublished, onTrackUnpublished);
-  participant.getTrackPublications().forEach(pub => onTrackPublished(pub));
-}
-
-function cleanupParticipantListeners(participant: RemoteParticipant) {
-  const handlers = participantEventHandlers.get(participant.sid);
-  if (handlers) {
-    participant.off(ParticipantEvent.TrackPublished, handlers.onTrackPublished);
-    participant.off(ParticipantEvent.TrackUnpublished, handlers.onTrackUnpublished);
-    participantEventHandlers.delete(participant.sid);
-  }
-}
+// ▼▼▼ 4. ELIMINA TODA LA LÓGICA ANTIGUA ▼▼▼
+// BORRA: participantEventHandlers
+// BORRA: setupParticipantListeners
+// BORRA: cleanupParticipantListeners
 
 onMounted(async () => {
   const newRoom = new Room({ adaptiveStream: true, dynacast: true });
 
   newRoom
-    .on(RoomEvent.ParticipantConnected, setupParticipantListeners)
+    .on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
+      // Asumimos que el primer participante que se conecta es el admin.
+      // Si esta lógica es más compleja, se puede ajustar aquí.
+      if (!adminParticipant.value) {
+        adminParticipant.value = participant;
+      }
+    })
     .on(RoomEvent.ParticipantDisconnected, (participant: RemoteParticipant) => {
       if (adminParticipant.value?.sid === participant.sid) {
-        adminParticipant.value = null;
-        cameraPublication.value = null;
-        screenSharePublication.value = null;
+        adminParticipant.value = null; // Esto limpiará los tracks automáticamente gracias al composable.
       }
-      cleanupParticipantListeners(participant);
     })
     .on(RoomEvent.DataReceived, (payload) => {
         try {
@@ -141,7 +111,13 @@ onMounted(async () => {
     room.value = newRoom;
     statusMessage.value = 'Conexión exitosa. Esperando al anfitrión...';
 
-    newRoom.remoteParticipants.forEach(setupParticipantListeners);
+    // Si ya hay participantes al conectar, busca al admin
+    if (newRoom.remoteParticipants.size > 0 && !adminParticipant.value) {
+        // Esta es una forma simple, podrías tener una lógica más robusta
+        // para identificar al admin si es necesario.
+        const [firstParticipant] = newRoom.remoteParticipants.values();
+        adminParticipant.value = firstParticipant;
+    }
 
   } catch (error) {
     console.error('[LiveStreamPlayer] ❌ Error al conectar:', error);
@@ -151,7 +127,6 @@ onMounted(async () => {
 
 onUnmounted(() => {
   if (room.value) {
-    room.value.remoteParticipants.forEach(cleanupParticipantListeners);
     room.value.disconnect();
   }
 });
