@@ -18,7 +18,9 @@
           <div class="main-video-wrapper">
             <ParticipantViewV2 
               v-if="room.localParticipant"
-              :participant="room.localParticipant" 
+              :video-publication="localCameraPublication"
+              :audio-publication="localMicrophonePublication"
+              :is-local="true"
             />
             <div v-if="!streamState.isCameraEnabled && streamState.isPublishing === 'active'" class="no-video-placeholder">
               Cámara Apagada
@@ -60,16 +62,15 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue';
-import { storeToRefs } from 'pinia'; // Importamos storeToRefs
+import { onMounted, onUnmounted, ref, watch, computed } from 'vue';
+import { storeToRefs } from 'pinia';
 import { useStreamingStoreV2 } from '../stores/streamingStoreV2';
 import ParticipantViewV2 from '../components/streaming/ParticipantViewV2.vue';
+// MODIFICACIÓN: Importamos nuestro nuevo composable
+import { useParticipantTracksV2 } from '../composables/streaming/useParticipantTracksV2';
 
 const streamingStore = useStreamingStoreV2();
 
-// --- CORRECCIÓN AQUÍ ---
-// Usamos storeToRefs para extraer las propiedades y mantener la reactividad.
-// El estado principal (streamState) lo podemos desestructurar directamente porque es readonly.
 const { streamState } = streamingStore;
 const { previewTrack, isProcessing, room } = storeToRefs(streamingStore);
 
@@ -84,9 +85,16 @@ const {
 
 const previewVideoRef = ref<HTMLVideoElement | null>(null);
 
-// --- CORRECCIÓN AQUÍ ---
-// Observamos el valor del ref usando un getter `() => previewTrack.value`.
-// Esto asegura que TypeScript infiera correctamente los tipos de `track` y `oldTrack`.
+// MODIFICACIÓN: Creamos una referencia al participante local para el composable
+const localParticipant = computed(() => room.value?.localParticipant ?? null);
+
+// MODIFICACIÓN: Usamos el composable para obtener las publicaciones de forma reactiva
+const {
+  cameraPublication: localCameraPublication,
+  microphonePublication: localMicrophonePublication,
+} = useParticipantTracksV2(localParticipant);
+
+
 watch(() => previewTrack.value, (track, oldTrack) => {
   if (oldTrack && previewVideoRef.value) {
     oldTrack.detach(previewVideoRef.value);
@@ -101,13 +109,12 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  // Limpieza robusta al salir de la vista
   leaveStudio();
 });
 </script>
 
 <style scoped>
-/* Copia los estilos de AdminStreamViewV1.vue aquí, funcionarán casi idénticos */
+/* Tus estilos (sin cambios) */
 .admin-stream-layout { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(17, 24, 39, 0.95); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 1rem; box-sizing: border-box; }
 .stream-panel-full { width: 100%; max-width: 1280px; height: 95%; display: flex; flex-direction: column; background-color: #1f2937; border-radius: 8px; padding: 1rem; gap: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
 .video-container { flex-grow: 1; background-color: black; border-radius: 6px; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; min-height: 0; }
