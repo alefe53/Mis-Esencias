@@ -16,12 +16,8 @@
         
         <template v-else>
           <div class="main-video-wrapper">
-            <ParticipantViewV2 
-              v-if="room.localParticipant"
-              :video-publication="localCameraPublication"
-              :audio-publication="localMicrophonePublication"
-              :is-local="true"
-            />
+            <video ref="mainVideoRef" autoplay muted playsinline class="main-video"></video>
+            
             <div v-if="!streamState.isCameraEnabled && streamState.isPublishing === 'active'" class="no-video-placeholder">
               Cámara Apagada
             </div>
@@ -62,12 +58,10 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch, computed } from 'vue';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useStreamingStoreV2 } from '../stores/streamingStoreV2';
-import ParticipantViewV2 from '../components/streaming/ParticipantViewV2.vue';
-// MODIFICACIÓN: Importamos nuestro nuevo composable
-import { useParticipantTracksV2 } from '../composables/streaming/useParticipantTracksV2';
+// Ya no necesitamos ParticipantViewV2 ni useParticipantTracksV2 aquí
 
 const streamingStore = useStreamingStoreV2();
 
@@ -84,23 +78,25 @@ const {
 } = streamingStore;
 
 const previewVideoRef = ref<HTMLVideoElement | null>(null);
+// CORRECCIÓN: Creamos una ref para el video principal
+const mainVideoRef = ref<HTMLVideoElement | null>(null);
 
-// MODIFICACIÓN: Creamos una referencia al participante local para el composable
-const localParticipant = computed(() => room.value?.localParticipant ?? null);
-
-// MODIFICACIÓN: Usamos el composable para obtener las publicaciones de forma reactiva
-const {
-  cameraPublication: localCameraPublication,
-  microphonePublication: localMicrophonePublication,
-} = useParticipantTracksV2(localParticipant);
-
-
+// Este watch se encarga de mostrar el video en la pantalla de PREVIA
 watch(() => previewTrack.value, (track, oldTrack) => {
   if (oldTrack && previewVideoRef.value) {
     oldTrack.detach(previewVideoRef.value);
   }
   if (track && previewVideoRef.value) {
     track.attach(previewVideoRef.value);
+  }
+});
+
+// CORRECCIÓN: Este nuevo watch se encarga de mostrar el video en la pantalla PRINCIPAL
+// una vez que entramos al studio.
+watch(mainVideoRef, (videoEl) => {
+  if (videoEl && previewTrack.value) {
+    // Adjuntamos el mismo track de la previa al nuevo elemento de video
+    previewTrack.value.attach(videoEl);
   }
 });
 
@@ -114,11 +110,11 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Tus estilos (sin cambios) */
+/* Tus estilos existentes (sin cambios) */
 .admin-stream-layout { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(17, 24, 39, 0.95); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 1rem; box-sizing: border-box; }
 .stream-panel-full { width: 100%; max-width: 1280px; height: 95%; display: flex; flex-direction: column; background-color: #1f2937; border-radius: 8px; padding: 1rem; gap: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
 .video-container { flex-grow: 1; background-color: black; border-radius: 6px; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; min-height: 0; }
-.preview-video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; transform: scaleX(-1); }
+.preview-video, .main-video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; transform: scaleX(-1); }
 .main-video-wrapper { width: 100%; height: 100%; position: relative; }
 .no-video-placeholder { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #d1d5db; font-size: 1.5rem; background-color: #111827; z-index: 2; }
 .placeholder-content { position: relative; z-index: 2; background-color: rgba(0, 0, 0, 0.6); padding: 1rem 2rem; border-radius: 8px; color: white; text-align: center; }
