@@ -56,6 +56,8 @@
 </template>
 
 <script setup lang="ts">
+// RUTA: src/views/AdminStreamViewV2.vue -> <script setup>
+
 import { onMounted, onUnmounted, ref, watch, shallowRef } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useStreamingStoreV2 } from '../stores/streamingStoreV2';
@@ -73,49 +75,55 @@ const { cameraPublication: localCameraPublication } = useParticipantTracksV2(loc
 const previewVideoRef = ref<HTMLVideoElement | null>(null);
 const mainStudioVideoRef = ref<HTMLVideoElement | null>(null);
 
-// Mantiene una referencia al track que se está mostrando actualmente
 const currentVideoTrack = shallowRef<Track | undefined>(undefined);
 
-// Watcher para el video de PREVIEW
+// Watcher para el video de PREVIEW (sin cambios)
 watch(previewVideoRef, (videoEl) => {
   if (videoEl && previewTrack.value) {
     previewTrack.value.attach(videoEl);
   }
 });
 
-// --- ESTE ES EL WATCHER CLAVE Y CORREGIDO ---
-watch([mainStudioVideoRef, localCameraPublication, () => streamState.isPublishing], ([videoEl]) => {
-  if (!videoEl) return;
+// --- WATCHER CLAVE - VERSIÓN FINAL Y DEFINITIVA ---
+watch(
+  // 1. Observamos el elemento de video del studio
+  mainStudioVideoRef,
+  (videoEl) => {
+    if (!videoEl) return;
 
-  // TypeScript necesita que seamos explícitos con los tipos.
-  let newTrackSource: LocalVideoTrack | Track | null | undefined;
+    // 2. Cuando el video aparece, creamos OTRO watcher INTERNO que reacciona a los cambios de track
+    watch(
+      () => {
+        // 3. La fuente de la verdad es: ¿estamos publicando?
+        if (streamState.isPublishing === 'active') {
+          // Si sí, el track que queremos es el de la publicación
+          return localCameraPublication.value?.track;
+        } else if (localParticipant.value) {
+          // Si no, es el track de la preview
+          return previewTrack.value;
+        }
+        return undefined;
+      },
+      (newTrack) => {
+        // Hacemos el "cast" para que TypeScript esté contento
+        const trackToShow = newTrack as Track | undefined;
 
-  // Decidimos qué track mostrar
-  if (streamState.isPublishing === 'active') {
-    // Cuando publicamos, mostramos el track de la publicación
-    newTrackSource = localCameraPublication.value?.track;
-  } else if (localParticipant.value) {
-    // Cuando estamos en el studio pero sin publicar, mostramos la preview
-    newTrackSource = previewTrack.value;
-  }
-
-  // Hacemos el "cast" para que TypeScript esté contento
-  const newTrack = newTrackSource as Track | undefined;
-
-  // Si el track que queremos mostrar es diferente al actual, lo cambiamos.
-  if (currentVideoTrack.value !== newTrack) {
-    // Primero, limpiamos el track anterior del elemento de video
-    if (currentVideoTrack.value) {
-      currentVideoTrack.value.detach(videoEl);
-    }
-    // Luego, adjuntamos el nuevo track, si existe
-    if (newTrack) {
-      newTrack.attach(videoEl);
-    }
-    // Finalmente, actualizamos nuestra referencia al track actual
-    currentVideoTrack.value = newTrack;
-  }
-}, { deep: true }); // Usamos 'deep' para que reaccione a cambios dentro del streamState
+        // 4. Comparamos el track que queremos mostrar con el que ya está
+        if (currentVideoTrack.value !== trackToShow) {
+          if (currentVideoTrack.value) {
+            currentVideoTrack.value.detach(videoEl);
+          }
+          if (trackToShow) {
+            trackToShow.attach(videoEl);
+          }
+          currentVideoTrack.value = trackToShow;
+        }
+      },
+      { immediate: true } // El watcher interno se ejecuta de inmediato
+    );
+  },
+  { flush: 'post' } // Nos aseguramos de que el watcher externo se ejecute después de que el DOM se haya actualizado
+);
 
 
 onMounted(() => {
