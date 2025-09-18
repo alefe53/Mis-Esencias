@@ -1,6 +1,6 @@
 // RUTA: src/stores/streamingStoreV2.ts
 import { defineStore } from 'pinia';
-import { shallowRef } from 'vue';
+import { shallowRef, nextTick } from 'vue';
 import { 
   createLocalVideoTrack, 
   Room, 
@@ -129,22 +129,27 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
     }
   }
 
-  const broadcastLayoutState = () => {
-    if (!room.value) return;
+    const broadcastLayoutState = () => {
+    // Comprobación de seguridad: solo enviar si estamos en una sala y somos un participante local.
+    if (!room.value?.localParticipant) {
+        console.warn('[STORE-ADMIN] Intento de broadcast sin estar en una sala.');
+        return;
+    }
     
     const layout = {
-      isScreenSharing: streamState.isScreenSharing,
-      isCameraFocus: streamState.cameraOverlay.isCameraFocus,
-      position: streamState.cameraOverlay.position,
-      size: streamState.cameraOverlay.size,
+        isScreenSharing: streamState.isScreenSharing,
+        isCameraFocus: streamState.cameraOverlay.isCameraFocus,
+        position: streamState.cameraOverlay.position,
+        size: streamState.cameraOverlay.size,
     };
 
     const data = new TextEncoder().encode(JSON.stringify(layout));
     
-    // Enviamos los datos a todos los participantes
     room.value.localParticipant.publishData(data, { reliable: true });
-    console.log('📡 [STORE-ADMIN] Enviando estado de layout:', layout);
-  };
+    
+    // Log mejorado para saber exactamente qué se está enviando
+    console.log('📡 [STORE-ADMIN] Layout state broadcasted:', layout);
+    };
 
   async function publishMedia() {
     console.log('[STORE] 🚦 Action: publishMedia');
@@ -237,7 +242,6 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
     try {
       await room.value.localParticipant.setScreenShareEnabled(newState, { audio: true });
       console.log(`[STORE] -> ✅ Screen share state successfully set to ${newState}`);
-      broadcastLayoutState();
     } catch (e: any) {
       console.error('[STORE] -> ❌ Error toggling screen share. Reverting state.', e);
       _writableState.isScreenSharing = currentState;
@@ -246,6 +250,7 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
       }
     } finally {
       isActionPending.value = false;
+      broadcastLayoutState(); 
     }
   }
 
@@ -253,7 +258,9 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
     console.log(`[STORE] 🚦 Action: setCameraOverlaySize to "${size}"`);
     if (['sm', 'md', 'lg'].includes(size)) {
       _writableState.cameraOverlay.size = size;
+      nextTick(() => {
       broadcastLayoutState();
+    });
     }
   }
 
@@ -266,13 +273,17 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
     const newPosition = positions[nextIndex];
     _writableState.cameraOverlay.position = newPosition;
     console.log(`[STORE] -> ✅ New position set to "${newPosition}"`);
+    nextTick(() => {
     broadcastLayoutState();
+    });
   }
    function toggleCameraFocus() {
     const newState = !streamState.cameraOverlay.isCameraFocus;
     console.log(`[STORE] 🚦 Action: toggleCameraFocus to ${newState}`);
     _writableState.cameraOverlay.isCameraFocus = newState;
-    broadcastLayoutState();
+    nextTick(() => {
+      broadcastLayoutState();
+    });
   }
 
 async function checkStreamStatus() {
