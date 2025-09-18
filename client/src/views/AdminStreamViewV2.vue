@@ -37,9 +37,9 @@
           />
           
           <CameraOverlay 
-            v-if="streamState.isScreenSharing && !streamState.cameraOverlay.isCameraFocus && cameraPublication"
-            :publication="cameraPublication"
-          />
+              v-if="streamState.isScreenSharing && !streamState.cameraOverlay.isCameraFocus && cameraPublication"
+              :publication="cameraPublication"
+              :position="streamState.cameraOverlay.position" :size="streamState.cameraOverlay.size"       />
 
           <div v-if="!cameraPublication && !screenSharePublication" class="no-video-placeholder">
             📷 Cámara Apagada
