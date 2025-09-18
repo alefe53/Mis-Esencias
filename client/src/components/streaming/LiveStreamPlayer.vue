@@ -1,3 +1,36 @@
+// RUTA: src/components/streaming/LiveStreamPlayer.vue
+
+<template>
+  <div class="livestream-player" @click="handleInteraction">
+    <div class="main-video-area">
+      <ParticipantViewV2
+        v-if="mainPublication"
+        :publication="mainPublication"
+        :is-muted="isMuted"
+      />
+      <div v-else class="placeholder">
+        <p>{{ statusMessage }}</p>
+      </div>
+    </div>
+
+    <CameraOverlay
+      v-if="showOverlay"
+      :publication="cameraPublication"
+      :position="layoutState.position"
+      :size="layoutState.size"
+    />
+    
+    <div v-if="mainPublication" class="controls-overlay">
+      <div class="status-indicator">
+        <span class="live-dot"></span> EN VIVO
+      </div>
+      <button @click.stop="toggleMute" class="mute-button">
+        {{ isMuted ? '🔇 Activar Sonido' : '🔊 Silenciar' }}
+      </button>
+    </div>
+  </div>
+</template>
+
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted, shallowRef } from 'vue';
 import { Room, RoomEvent, Track, ParticipantEvent, type RemoteParticipant, type TrackPublication } from 'livekit-client';
@@ -6,6 +39,7 @@ import CameraOverlay from './CameraOverlay.vue';
 import apiPublic from '../../services/apiPublic';
 import type { OverlayPosition, OverlaySize } from '../../composables/streaming/useStreamStateV2';
 
+// --- Estado local del componente ---
 const room = shallowRef<Room | null>(null);
 const adminParticipant = shallowRef<RemoteParticipant | null>(null);
 const cameraPublication = shallowRef<TrackPublication | null>(null);
@@ -20,6 +54,9 @@ const layoutState = reactive({
   size: 'md' as OverlaySize,
 });
 
+const textDecoder = new TextDecoder();
+
+// --- Lógica de computadas para mostrar el video correcto ---
 const mainPublication = computed(() => {
   if (layoutState.isCameraFocus) return cameraPublication.value;
   if (layoutState.isScreenSharing) return screenSharePublication.value;
@@ -30,130 +67,127 @@ const showOverlay = computed(() => {
   return layoutState.isScreenSharing && !layoutState.isCameraFocus && cameraPublication.value;
 });
 
-const textDecoder = new TextDecoder();
+// --- Lógica de manejo de eventos de LiveKit (LA PARTE CLAVE) ---
 
-// Map para guardar handlers por participante para poder hacer off() luego
-const participantHandlers = new Map<RemoteParticipant, { onPublished: any, onUnpublished: any }>();
+// Usaremos un Map para guardar las funciones de callback y poder desuscribirnos correctamente.
+const participantEventHandlers = new Map<string, { onTrackPublished: (pub: TrackPublication) => void; onTrackUnpublished: (pub: TrackPublication) => void }>();
 
-// Handler cuando un participante publica/unpublica track: lo marca admin si es video
-function attachParticipantListeners(p: RemoteParticipant) {
-  if (participantHandlers.has(p)) return;
-
-  const onPublished = (pub: TrackPublication) => {
-    try {
-      console.log(`[LiveStreamPlayer] Participant ${p.identity} published:`, pub.source);
-      if (pub.source === Track.Source.Camera) {
-        adminParticipant.value = p;
-        cameraPublication.value = pub;
-      }
-      if (pub.source === Track.Source.ScreenShare) {
-        adminParticipant.value = p;
-        screenSharePublication.value = pub;
-      }
-      // en cualquier caso logueamos para debugging
-      console.log('[LiveStreamPlayer] → after publish, cameraPub:', !!cameraPublication.value, 'screenPub:', !!screenSharePublication.value);
-    } catch (e) {
-      console.error('[LiveStreamPlayer] Error en onPublished handler', e);
-    }
-  };
-
-  const onUnpublished = (pub: TrackPublication) => {
-    try {
-      console.log(`[LiveStreamPlayer] Participant ${p.identity} unpublished:`, pub.source);
-      if (pub.source === Track.Source.Camera && cameraPublication.value?.trackSid === pub.trackSid) {
-        cameraPublication.value = null;
-      }
-      if (pub.source === Track.Source.ScreenShare && screenSharePublication.value?.trackSid === pub.trackSid) {
-        screenSharePublication.value = null;
-      }
-    } catch (e) {
-      console.error('[LiveStreamPlayer] Error en onUnpublished handler', e);
-    }
-  };
-
-  // registramos
-  p.on(ParticipantEvent.TrackPublished, onPublished);
-  p.on(ParticipantEvent.TrackUnpublished, onUnpublished);
-
-  participantHandlers.set(p, { onPublished, onUnpublished });
-}
-
-function detachParticipantListeners(p: RemoteParticipant) {
-  const handlers = participantHandlers.get(p);
-  if (!handlers) return;
-  try {
-    p.off(ParticipantEvent.TrackPublished, handlers.onPublished);
-    p.off(ParticipantEvent.TrackUnpublished, handlers.onUnpublished);
-  } catch (e) {
-    // off puede no lanzar, pero por las dudas atrapamos
-    console.warn('[LiveStreamPlayer] Warning detaching handlers', e);
+/**
+ * Esta función se encarga de "escuchar" los eventos de un participante específico.
+ * La llamaremos para CADA participante que se conecte.
+ */
+function setupParticipantListeners(participant: RemoteParticipant) {
+  if (participantEventHandlers.has(participant.sid)) {
+    console.warn(`[LiveStreamPlayer] Ya se estaban escuchando eventos para ${participant.identity}. Omitiendo.`);
+    return;
   }
-  participantHandlers.delete(p);
+
+  const onTrackPublished = (publication: TrackPublication) => {
+    console.log(`[LiveStreamPlayer] 📢 Track publicado por ${participant.identity}:`, publication.source);
+    // Si es un track de video, consideramos a este participante como el admin.
+    if (publication.source === Track.Source.Camera || publication.source === Track.Source.ScreenShare) {
+      if (!adminParticipant.value) {
+        adminParticipant.value = participant;
+        console.log(`[LiveStreamPlayer] ✅ Admin asignado: ${participant.identity}`);
+      }
+    }
+    
+    // Actualizamos nuestras referencias locales para que Vue reaccione.
+    if (publication.source === Track.Source.Camera) {
+      cameraPublication.value = publication;
+    }
+    if (publication.source === Track.Source.ScreenShare) {
+      screenSharePublication.value = publication;
+    }
+  };
+
+  const onTrackUnpublished = (publication: TrackPublication) => {
+    console.log(`[LiveStreamPlayer] 📢 Track quitado por ${participant.identity}:`, publication.source);
+    if (publication.source === Track.Source.Camera) {
+      cameraPublication.value = null;
+    }
+    if (publication.source === Track.Source.ScreenShare) {
+      screenSharePublication.value = null;
+    }
+  };
+
+  // Guardamos las funciones para poder removerlas después.
+  participantEventHandlers.set(participant.sid, { onTrackPublished, onTrackUnpublished });
+
+  // Nos suscribimos a los eventos del participante.
+  participant.on(ParticipantEvent.TrackPublished, onTrackPublished);
+  participant.on(ParticipantEvent.TrackUnpublished, onTrackUnpublished);
+
+  // También revisamos los tracks que ya pueda tener publicados.
+  participant.getTrackPublications().forEach(pub => onTrackPublished(pub));
 }
+
+/**
+ * Limpia los listeners de un participante para evitar fugas de memoria.
+ */
+function cleanupParticipantListeners(participant: RemoteParticipant) {
+  const handlers = participantEventHandlers.get(participant.sid);
+  if (handlers) {
+    participant.off(ParticipantEvent.TrackPublished, handlers.onTrackPublished);
+    participant.off(ParticipantEvent.TrackUnpublished, handlers.onTrackUnpublished);
+    participantEventHandlers.delete(participant.sid);
+    console.log(`[LiveStreamPlayer] 🧹 Listeners limpiados para ${participant.identity}`);
+  }
+}
+
 
 onMounted(async () => {
   const newRoom = new Room({ adaptiveStream: true, dynacast: true });
 
-  // Al conectar, queremos ENSAMBLAR listeners para todos los participantes actuales
-  newRoom.on(RoomEvent.ParticipantConnected, (p: RemoteParticipant) => {
-    console.log('[LiveStreamPlayer] ParticipantConnected:', (p as any).identity);
-    attachParticipantListeners(p as RemoteParticipant);
-  });
-
-  newRoom.on(RoomEvent.ParticipantDisconnected, (p: RemoteParticipant) => {
-    console.log('[LiveStreamPlayer] ParticipantDisconnected:', (p as any).identity);
-    // si era nuestro admin, reseteamos
-    if (adminParticipant.value?.identity === (p as any).identity) {
-      adminParticipant.value = null;
-      cameraPublication.value = null;
-      screenSharePublication.value = null;
-    }
-    detachParticipantListeners(p as RemoteParticipant);
-  });
-
-  // DataReceived: aplicamos layout siempre (lo que evita depender exclusivamente de admin ya detectado)
-  newRoom.on(RoomEvent.DataReceived, (payload, participant) => {
-    try {
-      const str = textDecoder.decode(payload as Uint8Array);
-      const data = JSON.parse(str);
-      // Debug log
-      console.log('[LiveStreamPlayer] 📢 DataReceived raw:', data, 'from', participant?.identity);
-      // Si viene data válida, aplicamos layoutState inmediatamente
-      if (data && typeof data === 'object') {
+  newRoom
+    // Cuando ALGUIEN se conecta, empezamos a escuchar sus eventos.
+    .on(RoomEvent.ParticipantConnected, setupParticipantListeners)
+    // Cuando alguien se va, dejamos de escucharlo y limpiamos.
+    .on(RoomEvent.ParticipantDisconnected, (participant: RemoteParticipant) => {
+      if (adminParticipant.value?.sid === participant.sid) {
+        adminParticipant.value = null;
+        cameraPublication.value = null;
+        screenSharePublication.value = null;
+        console.log(`[LiveStreamPlayer] 🛑 El admin ${participant.identity} se ha desconectado.`);
+      }
+      cleanupParticipantListeners(participant);
+    })
+    // El receptor de datos ahora es más simple y robusto.
+    .on(RoomEvent.DataReceived, (payload, participant) => {
+      try {
+        const data = JSON.parse(textDecoder.decode(payload));
+        console.log(`[LiveStreamPlayer] 📡 Datos de layout recibidos de ${participant?.identity}:`, data);
+        
+        // Asignamos directamente, sin condiciones. Asumimos que solo el admin envía esto.
         Object.assign(layoutState, data);
-        // Si admin aún no estaba asignado, asignamos al que envió estos datos
+        
+        // Si por alguna razón no teníamos al admin, el que envía datos es un buen candidato.
         if (!adminParticipant.value && participant) {
           adminParticipant.value = participant as RemoteParticipant;
-          console.log('[LiveStreamPlayer] Assigned adminParticipant from DataReceived:', participant.identity);
+          console.log(`[LiveStreamPlayer] ✅ Admin asignado por Data Channel: ${participant.identity}`);
         }
+      } catch (e) {
+        console.error('[LiveStreamPlayer] ❌ Error procesando datos recibidos:', e);
       }
-    } catch (e) {
-      console.error('[LiveStreamPlayer] ❌ Error procesando DataReceived:', e);
-    }
-  });
-
-  newRoom.on(RoomEvent.Disconnected, () => {
-    statusMessage.value = 'La transmisión ha finalizado.';
-    cameraPublication.value = null;
-    screenSharePublication.value = null;
-    // limpiar handlers
-    participantHandlers.forEach((_, p) => detachParticipantListeners(p));
-    participantHandlers.clear();
-  });
+    })
+    .on(RoomEvent.Disconnected, () => {
+      statusMessage.value = 'La transmisión ha finalizado.';
+      cameraPublication.value = null;
+      screenSharePublication.value = null;
+      room.value = null;
+    });
 
   try {
     const response = await apiPublic.get('/streaming/token?viewer=true');
     await newRoom.connect(import.meta.env.VITE_LIVEKIT_URL, response.data.token);
+    
     console.log('[LiveStreamPlayer] ✅ Conectado a la sala.');
-
-    // attach listeners a los participantes ya presentes en la sala (caso reconexión o publish posterior)
-    for (const p of newRoom.remoteParticipants.values()) {
-      attachParticipantListeners(p as RemoteParticipant);
-    }
-
-    // guardar room
     room.value = newRoom;
     statusMessage.value = 'Conexión exitosa. Esperando al anfitrión...';
+
+    // MUY IMPORTANTE: Escuchamos a los participantes que YA ESTABAN en la sala cuando nos conectamos.
+    newRoom.remoteParticipants.forEach(setupParticipantListeners);
+
   } catch (error) {
     console.error('[LiveStreamPlayer] ❌ Error al conectar:', error);
     statusMessage.value = 'No se pudo conectar a la transmisión.';
@@ -161,18 +195,22 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
-  // limpiar listeners y desconectar
-  participantHandlers.forEach((_, p) => detachParticipantListeners(p));
-  participantHandlers.clear();
-  room.value?.disconnect();
+  if (room.value) {
+    // Limpiamos todos los listeners antes de desconectar
+    room.value.remoteParticipants.forEach(cleanupParticipantListeners);
+    room.value.disconnect();
+    console.log('[LiveStreamPlayer] 🚪 Desconectado y listeners limpiados.');
+  }
 });
 
+// --- Manejadores de interacción del usuario ---
 const toggleMute = () => isMuted.value = !isMuted.value;
 const handleInteraction = () => { if (isMuted.value) isMuted.value = false; };
+
 </script>
 
-
 <style scoped>
+/* Tus estilos están perfectos, no necesitan cambios. */
 .livestream-player { width: 100%; height: 100%; background-color: #000; position: relative; border-radius: 8px; overflow: hidden; cursor: pointer; }
 .main-video-area { width: 100%; height: 100%; }
 .placeholder { display: flex; justify-content: center; align-items: center; width: 100%; height: 100%; color: #a0a0a0; font-size: 1.2rem; }
