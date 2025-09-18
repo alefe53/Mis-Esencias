@@ -16,8 +16,16 @@
         
         <template v-else>
           <ParticipantViewV2 
-            :publication="mainPublication" 
-            :is-local="!streamState.isScreenSharing" 
+            v-if="!streamState.isScreenSharing"
+            :publication="cameraPublication" 
+            :is-local="true" 
+            class="main-video"
+          />
+
+          <ParticipantViewV2 
+            v-if="streamState.isScreenSharing"
+            :publication="screenSharePublication" 
+            :is-local="false" 
             class="main-video"
           />
           
@@ -26,10 +34,10 @@
             :publication="cameraPublication"
           />
 
-          <div v-if="!mainPublication" class="no-video-placeholder">
+          <div v-if="!cameraPublication" class="no-video-placeholder">
             📷 Cámara Apagada
           </div>
-        </template>
+          </template>
       </div>
 
       <div class="controls-section" v-if="localParticipant">
@@ -76,7 +84,6 @@ import { storeToRefs } from 'pinia';
 import { useStreamingStoreV2 } from '../stores/streamingStoreV2';
 import { useParticipantTracksV2 } from '../composables/streaming/useParticipantTracksV2';
 import ParticipantViewV2 from '../components/streaming/ParticipantViewV2.vue';
-// Importamos el nuevo componente de overlay
 import CameraOverlay from '../components/streaming/CameraOverlay.vue';
 
 const streamingStore = useStreamingStoreV2();
@@ -85,33 +92,20 @@ const { getPermissionsAndPreview, enterStudio, leaveStudio, publishMedia, toggle
 
 const previewVideoRef = ref<HTMLVideoElement | null>(null);
 
-// El composable ahora se auto-actualiza gracias al emisor de eventos.
+// El composable se auto-actualiza, obtenemos las publicaciones que necesitamos
 const { cameraPublication, screenSharePublication } = useParticipantTracksV2(localParticipant);
 
-// Esta propiedad computada decide qué se muestra en el viewport principal.
-const mainPublication = computed(() => {
-  if (streamState.value.isScreenSharing && screenSharePublication.value) {
-    // 🪵 LOG: El viewport principal ahora mostrará la pantalla compartida.
-    console.log('[ADMIN-VIEW] -> 🖥️ Main publication is now ScreenShare.');
-    return screenSharePublication.value;
-  }
-  // 🪵 LOG: El viewport principal ahora mostrará la cámara.
-  // console.log('[ADMIN-VIEW] -> 📷 Main publication is now Camera.');
-  return cameraPublication.value;
-});
+// ❗️❗️❗️ CORRECCIÓN: La propiedad `mainPublication` ya no es necesaria.
+// La lógica ahora está directamente en el template con v-if, lo que es más claro y evita el conflicto.
 
 // 🪵 LOGS para depuración
 watch(cameraPublication, (pub) => console.log('[ADMIN-VIEW] 👂 Camera publication changed:', pub ? pub.trackSid : null));
 watch(screenSharePublication, (pub) => console.log('[ADMIN-VIEW] 👂 ScreenShare publication changed:', pub ? pub.trackSid : null));
 
-// Ya no necesitamos el watcher de 'isPublishing' para forzar la actualización.
-// El nuevo sistema de emisor de eventos es más robusto y se encarga de esto.
-
 // Watcher para la vista previa inicial
 watch([previewVideoRef, previewTrack], ([videoEl, track]) => {
-  if (videoEl && track) {
-    track.attach(videoEl);
-  } else if (videoEl && !track) {
+  if (videoEl && track) { track.attach(videoEl); } 
+  else if (videoEl && !track) {
     const stream = videoEl.srcObject as MediaStream;
     if (stream) {
       stream.getTracks().forEach(t => t.stop());
@@ -132,6 +126,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* (Tus estilos aquí, sin cambios) */
 .admin-stream-layout { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(17, 24, 39, 0.95); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 1rem; box-sizing: border-box; }
 .stream-panel-full { width: 100%; max-width: 1280px; height: 95%; display: flex; flex-direction: column; background-color: #1f2937; border-radius: 8px; padding: 1rem; gap: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
 .video-container { flex-grow: 1; background-color: black; border-radius: 6px; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; min-height: 0; }
@@ -148,15 +143,6 @@ onUnmounted(() => {
 .start-publish-btn { background-color: #1d4ed8 !important; }
 .disconnect-btn { background-color: #991b1b !important; }
 button:disabled { background-color: #374151 !important; cursor: not-allowed; opacity: 0.7; }
-
-/* Estilo para el botón de compartir cuando está activo */
-.device-controls button.is-sharing {
-  background-color: #059669;
-  box-shadow: 0 0 8px #10b981;
-}
-
-/* El video principal (cámara o pantalla) debe ajustarse para verse completo */
-.main-video :deep(video) { 
-  object-fit: contain; 
-}
+.device-controls button.is-sharing { background-color: #059669; box-shadow: 0 0 8px #10b981; }
+.main-video :deep(video) { object-fit: contain; }
 </style>
