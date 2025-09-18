@@ -14,6 +14,8 @@ import AdminUserListView from '../views/AdminUserListView.vue'
 import SocialFeedView from '../views/SocialFeedView.vue'
 import AdminStreamView from '../views/AdminStreamView.vue'
 import SubscriptionView from '../views/SubscriptionView.vue'
+import AdminStreamViewV2 from '../views/AdminStreamViewV2.vue';
+
 
 const routes = [
   {
@@ -118,9 +120,9 @@ const routes = [
         component: AdminStreamView,
       },
       {
-      path: 'stream-v2', // Nueva ruta
+      path: 'stream-v2',
       name: 'admin-stream-v2',
-      component: () => import('../views/AdminStreamViewV2.vue'),
+      component: AdminStreamViewV2,
       },
     ],
   },

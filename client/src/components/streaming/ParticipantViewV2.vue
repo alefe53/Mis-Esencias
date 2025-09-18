@@ -1,62 +1,62 @@
 <template>
   <div class="participant-view">
     <video ref="videoEl" autoplay playsinline :muted="isLocal"></video>
-    <audio ref="audioEl" autoplay :muted="isLocal"></audio>
+    <audio ref="audioEl" autoplay :muted="isLocal && publication?.kind !== 'audio'"></audio>
+    <div v-if="!isVideoEnabled" class="no-video-placeholder">
+      </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, watch, onUnmounted } from 'vue';
-import { type Participant, ParticipantEvent, type TrackPublication, Track } from 'livekit-client';
+import { type TrackPublication, Track } from 'livekit-client';
 
 const props = defineProps<{
-  participant: Participant;
+  publication: TrackPublication | null;
+  isLocal?: boolean;
 }>();
 
 const videoEl = ref<HTMLVideoElement | null>(null);
 const audioEl = ref<HTMLAudioElement | null>(null);
+const isVideoEnabled = ref(false);
 
-const isLocal = props.participant.isLocal;
-
-const handleTrackSubscribed = (track: any, publication: TrackPublication) => {
-  // Solo adjuntamos los tracks principales de cámara y micrófono
-  if (publication.source === Track.Source.Camera) {
-    track.attach(videoEl.value!);
-  }
-  if (publication.source === Track.Source.Microphone) {
-    track.attach(audioEl.value!);
+const attach = (track: Track) => {
+  const el = track.kind === 'video' ? videoEl.value : audioEl.value;
+  if (el) {
+    track.attach(el);
+    if (track.kind === 'video') isVideoEnabled.value = true;
   }
 };
 
-const handleTrackUnsubscribed = (track: any) => {
-  track.detach();
+const detach = (track: Track) => {
+  const el = track.kind === 'video' ? videoEl.value : audioEl.value;
+  if (el) {
+    track.detach(el);
+    if (track.kind === 'video') isVideoEnabled.value = false;
+  }
 };
 
-const setupListeners = (p: Participant) => {
-  // Adjuntar tracks existentes al montar
-  p.getTrackPublications().forEach(pub => {
-    if (pub.isSubscribed && pub.track) {
-      handleTrackSubscribed(pub.track, pub);
+// Observamos directamente el track dentro de la publicación.
+// Esto es más simple y reacciona a los eventos de suscripción/desuscripción.
+watch(
+  () => props.publication?.track,
+  (newTrack, oldTrack) => {
+    if (oldTrack) {
+      detach(oldTrack);
     }
-  });
-  
-  // Escuchar por nuevos tracks
-  p.on(ParticipantEvent.TrackSubscribed, handleTrackSubscribed);
-  p.on(ParticipantEvent.TrackUnsubscribed, handleTrackUnsubscribed);
-};
-
-const cleanupListeners = (p: Participant) => {
-  p.off(ParticipantEvent.TrackSubscribed, handleTrackSubscribed);
-  p.off(ParticipantEvent.TrackUnsubscribed, handleTrackUnsubscribed);
-};
-
-watch(() => props.participant, (newP, oldP) => {
-  if (oldP) cleanupListeners(oldP);
-  if (newP) setupListeners(newP);
-}, { immediate: true });
+    if (newTrack) {
+      attach(newTrack);
+    } else {
+      isVideoEnabled.value = false;
+    }
+  },
+  { immediate: true }
+);
 
 onUnmounted(() => {
-  if (props.participant) cleanupListeners(props.participant);
+  if (props.publication?.track) {
+    detach(props.publication.track);
+  }
 });
 </script>
 
@@ -73,8 +73,17 @@ video {
   height: 100%;
   object-fit: cover;
 }
-/* Si el participante es local (muted=true), espejeamos el video */
 .participant-view:has(video[muted]) video {
     transform: scaleX(-1);
+}
+.no-video-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #111827;
+  color: #d1d5db;
+  font-size: 1.5rem;
 }
 </style>

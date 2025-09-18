@@ -1,25 +1,60 @@
 // RUTA: src/stores/streamingStoreV2.ts
 import { defineStore } from 'pinia';
-import { createLocalVideoTrack, type LocalVideoTrack } from 'livekit-client';
+import { shallowRef } from 'vue';
+import { 
+  createLocalVideoTrack, 
+  Room, 
+  RoomEvent, 
+  Track, 
+  type LocalParticipant, 
+  type LocalVideoTrack, 
+  type TrackPublication 
+} from 'livekit-client';
+
 import { useStreamStateV2 } from '../composables/streaming/useStreamStateV2';
-import { useLiveKitV2 } from '../composables/streaming/useLiveKitV2';
-import { useStreamControlsV2 } from '../composables/streaming/useStreamControlsV2';
 import api from '../services/api';
 import { useUiStore } from './uiStore';
-import { shallowRef } from 'vue';
 
 export const useStreamingStoreV2 = defineStore('streamingV2', () => {
+  // --- SETUP ---
   const uiStore = useUiStore();
-  
-  // 1. Inicializar los composables
   const { streamState, _writableState, resetState } = useStreamStateV2();
-  const { room, connect, disconnect, broadcastState } = useLiveKitV2(_writableState);
-  const { isProcessing, toggleCamera, toggleMicrophone } = useStreamControlsV2(room, _writableState, broadcastState);
 
-  // Estado específico del Store (no se sincroniza)
+  // --- ESTADO INTERNO DEL STORE ---
+  const room = shallowRef<Room | null>(null);
+  const localParticipant = shallowRef<LocalParticipant | null>(null);
   const previewTrack = shallowRef<LocalVideoTrack | null>(null);
+  const isProcessing = shallowRef(false);
 
-  // --- ACCIONES PRINCIPALES ---
+  // --- LÓGICA DE EVENTOS DE LIVEKIT ---
+  const setupRoomListeners = (newRoom: Room) => {
+    newRoom
+      .on(RoomEvent.LocalTrackPublished, (pub: TrackPublication) => {
+        if (pub.source === Track.Source.Camera) _writableState.isCameraEnabled = true;
+        if (pub.source === Track.Source.Microphone) _writableState.isMicrophoneEnabled = true;
+        // Futuro: if (pub.source === Track.Source.ScreenShare) ...
+        broadcastState();
+      })
+      .on(RoomEvent.LocalTrackUnpublished, (pub: TrackPublication) => {
+        if (pub.source === Track.Source.Camera) _writableState.isCameraEnabled = false;
+        if (pub.source === Track.Source.Microphone) _writableState.isMicrophoneEnabled = false;
+        broadcastState();
+      })
+      .on(RoomEvent.Disconnected, () => {
+        // Limpieza si la desconexión no fue intencional
+        leaveStudio(false);
+      });
+  };
+  
+  const broadcastState = async () => {
+    if (!room.value || !room.value.localParticipant.permissions?.canPublishData) return;
+    const textEncoder = new TextEncoder();
+    const payload = textEncoder.encode(JSON.stringify(streamState));
+    await room.value.localParticipant.publishData(payload, { reliable: true });
+  };
+
+
+  // --- ACCIONES EXPUESTAS A LA UI ---
 
   async function getPermissionsAndPreview() {
     if (previewTrack.value) return;
@@ -28,65 +63,102 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
       previewTrack.value = track;
       _writableState.permissionError = '';
     } catch (error) {
-      _writableState.permissionError = 'Permiso de cámara denegado. Revisa la configuración del navegador.';
+      _writableState.permissionError = 'Permiso de cámara denegado. Revisa la configuración.';
     }
   }
 
   async function enterStudio() {
     if (room.value || streamState.isConnecting) return;
     if (!previewTrack.value) {
-      _writableState.permissionError = 'La cámara no está lista.';
+      uiStore.showToast({ message: 'La cámara no está lista.', color: '#f97316' });
       return;
     }
 
     _writableState.isConnecting = true;
     try {
       const response = await api.get('/streaming/token');
-      await connect(response.data.token);
+      const newRoom = new Room({ adaptiveStream: true, dynacast: true });
+      
+      setupRoomListeners(newRoom);
+
+      await newRoom.connect(import.meta.env.VITE_LIVEKIT_URL, response.data.token);
+      
+      room.value = newRoom;
+      localParticipant.value = newRoom.localParticipant;
+
       window.open('/chat-popup', 'chatWindow', 'width=400,height=600,scrollbars=no');
     } catch (e) {
+      console.error(e);
       uiStore.showToast({ message: 'No se pudo entrar al estudio.', color: '#ef4444' });
-      await disconnect();
+      await room.value?.disconnect();
+      room.value = null;
     } finally {
       _writableState.isConnecting = false;
     }
   }
 
-  async function leaveStudio() {
-    await disconnect();
-    resetState();
+  async function leaveStudio(intentional = true) {
+    if (intentional) {
+      await room.value?.disconnect();
+    }
+    room.value = null;
+    localParticipant.value = null;
     previewTrack.value?.stop();
     previewTrack.value = null;
+    resetState();
   }
 
   async function publishMedia() {
-    if (!room.value?.localParticipant || streamState.isPublishing === 'active') return;
+    if (!room.value?.localParticipant || streamState.isPublishing !== 'inactive') return;
 
     _writableState.isPublishing = 'pending';
     try {
-      // Publicamos el track de la preview y el audio
+      // Publicamos el track de la preview y habilitamos el audio.
+      // El estado se actualizará automáticamente gracias a los listeners.
       await room.value.localParticipant.publishTrack(previewTrack.value!);
       await room.value.localParticipant.setMicrophoneEnabled(true);
-
-      // Sincronizamos el estado central
-      _writableState.isCameraEnabled = true;
-      _writableState.isMicrophoneEnabled = true;
+      
       _writableState.isPublishing = 'active';
-
-      await broadcastState(); // Transmitimos el estado inicial
     } catch (e) {
       console.error('Error al publicar:', e);
       uiStore.showToast({ message: 'Error al iniciar la publicación.', color: '#ef4444' });
-      _writableState.isPublishing = false;
+      _writableState.isPublishing = 'inactive';
     }
   }
-  
+
+  async function toggleCamera() {
+    if (!room.value?.localParticipant || isProcessing.value) return;
+    isProcessing.value = true;
+    try {
+      // La llamada al SDK disparará el evento que actualizará el estado
+      await room.value.localParticipant.setCameraEnabled(!streamState.isCameraEnabled);
+    } catch (e) {
+      console.error('Error al cambiar cámara:', e);
+    } finally {
+      isProcessing.value = false;
+    }
+  }
+
+  async function toggleMicrophone() {
+    if (!room.value?.localParticipant || isProcessing.value) return;
+    isProcessing.value = true;
+    try {
+      await room.value.localParticipant.setMicrophoneEnabled(!streamState.isMicrophoneEnabled);
+    } catch (e) {
+      console.error('Error al cambiar micrófono:', e);
+    } finally {
+      isProcessing.value = false;
+    }
+  }
+
   return {
-    // Estado (solo lectura para la UI)
+    // Estado (readonly para la UI)
     streamState,
+    
+    // Refs para la UI
     previewTrack,
     isProcessing,
-    room, // Exponemos la room para que la UI pueda acceder a `localParticipant`
+    localParticipant, // Lo necesitamos para pasarlo a useParticipantTracksV2
 
     // Acciones
     getPermissionsAndPreview,

@@ -2,12 +2,12 @@
   <div class="admin-stream-layout">
     <div class="stream-panel-full">
       <div class="video-container">
-        <template v-if="!room">
+        <template v-if="!localParticipant">
           <video ref="previewVideoRef" autoplay muted playsinline class="preview-video"></video>
           <div class="placeholder-content">
             <p v-if="streamState.permissionError">{{ streamState.permissionError }}</p>
             <p v-else-if="!previewTrack">Solicitando permisos...</p>
-            <p v-else>Cámara lista para la vista previa.</p>
+            <p v-else>Cámara lista.</p>
             <button @click="enterStudio" :disabled="streamState.isConnecting || !previewTrack">
               {{ streamState.isConnecting ? 'Entrando...' : '▶️ Entrar al Studio' }}
             </button>
@@ -15,17 +15,18 @@
         </template>
         
         <template v-else>
-          <div class="main-video-wrapper">
-            <video ref="mainVideoRef" autoplay muted playsinline class="main-video"></video>
-            
-            <div v-if="!streamState.isCameraEnabled && streamState.isPublishing === 'active'" class="no-video-placeholder">
-              Cámara Apagada
-            </div>
+          <ParticipantViewV2 
+            :publication="localCameraPublication"
+            :is-local="true"
+            class="main-video"
+          />
+          <div v-if="streamState.isPublishing === 'active' && !streamState.isCameraEnabled" class="no-video-placeholder">
+            Cámara Apagada
           </div>
         </template>
       </div>
 
-      <div class="controls-section" v-if="room">
+      <div class="controls-section" v-if="localParticipant">
         <div class="device-controls">
           <button 
             v-if="streamState.isPublishing !== 'active'" 
@@ -48,7 +49,7 @@
         </div>
         
         <div class="stream-actions">
-          <button @click="leaveStudio" class="disconnect-btn">
+          <button @click="leaveStudio()" class="disconnect-btn">
             🚪 Salir del Studio
           </button>
         </div>
@@ -61,28 +62,25 @@
 import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useStreamingStoreV2 } from '../stores/streamingStoreV2';
-// Ya no necesitamos ParticipantViewV2 ni useParticipantTracksV2 aquí
+import ParticipantViewV2 from '../components/streaming/ParticipantViewV2.vue';
+import { useParticipantTracksV2 } from '../composables/streaming/useParticipantTracksV2';
 
 const streamingStore = useStreamingStoreV2();
 
-const { streamState } = streamingStore;
-const { previewTrack, isProcessing, room } = storeToRefs(streamingStore);
+// El estado es readonly, solo para mostrar
+const { streamState } = streamingStore; 
+// Estas son refs que necesitamos para la lógica de la vista
+const { previewTrack, isProcessing, localParticipant } = storeToRefs(streamingStore);
+// Acciones que llamaremos
+const { getPermissionsAndPreview, enterStudio, leaveStudio, publishMedia, toggleCamera, toggleMicrophone } = streamingStore;
 
-const {
-  getPermissionsAndPreview,
-  enterStudio,
-  leaveStudio,
-  publishMedia,
-  toggleCamera,
-  toggleMicrophone,
-} = streamingStore;
+// Composable para obtener los tracks del participante local
+const { cameraPublication: localCameraPublication } = useParticipantTracksV2(localParticipant);
 
 const previewVideoRef = ref<HTMLVideoElement | null>(null);
-// CORRECCIÓN: Creamos una ref para el video principal
-const mainVideoRef = ref<HTMLVideoElement | null>(null);
 
-// Este watch se encarga de mostrar el video en la pantalla de PREVIA
-watch(() => previewTrack.value, (track, oldTrack) => {
+// Watch para adjuntar el track de PREVIEW al elemento de video
+watch(previewTrack, (track, oldTrack) => {
   if (oldTrack && previewVideoRef.value) {
     oldTrack.detach(previewVideoRef.value);
   }
@@ -91,31 +89,23 @@ watch(() => previewTrack.value, (track, oldTrack) => {
   }
 });
 
-// CORRECCIÓN: Este nuevo watch se encarga de mostrar el video en la pantalla PRINCIPAL
-// una vez que entramos al studio.
-watch(mainVideoRef, (videoEl) => {
-  if (videoEl && previewTrack.value) {
-    // Adjuntamos el mismo track de la previa al nuevo elemento de video
-    previewTrack.value.attach(videoEl);
-  }
-});
-
 onMounted(() => {
   getPermissionsAndPreview();
 });
 
 onUnmounted(() => {
+  // Aseguramos la limpieza al salir de la ruta
   leaveStudio();
 });
 </script>
 
 <style scoped>
-/* Tus estilos existentes (sin cambios) */
+/* Copia y pega aquí los estilos de tu AdminStreamView.vue original */
 .admin-stream-layout { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(17, 24, 39, 0.95); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 1rem; box-sizing: border-box; }
 .stream-panel-full { width: 100%; max-width: 1280px; height: 95%; display: flex; flex-direction: column; background-color: #1f2937; border-radius: 8px; padding: 1rem; gap: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
 .video-container { flex-grow: 1; background-color: black; border-radius: 6px; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; min-height: 0; }
-.preview-video, .main-video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; transform: scaleX(-1); }
-.main-video-wrapper { width: 100%; height: 100%; position: relative; }
+.preview-video, .main-video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+.preview-video { transform: scaleX(-1); } /* Espejar solo la preview */
 .no-video-placeholder { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #d1d5db; font-size: 1.5rem; background-color: #111827; z-index: 2; }
 .placeholder-content { position: relative; z-index: 2; background-color: rgba(0, 0, 0, 0.6); padding: 1rem 2rem; border-radius: 8px; color: white; text-align: center; }
 .placeholder-content button { margin-top: 1rem; background-color: #2563eb; color: white; font-weight: bold; border-radius: 8px; padding: 0.6em 1.2em; font-size: 1em; cursor: pointer; border: none;}
@@ -126,5 +116,5 @@ onUnmounted(() => {
 .device-controls button.is-off { background-color: #be123c; }
 .start-publish-btn { background-color: #1d4ed8 !important; }
 .disconnect-btn { background-color: #991b1b !important; }
-button:disabled { background-color: #374151 !important; cursor: not-allowed; }
+button:disabled { background-color: #374151 !important; cursor: not-allowed; opacity: 0.7; }
 </style>

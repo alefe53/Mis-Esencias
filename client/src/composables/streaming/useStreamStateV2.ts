@@ -8,10 +8,10 @@ import { reactive, readonly } from 'vue';
 export interface StreamState {
   // Estado de conexión y publicación
   isConnecting: boolean;
-  isPublishing: false | 'pending' | 'active'; // Para más control
+  isPublishing: 'inactive' | 'pending' | 'active'; // Estados más claros
   permissionError: string;
   
-  // Estado de los dispositivos
+  // Estado real de los tracks publicados
   isCameraEnabled: boolean;
   isMicrophoneEnabled: boolean;
   isScreenSharing: boolean;
@@ -28,7 +28,7 @@ export interface StreamState {
 // Función para obtener el estado inicial
 const getDefaultState = (): StreamState => ({
   isConnecting: false,
-  isPublishing: false,
+  isPublishing: 'inactive',
   permissionError: '',
   isCameraEnabled: false,
   isMicrophoneEnabled: false,
@@ -41,7 +41,7 @@ const getDefaultState = (): StreamState => ({
   },
 });
 
-// Creamos el objeto de estado reactivo
+// Creamos el objeto de estado reactivo que será modificado internamente
 const streamState = reactive<StreamState>(getDefaultState());
 
 /**
@@ -53,10 +53,9 @@ export function useStreamStateV2() {
   };
 
   return {
-    // Exponemos el estado como readonly para que solo se pueda modificar
-    // a través de las acciones de los otros composables, no directamente.
+    // Exponemos el estado como readonly para que la UI no pueda mutarlo directamente.
     streamState: readonly(streamState),
-    // Exportamos el estado "crudo" para que los composables puedan mutarlo
+    // Exportamos el estado "escribible" solo para que otros composables y el store lo usen.
     _writableState: streamState, 
     resetState,
   };
