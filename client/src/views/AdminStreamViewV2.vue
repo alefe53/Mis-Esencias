@@ -64,7 +64,7 @@ import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useStreamingStoreV2 } from '../stores/streamingStoreV2';
 import { useParticipantTracksV2 } from '../composables/streaming/useParticipantTracksV2';
-import ParticipantViewV2 from '../components/ParticipantViewV2.vue'; // Asegúrate que la ruta sea correcta
+import ParticipantViewV2 from '../components/streaming/ParticipantViewV2.vue'; // Asegúrate que la ruta sea correcta
 
 const streamingStore = useStreamingStoreV2();
 const { streamState, previewTrack, isActionPending, localParticipant } = storeToRefs(streamingStore);
