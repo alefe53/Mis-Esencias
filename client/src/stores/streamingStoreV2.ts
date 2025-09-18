@@ -1,14 +1,14 @@
 // RUTA: src/stores/streamingStoreV2.ts
 import { defineStore } from 'pinia';
-import { shallowRef, nextTick } from 'vue';
-import { 
-  createLocalVideoTrack, 
-  Room, 
-  RoomEvent, 
-  Track, 
-  type LocalParticipant, 
-  type LocalVideoTrack, 
-  type TrackPublication 
+import { shallowRef, computed, watch } from 'vue'; // ❗️ ASEGÚRATE DE IMPORTAR 'computed' Y 'watch'
+import {
+  createLocalVideoTrack,
+  Room,
+  RoomEvent,
+  Track,
+  type LocalParticipant,
+  type LocalVideoTrack,
+  type TrackPublication
 } from 'livekit-client';
 
 import { useStreamStateV2, type OverlaySize, type OverlayPosition } from '../composables/streaming/useStreamStateV2';
@@ -18,7 +18,6 @@ import { appEmitter } from '../utils/eventEmitter';
 import { supabase } from '../services/supabaseClient';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import apiPublic from '../services/apiPublic';
-import { DataPacket_Kind } from 'livekit-client';
 
 let streamStatusChannel: RealtimeChannel | null = null;
 
@@ -31,25 +30,62 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
   const previewTrack = shallowRef<LocalVideoTrack | null>(null);
   const isActionPending = shallowRef(false);
 
- const setupRoomListeners = (newRoom: Room) => {
+  // =================================================================
+  // ✅ 1. ESTADO COMPUTADO PARA EL LAYOUT (LA ÚNICA FUENTE DE VERDAD)
+  // Este objeto reactivo contiene toda la información visual que los espectadores necesitan.
+  // =================================================================
+  const layoutStateForBroadcast = computed(() => ({
+    isScreenSharing: streamState.isScreenSharing,
+    isCameraFocus: streamState.cameraOverlay.isCameraFocus,
+    position: streamState.cameraOverlay.position,
+    size: streamState.cameraOverlay.size,
+    isCameraEnabled: streamState.isCameraEnabled,
+  }));
+
+  // =================================================================
+  // ✅ 2. FUNCIÓN DE BROADCAST ÚNICA Y CENTRALIZADA
+  // Su única responsabilidad es tomar el estado computado y enviarlo.
+  // =================================================================
+  const broadcastLayoutState = () => {
+    if (room.value?.state !== 'connected' || !room.value.localParticipant) {
+      console.warn('[STORE-BROADCAST] ⚠️ Abortando broadcast: no conectado o sin participante local.');
+      return;
+    }
+
+    const data = new TextEncoder().encode(JSON.stringify(layoutStateForBroadcast.value));
+    room.value.localParticipant.publishData(data, { reliable: true });
+    console.log('📡 [STORE-BROADCAST] ✅ Layout state broadcasted:', layoutStateForBroadcast.value);
+  };
+
+  // =================================================================
+  // ✅ 3. ¡LA MAGIA! SINCRONIZACIÓN AUTOMÁTICA
+  // Este 'watch' observa cualquier cambio en nuestro estado de layout
+  // y llama a la función de broadcast automáticamente. Cero esfuerzo manual.
+  // =================================================================
+  watch(layoutStateForBroadcast, (newState, oldState) => {
+    console.log('👀 [STORE-WATCH] Layout state changed, triggering broadcast.', { from: oldState, to: newState });
+    broadcastLayoutState();
+  }, { deep: true }); // 'deep' es crucial para detectar cambios dentro del objeto.
+
+  const setupRoomListeners = (newRoom: Room) => {
     console.log('[STORE] 👂 Setting up room listeners...');
     newRoom
       .on(RoomEvent.LocalTrackPublished, (pub: TrackPublication) => {
-        console.log(`✅ [STORE-EVENT] LocalTrackPublished: ${pub.source}`, pub);
+        console.log(`✅ [STORE-EVENT] LocalTrackPublished: ${pub.source}.`);
         if (pub.source === Track.Source.Camera) _writableState.isCameraEnabled = true;
         if (pub.source === Track.Source.Microphone) _writableState.isMicrophoneEnabled = true;
         if (pub.source === Track.Source.ScreenShare) _writableState.isScreenSharing = true;
-        broadcastLayoutState();
-        console.log("📢 [EMITTER] Emitting 'local-track-changed'");
+
+        // El 'watch' detectará este cambio y transmitirá automáticamente.
         appEmitter.emit('local-track-changed');
       })
       .on(RoomEvent.LocalTrackUnpublished, (pub: TrackPublication) => {
-        console.log(`🛑 [STORE-EVENT] LocalTrackUnpublished: ${pub.source}`, pub);
+        console.log(`🛑 [STORE-EVENT] LocalTrackUnpublished: ${pub.source}.`);
         if (pub.source === Track.Source.Camera) _writableState.isCameraEnabled = false;
         if (pub.source === Track.Source.Microphone) _writableState.isMicrophoneEnabled = false;
         if (pub.source === Track.Source.ScreenShare) _writableState.isScreenSharing = false;
-        broadcastLayoutState();
-        console.log("📢 [EMITTER] Emitting 'local-track-changed'");
+        
+        // El 'watch' también detectará este cambio.
         appEmitter.emit('local-track-changed');
       })
       .on(RoomEvent.Disconnected, () => {
@@ -63,19 +99,14 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
       });
   };
 
-
-  
   async function getPermissionsAndPreview() {
     console.log('[STORE] 🚦 Action: getPermissionsAndPreview');
-    if (previewTrack.value) {
-      console.log('[STORE] -> Preview track already exists. Skipping.');
-      return;
-    }
+    if (previewTrack.value) return;
     try {
       _writableState.permissionError = '';
       const track = await createLocalVideoTrack({ resolution: { width: 1280, height: 720 } });
       previewTrack.value = track;
-      console.log('[STORE] -> ✅ Permissions granted and preview track created.', track);
+      console.log('[STORE] -> ✅ Permissions granted and preview track created.');
     } catch (error) {
       console.error("[STORE] -> ❌ Error getting permissions:", error);
       _writableState.permissionError = 'Permiso de cámara denegado. Revisa la configuración del navegador.';
@@ -84,10 +115,7 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
 
   async function enterStudio() {
     console.log('[STORE] 🚦 Action: enterStudio');
-    if (room.value || streamState.isConnecting || !previewTrack.value) {
-      console.warn('[STORE] -> Aborting enterStudio. Conditions not met:', { hasRoom: !!room.value, isConnecting: streamState.isConnecting, hasPreview: !!previewTrack.value });
-      return;
-    }
+    if (room.value || streamState.isConnecting || !previewTrack.value) return;
 
     _writableState.isConnecting = true;
     try {
@@ -101,7 +129,7 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
       
       room.value = newRoom;
       localParticipant.value = newRoom.localParticipant;
-      console.log('[STORE] -> ✅ Successfully connected to room. Local participant is set.', newRoom.localParticipant);
+      console.log('[STORE] -> ✅ Successfully connected to room.');
 
       window.open('/chat-popup', 'chatWindow', 'width=400,height=600,scrollbars=no,resizable=yes');
     } catch (e) {
@@ -113,8 +141,6 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
     }
   }
 
-  
-
   async function leaveStudio(intentional = true) {
     console.log(`[STORE] 🚦 Action: leaveStudio (intentional: ${intentional})`);
     if (streamState.broadcastState === 'live') {
@@ -123,43 +149,13 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
     if (intentional && room.value) {
       await room.value.disconnect();
     } else if (!room.value) {
-      console.log('[STORE] -> No room object found, performing manual cleanup.');
-      localParticipant.value = null;
-      previewTrack.value?.stop();
-      previewTrack.value = null;
       resetState();
     }
   }
 
-    const broadcastLayoutState = () => {
-    // Comprobación de seguridad: solo enviar si estamos en una sala y somos un participante local.
-    if (!room.value?.localParticipant) {
-        console.warn('[STORE-ADMIN] Intento de broadcast sin estar en una sala.');
-        return;
-    }
-    
-    const layout = {
-        isScreenSharing: streamState.isScreenSharing,
-        isCameraFocus: streamState.cameraOverlay.isCameraFocus,
-        position: streamState.cameraOverlay.position,
-        size: streamState.cameraOverlay.size,
-        isCameraEnabled: streamState.isCameraEnabled,
-    };
-
-    const data = new TextEncoder().encode(JSON.stringify(layout));
-    
-    room.value.localParticipant.publishData(data, { reliable: true });
-    
-    // Log mejorado para saber exactamente qué se está enviando
-    console.log('📡 [STORE-ADMIN] Layout state broadcasted:', layout);
-    };
-
   async function publishMedia() {
     console.log('[STORE] 🚦 Action: publishMedia');
-    if (!room.value?.localParticipant || streamState.isPublishing !== 'inactive' || !previewTrack.value) {
-      console.warn('[STORE] -> Aborting publishMedia. Conditions not met.');
-      return;
-    }
+    if (!room.value?.localParticipant || streamState.isPublishing !== 'inactive' || !previewTrack.value) return;
 
     _writableState.isPublishing = 'pending';
     try {
@@ -168,19 +164,17 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
         name: 'user-camera',
         source: Track.Source.Camera,
       });
-      console.log('[STORE] -> ✅ Camera track published. Enabling microphone...');
       
+      console.log('[STORE] -> ✅ Camera track published. Enabling microphone...');
       await room.value.localParticipant.setMicrophoneEnabled(true);
       console.log('[STORE] -> ✅ Microphone enabled.');
       
       _writableState.isPublishing = 'active';
-      broadcastLayoutState(); 
     } catch (e) {
       console.error('[STORE] -> ❌ Error publishing media:', e);
       uiStore.showToast({ message: 'Error al iniciar la publicación.', color: '#ef4444' });
       _writableState.isPublishing = 'inactive';
       
-      console.log('[STORE] -> Attempting to revert publishing actions...');
       await room.value.localParticipant?.setMicrophoneEnabled(false);
       if (previewTrack.value) {
           await room.value.localParticipant?.unpublishTrack(previewTrack.value);
@@ -188,35 +182,37 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
     }
   }
 
+  // =================================================================
+  // ✅ 4. ACCIONES DE DISPOSITIVO SIMPLIFICADAS
+  // Estas funciones solo dan la orden a LiveKit. El estado se actualizará
+  // en los listeners, y el 'watch' se encargará de transmitir.
+  // =================================================================
   async function toggleCamera() {
-    const newState = !streamState.isCameraEnabled;
-    console.log(`[STORE] 🚦 Action: toggleCamera to ${newState}`);
+    console.log(`[STORE] 🚦 Action: toggleCamera`);
     if (!room.value?.localParticipant || isActionPending.value) return;
     
     isActionPending.value = true;
     try {
-      // ❗️ CAMBIO: Ya no modificamos el estado aquí. Solo damos la orden.
+      const newState = !streamState.isCameraEnabled;
       await room.value.localParticipant.setCameraEnabled(newState);
-      console.log(`[STORE] -> ✅ Camera state successfully set to ${newState}`);
+      console.log(`[STORE] -> ✅ Camera command sent to set state to ${newState}`);
     } catch (e) {
       console.error('[STORE] -> ❌ Error toggling camera.', e);
       uiStore.showToast({ message: 'Error al cambiar la cámara.', color: '#ef4444' });
     } finally {
       isActionPending.value = false;
-      // ❗️ CAMBIO: El broadcast se hará desde el listener del evento, no aquí.
     }
   }
 
   async function toggleMicrophone() {
-    const newState = !streamState.isMicrophoneEnabled;
-    console.log(`[STORE] 🚦 Action: toggleMicrophone to ${newState}`);
+    console.log(`[STORE] 🚦 Action: toggleMicrophone`);
     if (!room.value?.localParticipant || isActionPending.value) return;
     
     isActionPending.value = true;
     try {
-      // ❗️ CAMBIO: Solo damos la orden.
+      const newState = !streamState.isMicrophoneEnabled;
       await room.value.localParticipant.setMicrophoneEnabled(newState);
-      console.log(`[STORE] -> ✅ Microphone state successfully set to ${newState}`);
+      console.log(`[STORE] -> ✅ Microphone command sent to set state to ${newState}`);
     } catch (e) {
       console.error('[STORE] -> ❌ Error toggling microphone.', e);
       uiStore.showToast({ message: 'Error con el micrófono.', color: '#ef4444' });
@@ -225,20 +221,17 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
     }
   }
 
-
   async function toggleScreenShare() {
-    const newState = !streamState.isScreenSharing;
-    console.log(`[STORE] 🚦 Action: toggleScreenShare to ${newState}`);
+    console.log(`[STORE] 🚦 Action: toggleScreenShare`);
     if (!room.value?.localParticipant || isActionPending.value) return;
 
     isActionPending.value = true;
     try {
-      // ❗️ CAMBIO: Eliminamos la actualización optimista del estado.
+      const newState = !streamState.isScreenSharing;
       await room.value.localParticipant.setScreenShareEnabled(newState, { audio: true });
-      console.log(`[STORE] -> ✅ Screen share state successfully set to ${newState}`);
+      console.log(`[STORE] -> ✅ Screen share command sent to set state to ${newState}`);
     } catch (e: any) {
       console.error('[STORE] -> ❌ Error toggling screen share.', e);
-      // ❗️ CAMBIO: Ya no revertimos el estado, porque nunca lo cambiamos.
       if (e.name !== 'NotAllowedError') {
         uiStore.showToast({ message: 'Error al compartir pantalla.', color: '#ef4444' });
       }
@@ -247,138 +240,106 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
     }
   }
 
+  // =================================================================
+  // ✅ 5. ACCIONES DE LAYOUT QUE SOLO MUTAN EL ESTADO LOCAL
+  // El 'watch' se encargará de transmitir estos cambios automáticamente.
+  // =================================================================
   function setCameraOverlaySize(size: OverlaySize) {
     console.log(`[STORE] 🚦 Action: setCameraOverlaySize to "${size}"`);
-    if (['sm', 'md', 'lg'].includes(size)) {
-      _writableState.cameraOverlay.size = size;
-      nextTick(() => {
-      broadcastLayoutState();
-    });
-    }
+    _writableState.cameraOverlay.size = size;
   }
 
   function cycleCameraOverlayPosition() {
     console.log('[STORE] 🚦 Action: cycleCameraOverlayPosition');
     const positions: OverlayPosition[] = ['bottom-left', 'top-left', 'top-right', 'bottom-right'];
-    const currentPosition = streamState.cameraOverlay.position;
-    const currentIndex = positions.indexOf(currentPosition);
-    const nextIndex = (currentIndex + 1) % positions.length; 
-    const newPosition = positions[nextIndex];
+    const currentIndex = positions.indexOf(streamState.cameraOverlay.position);
+    const newPosition = positions[(currentIndex + 1) % positions.length];
     _writableState.cameraOverlay.position = newPosition;
     console.log(`[STORE] -> ✅ New position set to "${newPosition}"`);
-    nextTick(() => {
-    broadcastLayoutState();
-    });
   }
-   function toggleCameraFocus() {
+
+  function toggleCameraFocus() {
     const newState = !_writableState.cameraOverlay.isCameraFocus;
     console.log(`[STORE] 🚦 Action: toggleCameraFocus to ${newState}`);
     _writableState.cameraOverlay.isCameraFocus = newState;
-    broadcastLayoutState();
   }
+  
+  // --- El resto de tus funciones se mantienen igual ---
 
-async function checkStreamStatus() {
+  async function checkStreamStatus() {
     console.log('[STORE] 🚦 Action: checkStreamStatus');
     try {
       const { data } = await apiPublic.get('/streaming/status');
-      if (data.data.is_live) {
-        _writableState.broadcastState = 'live';
-        console.log('[STORE] -> ✅ El stream está EN VIVO según el servidor.');
-      } else {
-        _writableState.broadcastState = 'idle';
-        console.log('[STORE] -> ⚪️ El stream está inactivo según el servidor.');
-      }
+      _writableState.broadcastState = data.data.is_live ? 'live' : 'idle';
+      console.log(`[STORE] -> ✅ Stream status is: ${_writableState.broadcastState}`);
     } catch (error) {
-      console.error('[STORE] -> ❌ Error al verificar el estado del stream:', error);
-      // En caso de error, asumimos que no está en vivo para no mostrar un reproductor roto
+      console.error('[STORE] -> ❌ Error checking stream status:', error);
       _writableState.broadcastState = 'idle';
     }
   }
 
-  // NUEVO: Acción para suscribirse a los cambios en tiempo real
   function subscribeToStreamStatusChanges() {
     console.log('[STORE] 🚦 Action: subscribeToStreamStatusChanges');
-    if (streamStatusChannel) {
-        console.warn('[STORE] -> Ya existe una suscripción al estado del stream. Omitiendo.');
-        return;
-    }
+    if (streamStatusChannel) return;
     
     const channel = supabase.channel('public-events');
-
     channel
       .on('broadcast', { event: 'stream-status-change' }, (payload) => {
-        console.log('📢 [STORE-REALTIME] Nuevo evento de stream-status-change recibido!', payload);
-        const { isLive } = payload.payload;
-        _writableState.broadcastState = isLive ? 'live' : 'idle';
+        console.log('📢 [STORE-REALTIME] Received stream-status-change event!', payload);
+        _writableState.broadcastState = payload.payload.isLive ? 'live' : 'idle';
       })
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('✅ [STORE-REALTIME] Suscrito exitosamente al canal public-events.');
+          console.log('✅ [STORE-REALTIME] Successfully subscribed to public-events channel.');
         } else {
-          console.error(`[STORE-REALTIME] Falló la suscripción a Supabase Realtime. Estado: ${status}`);
+          console.error(`[STORE-REALTIME] ❌ Failed to subscribe to Supabase. Status: ${status}`);
         }
       });
-      
     streamStatusChannel = channel;
   }
 
-  // NUEVO: Acción para limpiar la suscripción al salir de la página
   function unsubscribeFromStreamStatusChanges() {
     console.log('[STORE] 🚦 Action: unsubscribeFromStreamStatusChanges');
     if (streamStatusChannel) {
       supabase.removeChannel(streamStatusChannel);
       streamStatusChannel = null;
-      console.log('🧹 [STORE-REALTIME] Desuscrito del canal public-events.');
+      console.log('🧹 [STORE-REALTIME] Unsubscribed from public-events channel.');
     }
   }
 
-async function startBroadcast() {
-    if (streamState.broadcastState === 'live' || streamState.broadcastState === 'starting') {
-        console.warn('[STORE] -> startBroadcast abortado. Ya está en vivo o iniciando.');
-        return;
+  async function startBroadcast() {
+    if (streamState.broadcastState === 'live' || streamState.broadcastState === 'starting') return;
+    console.log('[STORE] 🚦 Action: startBroadcast');
+    _writableState.broadcastState = 'starting';
+    
+    try {
+      await api.post('/streaming/start');
+      _writableState.broadcastState = 'live';
+      console.log('[STORE] -> ✅ Stream is LIVE!');
+      uiStore.showToast({ message: '¡Estás en vivo!', color: '#10b981' });
+    } catch (error) {
+      console.error('[STORE] -> ❌ Failed to start broadcast:', error);
+      _writableState.broadcastState = 'idle';
+      uiStore.showToast({ message: 'Error al iniciar transmisión.', color: '#ef4444' });
     }
-    console.log('[STORE] 🚦 Action: startBroadcast');
-    _writableState.broadcastState = 'starting';
-    
-    try {
-        console.log('[STORE] -> 📡 Enviando petición POST a /streaming/start...');
-        // CAMBIO: Apuntamos a la ruta POST /start que ya existe en tu backend.
-        await api.post('/streaming/start');
-        
-        _writableState.broadcastState = 'live';
-        console.log('[STORE] -> ✅ ¡Transmisión EN VIVO! El estado se ha actualizado.');
-        uiStore.showToast({ message: '¡Estás en vivo!', color: '#10b981' });
-    } catch (error) {
-        console.error('[STORE] -> ❌ Falló el inicio de la transmisión:', error);
-        _writableState.broadcastState = 'idle';
-        uiStore.showToast({ message: 'Error al iniciar transmisión.', color: '#ef4444' });
-    }
-  }
-  
-  async function stopBroadcast() {
-    if (streamState.broadcastState !== 'live') {
-        console.warn('[STORE] -> stopBroadcast abortado. No está en vivo o ya está finalizando.');
-        return;
+  }
+  
+  async function stopBroadcast() {
+    if (streamState.broadcastState !== 'live') return;
+    console.log('[STORE] 🚦 Action: stopBroadcast');
+    _writableState.broadcastState = 'ending';
+
+    try {
+      await api.post('/streaming/stop');
+      _writableState.broadcastState = 'idle';
+      console.log('[STORE] -> ✅ Broadcast has ended.');
+      uiStore.showToast({ message: 'Transmisión finalizada.', color: '#6b7280' });
+    } catch (error) {
+      console.error('[STORE] -> ❌ Failed to stop broadcast:', error);
+      _writableState.broadcastState = 'live';
+      uiStore.showToast({ message: 'Error al detener la transmisión.', color: '#ef4444' });
     }
-    console.log('[STORE] 🚦 Action: stopBroadcast');
-    _writableState.broadcastState = 'ending';
-
-    try {
-        console.log('[STORE] -> 📡 Enviando petición POST a /streaming/stop...');
-        // CAMBIO: Apuntamos a la ruta POST /stop que ya existe en tu backend.
-        await api.post('/streaming/stop');
-
-        _writableState.broadcastState = 'idle';
-        console.log('[STORE] -> ✅ La transmisión ha finalizado correctamente.');
-        uiStore.showToast({ message: 'Transmisión finalizada.', color: '#6b7280' });
-    } catch (error) {
-        console.error('[STORE] -> ❌ Falló al detener la transmisión:', error);
-        // Si falla, es mejor revertir al estado 'live' para que el usuario pueda intentar de nuevo.
-        _writableState.broadcastState = 'live';
-        uiStore.showToast({ message: 'Error al detener la transmisión.', color: '#ef4444' });
-    }
-  }
-
+  }
 
   return {
     streamState,
@@ -399,6 +360,6 @@ async function startBroadcast() {
     cycleCameraOverlayPosition,
     toggleCameraFocus,
     startBroadcast,
-    stopBroadcast
+    stopBroadcast,
   };
 });
