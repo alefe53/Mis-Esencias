@@ -15,34 +15,20 @@
         </template>
         
         <template v-else>
-          <ParticipantViewV2 
-            v-if="streamState.cameraOverlay.isCameraFocus"
-            :publication="cameraPublication" 
-            :is-local="true" 
+          <ParticipantViewV2
+            :publication="mainViewPublication"
             class="main-video"
           />
           
-          <ParticipantViewV2 
-            v-else-if="streamState.isScreenSharing"
-            :publication="screenSharePublication" 
-            :is-local="false" 
-            class="main-video"
+          <CameraOverlay
+            v-if="showOverlay"
+            :publication="overlayViewPublication"
+            :position="streamState.cameraOverlay.position"
+            :size="streamState.cameraOverlay.size"
           />
 
-          <ParticipantViewV2 
-            v-else
-            :publication="cameraPublication" 
-            :is-local="true" 
-            class="main-video"
-          />
-          
-          <CameraOverlay 
-              v-if="streamState.isScreenSharing && !streamState.cameraOverlay.isCameraFocus && cameraPublication"
-              :publication="cameraPublication"
-              :position="streamState.cameraOverlay.position" :size="streamState.cameraOverlay.size"       />
-
-          <div v-if="!cameraPublication && !screenSharePublication" class="no-video-placeholder">
-            📷 Cámara Apagada
+          <div v-if="!mainViewPublication" class="no-video-placeholder">
+            📷 Apaga y enciende la cámara para empezar.
           </div>
         </template>
       </div>
@@ -55,7 +41,7 @@
             :disabled="streamState.isPublishing === 'pending'"
             class="start-publish-btn"
           >
-           {{ streamState.isPublishing === 'pending' ? 'Publicando...' : '🚀 Publicar Media' }}
+            {{ streamState.isPublishing === 'pending' ? 'Publicando...' : '🚀 Publicar Media' }}
           </button>
           
           <template v-else>
@@ -92,7 +78,7 @@
           </template>
         </div>
         
-        <div class="overlay-controls" v-if="streamState.isScreenSharing">
+        <div class="overlay-controls" v-if="showOverlay">
           <select 
             :value="streamState.cameraOverlay.size"
             @change="handleSizeChange"
@@ -122,10 +108,11 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { onMounted, onUnmounted, ref, watch, computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useStreamingStoreV2 } from '../stores/streamingStoreV2';
 import { useParticipantTracksV2 } from '../composables/streaming/useParticipantTracksV2';
+import { useStreamLayout } from '../composables/streaming/useStreamLayout';
 import type { OverlaySize } from '../composables/streaming/useStreamStateV2'; 
 import ParticipantViewV2 from '../components/streaming/ParticipantViewV2.vue';
 import CameraOverlay from '../components/streaming/CameraOverlay.vue';
@@ -141,22 +128,27 @@ const {
 
 const previewVideoRef = ref<HTMLVideoElement | null>(null);
 
+// Obtenemos las publicaciones del participante local
 const { cameraPublication, screenSharePublication } = useParticipantTracksV2(localParticipant);
+
+  const layoutController = computed(() => ({
+    isScreenSharing: streamState.value.isScreenSharing,
+    isCameraFocus: streamState.value.cameraOverlay.isCameraFocus,
+    isCameraEnabled: streamState.value.isCameraEnabled,
+  }));
+
+const { mainViewPublication, overlayViewPublication, showOverlay } = useStreamLayout(
+  layoutController, // <--- Le pasamos el objeto computado con la forma correcta
+  { camera: cameraPublication, screen: screenSharePublication }
+);
 
 const handleSizeChange = (event: Event) => {
   const target = event.target as HTMLSelectElement | null;
   if (target) {
-    console.log(`[ADMIN-VIEW] User changed overlay size to "${target.value}"`);
     const newSize = target.value as OverlaySize;
     setCameraOverlaySize(newSize);
   }
 };
-
-// LOGS para depuración
-watch(cameraPublication, (pub) => console.log('[ADMIN-VIEW] 👂 Camera publication changed:', pub ? pub.trackSid : null));
-watch(screenSharePublication, (pub) => console.log('[ADMIN-VIEW] 👂 ScreenShare publication changed:', pub ? pub.trackSid : null));
-watch(() => streamState.value.broadcastState, (state) => console.log(`[ADMIN-VIEW] 👂 Broadcast state changed to: ${state}`));
-watch(() => streamState.value.cameraOverlay.isCameraFocus, (state) => console.log(`[ADMIN-VIEW] 👂 Camera focus state changed to: ${state}`));
 
 watch([previewVideoRef, previewTrack], ([videoEl, track]) => {
   if (videoEl && track) { track.attach(videoEl); } 
@@ -170,12 +162,10 @@ watch([previewVideoRef, previewTrack], ([videoEl, track]) => {
 }, { immediate: true });
 
 onMounted(() => {
-  console.log('[ADMIN-VIEW] 🚀 Component mounted.');
   getPermissionsAndPreview();
 });
 
 onUnmounted(() => {
-  console.log('[ADMIN-VIEW] 🧹 Component unmounted.');
   leaveStudio();
 });
 </script>

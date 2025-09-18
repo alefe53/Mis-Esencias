@@ -1,11 +1,9 @@
-// RUTA: src/components/streaming/LiveStreamPlayer.vue
-
 <template>
   <div class="livestream-player" @click="handleInteraction">
     <div class="main-video-area">
       <ParticipantViewV2
-        v-if="mainPublication"
-        :publication="mainPublication"
+        v-if="mainViewPublication"
+        :publication="mainViewPublication"
         :is-muted="isMuted"
       />
       <div v-else class="placeholder">
@@ -15,12 +13,12 @@
 
     <CameraOverlay
       v-if="showOverlay"
-      :publication="cameraPublication"
+      :publication="overlayViewPublication"
       :position="layoutState.position"
       :size="layoutState.size"
     />
     
-    <div v-if="mainPublication" class="controls-overlay">
+    <div v-if="mainViewPublication" class="controls-overlay">
       <div class="status-indicator">
         <span class="live-dot"></span> EN VIVO
       </div>
@@ -32,14 +30,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted, shallowRef } from 'vue';
+// RUTA: src/components/streaming/LiveStreamPlayer.vue
+
+import { ref, reactive, onMounted, onUnmounted, shallowRef, computed } from 'vue'; // 1. Agrega 'computed'
 import { Room, RoomEvent, Track, ParticipantEvent, type RemoteParticipant, type TrackPublication } from 'livekit-client';
+import { useStreamLayout } from '../../composables/streaming/useStreamLayout';
 import ParticipantViewV2 from './ParticipantViewV2.vue';
 import CameraOverlay from './CameraOverlay.vue';
 import apiPublic from '../../services/apiPublic';
 import type { OverlayPosition, OverlaySize } from '../../composables/streaming/useStreamStateV2';
 
-// --- Estado local del componente ---
 const room = shallowRef<Room | null>(null);
 const adminParticipant = shallowRef<RemoteParticipant | null>(null);
 const cameraPublication = shallowRef<TrackPublication | null>(null);
@@ -47,68 +47,38 @@ const screenSharePublication = shallowRef<TrackPublication | null>(null);
 const isMuted = ref(true);
 const statusMessage = ref('Conectando a la transmisión...');
 
+// Estado local que se sincroniza desde el admin vía DataChannel
 const layoutState = reactive({
   isScreenSharing: false,
   isCameraFocus: false,
-   isCameraEnabled: false,
+  isCameraEnabled: false,
   position: 'bottom-left' as OverlayPosition,
   size: 'md' as OverlaySize,
 });
 
+// 2. Transforma el objeto reactivo en una Ref Computada para que coincida con la firma de useStreamLayout
+const layoutStateRef = computed(() => layoutState);
+
+// Ahora le pasamos la Ref, y TypeScript estará contento.
+const { mainViewPublication, overlayViewPublication, showOverlay } = useStreamLayout(
+  layoutStateRef,
+  { camera: cameraPublication, screen: screenSharePublication }
+);
+
 const textDecoder = new TextDecoder();
-
-// --- Lógica de computadas para mostrar el video correcto ---
-const mainPublication = computed(() => {
-  // Si el modo "destacar" está activo Y LA CÁMARA EXISTE, muestra la cámara.
-  if (layoutState.isCameraFocus && cameraPublication.value) {
-    return cameraPublication.value;
-  }
-  // Si no, si se está compartiendo pantalla, muestra la pantalla.
-  if (layoutState.isScreenSharing && screenSharePublication.value) {
-    return screenSharePublication.value;
-  }
-  // Como última opción, muestra la cámara si está disponible.
-  return cameraPublication.value;
-});
-
-const showOverlay = computed(() => {
-  // El overlay solo se muestra si:
-  // 1. Se comparte pantalla.
-  // 2. No estamos en modo "destacar cámara".
-  // 3. La publicación de la cámara existe.
-  // 4. ✨ El estado remoto indica que la cámara del admin está HABILITADA.
-  return layoutState.isScreenSharing && 
-         !layoutState.isCameraFocus && 
-         cameraPublication.value &&
-         layoutState.isCameraEnabled; // <-- AÑADE ESTA CONDICIÓN
-});
-
-// --- Lógica de manejo de eventos de LiveKit (LA PARTE CLAVE) ---
-
-// Usaremos un Map para guardar las funciones de callback y poder desuscribirnos correctamente.
 const participantEventHandlers = new Map<string, { onTrackPublished: (pub: TrackPublication) => void; onTrackUnpublished: (pub: TrackPublication) => void }>();
 
-/**
- * Esta función se encarga de "escuchar" los eventos de un participante específico.
- * La llamaremos para CADA participante que se conecte.
- */
 function setupParticipantListeners(participant: RemoteParticipant) {
   if (participantEventHandlers.has(participant.sid)) {
-    console.warn(`[LiveStreamPlayer] Ya se estaban escuchando eventos para ${participant.identity}. Omitiendo.`);
     return;
   }
 
   const onTrackPublished = (publication: TrackPublication) => {
-    console.log(`[LiveStreamPlayer] 📢 Track publicado por ${participant.identity}:`, publication.source);
-    // Si es un track de video, consideramos a este participante como el admin.
     if (publication.source === Track.Source.Camera || publication.source === Track.Source.ScreenShare) {
       if (!adminParticipant.value) {
         adminParticipant.value = participant;
-        console.log(`[LiveStreamPlayer] ✅ Admin asignado: ${participant.identity}`);
       }
     }
-    
-    // Actualizamos nuestras referencias locales para que Vue reaccione.
     if (publication.source === Track.Source.Camera) {
       cameraPublication.value = publication;
     }
@@ -118,7 +88,6 @@ function setupParticipantListeners(participant: RemoteParticipant) {
   };
 
   const onTrackUnpublished = (publication: TrackPublication) => {
-    console.log(`[LiveStreamPlayer] 📢 Track quitado por ${participant.identity}:`, publication.source);
     if (publication.source === Track.Source.Camera) {
       cameraPublication.value = null;
     }
@@ -127,108 +96,39 @@ function setupParticipantListeners(participant: RemoteParticipant) {
     }
   };
 
-  // Guardamos las funciones para poder removerlas después.
   participantEventHandlers.set(participant.sid, { onTrackPublished, onTrackUnpublished });
-
-  // Nos suscribimos a los eventos del participante.
   participant.on(ParticipantEvent.TrackPublished, onTrackPublished);
   participant.on(ParticipantEvent.TrackUnpublished, onTrackUnpublished);
-
-  // También revisamos los tracks que ya pueda tener publicados.
   participant.getTrackPublications().forEach(pub => onTrackPublished(pub));
-
-  
 }
 
-function refreshPublicationsFromParticipant(participant?: RemoteParticipant | null) {
-  try {
-    const p = participant ?? adminParticipant.value;
-    if (!p) return;
-
-    const cam = p.getTrackPublication(Track.Source.Camera) ?? null;
-    const screen = p.getTrackPublication(Track.Source.ScreenShare) ?? null;
-
-    // Solo reasignamos si hay diferencia (esto dispara watchers y attach)
-    if (cam) cameraPublication.value = cam;
-    if (screen) screenSharePublication.value = screen;
-
-    console.log('[LiveStreamPlayer] 🔁 Refreshed pubs from participant', p.identity, { cam: !!cam, screen: !!screen });
-  } catch (e) {
-    console.warn('[LiveStreamPlayer] ⚠️ Error en refreshPublicationsFromParticipant', e);
-  }
-}
-
-/**
- * Limpia los listeners de un participante para evitar fugas de memoria.
- */
 function cleanupParticipantListeners(participant: RemoteParticipant) {
   const handlers = participantEventHandlers.get(participant.sid);
   if (handlers) {
     participant.off(ParticipantEvent.TrackPublished, handlers.onTrackPublished);
     participant.off(ParticipantEvent.TrackUnpublished, handlers.onTrackUnpublished);
     participantEventHandlers.delete(participant.sid);
-    console.log(`[LiveStreamPlayer] 🧹 Listeners limpiados para ${participant.identity}`);
   }
 }
-
 
 onMounted(async () => {
   const newRoom = new Room({ adaptiveStream: true, dynacast: true });
 
   newRoom
-    // Cuando ALGUIEN se conecta, empezamos a escuchar sus eventos.
     .on(RoomEvent.ParticipantConnected, setupParticipantListeners)
-    // Cuando alguien se va, dejamos de escucharlo y limpiamos.
     .on(RoomEvent.ParticipantDisconnected, (participant: RemoteParticipant) => {
       if (adminParticipant.value?.sid === participant.sid) {
         adminParticipant.value = null;
         cameraPublication.value = null;
         screenSharePublication.value = null;
-        console.log(`[LiveStreamPlayer] 🛑 El admin ${participant.identity} se ha desconectado.`);
       }
       cleanupParticipantListeners(participant);
     })
-    // El receptor de datos ahora es más simple y robusto.
-    .on(RoomEvent.DataReceived, (payload, participant) => {
+    .on(RoomEvent.DataReceived, (payload) => {
         try {
           const raw = textDecoder.decode(payload as Uint8Array);
           const data = JSON.parse(raw);
-          console.log(`[LiveStreamPlayer] 📡 DataReceived desde ${participant?.identity}:`, data);
-
-          // Guardamos el estado previo para detectar transiciones (p.ej. foco activado)
-          const wasCameraFocus = layoutState.isCameraFocus;
-          const wasScreenSharing = layoutState.isScreenSharing;
-
-          // Aplicamos el layout inmediatamente
           Object.assign(layoutState, data);
-
-          // Asegurarnos de que estamos escuchando a quien envió los datos
-          if (participant && !participantEventHandlers.has((participant as any).sid)) {
-            // setupParticipantListeners espera RemoteParticipant; hacemos cast seguro si hace falta
-            try { setupParticipantListeners(participant as RemoteParticipant); } catch (e) { /* ignore */ }
-          }
-
-          // Forzamos refresco inmediato de publications (por si ya existen)
-          refreshPublicationsFromParticipant(participant as RemoteParticipant);
-
-          // Si el layout acaba de pedir foco en la cámara (transición false->true), forzamos reattach
-          if (data.isCameraFocus && !wasCameraFocus) {
-            // Si ya existe la publicación de cámara, forzamos un detach/reattach reactivo.
-            const camPub = cameraPublication.value;
-            if (camPub) {
-              console.log('[LiveStreamPlayer] 🔧 Foco activado: forzando reattach de cameraPublication para evitar negro.');
-              // fuerza reattach: quitar y volver a poner con micro-tick
-              cameraPublication.value = null;
-              // nextTick o micro timeout para permitir que el DOM se actualice antes de re-asignar
-              setTimeout(() => {
-                cameraPublication.value = camPub;
-              }, 30);
-            } else {
-              // si no está aún, nos quedamos con la pantalla (por el fallback del computed)
-              console.log('[LiveStreamPlayer] ℹ️ Foco activado pero cameraPublication aún no está disponible.');
-            }
-          }
-
         } catch (e) {
           console.error('[LiveStreamPlayer] ❌ Error procesando DataReceived:', e);
         }
@@ -238,11 +138,9 @@ onMounted(async () => {
     const response = await apiPublic.get('/streaming/token?viewer=true');
     await newRoom.connect(import.meta.env.VITE_LIVEKIT_URL, response.data.token);
     
-    console.log('[LiveStreamPlayer] ✅ Conectado a la sala.');
     room.value = newRoom;
     statusMessage.value = 'Conexión exitosa. Esperando al anfitrión...';
 
-    // MUY IMPORTANTE: Escuchamos a los participantes que YA ESTABAN en la sala cuando nos conectamos.
     newRoom.remoteParticipants.forEach(setupParticipantListeners);
 
   } catch (error) {
@@ -253,21 +151,16 @@ onMounted(async () => {
 
 onUnmounted(() => {
   if (room.value) {
-    // Limpiamos todos los listeners antes de desconectar
     room.value.remoteParticipants.forEach(cleanupParticipantListeners);
     room.value.disconnect();
-    console.log('[LiveStreamPlayer] 🚪 Desconectado y listeners limpiados.');
   }
 });
 
-// --- Manejadores de interacción del usuario ---
 const toggleMute = () => isMuted.value = !isMuted.value;
 const handleInteraction = () => { if (isMuted.value) isMuted.value = false; };
-
 </script>
 
 <style scoped>
-/* Tus estilos están perfectos, no necesitan cambios. */
 .livestream-player { width: 100%; height: 100%; background-color: #000; position: relative; border-radius: 8px; overflow: hidden; cursor: pointer; }
 .main-video-area { width: 100%; height: 100%; }
 .placeholder { display: flex; justify-content: center; align-items: center; width: 100%; height: 100%; color: #a0a0a0; font-size: 1.2rem; }

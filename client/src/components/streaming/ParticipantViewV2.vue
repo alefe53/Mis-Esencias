@@ -11,6 +11,7 @@
 </template>
 
 <script setup lang="ts">
+
 import { ref, watch, onUnmounted, computed, shallowRef } from 'vue';
 import type { Track, TrackPublication } from 'livekit-client';
 
@@ -21,38 +22,37 @@ const props = defineProps<{
 
 const videoEl = ref<HTMLVideoElement | null>(null);
 const audioEl = ref<HTMLAudioElement | null>(null);
-// Usamos shallowRef para evitar que Vue haga reactivo el objeto del track, que es complejo
 const attachedTrack = shallowRef<Track | null>(null);
 
 const isVideoEnabled = computed(() => {
   return props.publication?.track && !props.publication.isMuted;
 });
 
-// ✅ UNIFICADO: Un único watcher que reacciona al cambio más importante: la aparición del track.
-watch(() => props.publication?.track, (newTrack) => {
-  console.log(`[ParticipantViewV2] El track ha cambiado. Nuevo track: ${newTrack?.sid}`);
-
-  // Primero, siempre limpiamos el track anterior si existe.
-  if (attachedTrack.value) {
-    console.log(`[ParticipantViewV2] -> Desvinculando track anterior: ${attachedTrack.value.sid}`);
-    const element = attachedTrack.value.detach();
-    element.forEach(el => el.remove());
-  }
-  
-  attachedTrack.value = newTrack ?? null;
-
-  // Si hay un nuevo track y ya tenemos los elementos del DOM, lo vinculamos.
-  if (newTrack) {
-    if (newTrack.kind === 'video' && videoEl.value) {
-      console.log(`[ParticipantViewV2] -> Vinculando nuevo track de VIDEO ${newTrack.sid} al elemento <video>.`);
-      newTrack.attach(videoEl.value);
+// ❗️ ESTA ES LA CORRECCIÓN DEFINITIVA PARA LA PANTALLA NEGRA ❗️
+// Observamos tanto el track como la referencia al elemento de video.
+watch(
+  [() => props.publication?.track, videoEl], 
+  ([newTrack, vEl]) => {
+    // Primero, siempre limpiamos el track anterior para evitar fugas.
+    if (attachedTrack.value) {
+      const detachedElements = attachedTrack.value.detach();
+      detachedElements.forEach(el => el.remove());
     }
-    if (newTrack.kind === 'audio' && audioEl.value) {
-      console.log(`[ParticipantViewV2] -> Vinculando nuevo track de AUDIO ${newTrack.sid} al elemento <audio>.`);
+    
+    attachedTrack.value = newTrack ?? null;
+
+    // Solo adjuntamos si TENEMOS AMBOS: el track y el elemento del DOM.
+    if (newTrack && vEl && newTrack.kind === 'video') {
+      newTrack.attach(vEl);
+    }
+    
+    // Hacemos lo mismo para el audio.
+    if (newTrack && audioEl.value && newTrack.kind === 'audio') {
       newTrack.attach(audioEl.value);
     }
-  }
-}, { immediate: true }); // ✅ REACTIVIDAD: Se ejecuta tan pronto como el componente se monta.
+  }, 
+  { immediate: true, deep: true }
+);
 
 onUnmounted(() => {
   if (attachedTrack.value) {
