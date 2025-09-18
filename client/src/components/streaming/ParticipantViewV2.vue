@@ -11,7 +11,6 @@
 <script setup lang="ts">
 import { ref, watch, onUnmounted, computed } from 'vue';
 import { type TrackPublication, Track } from 'livekit-client';
-import type { VideoTrack } from 'livekit-client';
 
 const props = defineProps<{
   publication: TrackPublication | null;
@@ -21,37 +20,50 @@ const props = defineProps<{
 const videoEl = ref<HTMLVideoElement | null>(null);
 const audioEl = ref<HTMLAudioElement | null>(null);
 
-// ❗️ CORRECCIÓN: Esta es la forma correcta de determinar si el video está activo.
-// Un video está "enabled" si tenemos una publicación de cámara,
-// su track está disponible (estamos suscritos) y NO está muteado.
+// ❗️ CORRECCIÓN: Esta es la forma segura de determinar si el video está activo.
+// Usamos encadenamiento opcional (`?.`) en toda la cadena para evitar errores.
 const isVideoEnabled = computed(() => {
-  return (
-    props.publication?.source === Track.Source.Camera &&
-    !!props.publication.track &&
-    !props.publication.isMuted
-  );
+  const enabled = !!props.publication?.track && !props.publication?.isMuted;
+  // 🪵 LOG: Chequeando estado del video
+  // console.log(`[ParticipantView] isVideoEnabled computed: ${enabled}`, { pub: props.publication });
+  return enabled;
 });
 
 const attachTrack = (track: Track) => {
+  // 🪵 LOG: Intentando adjuntar un track.
+  console.log(`[ParticipantView] -> Attaching track: ${track.sid}`, track);
   const el = track.kind === 'video' ? videoEl.value : audioEl.value;
   if (el) {
     track.attach(el);
+    console.log(`[ParticipantView] -> ✅ Track ${track.sid} attached to element.`, el);
+  } else {
+    console.warn(`[ParticipantView] -> ⚠️ Could not attach track ${track.sid}, element not found.`);
   }
 };
 
-const detachTrack = (track: Track) => {
+const detachTrack = (track: Track | undefined) => {
   if (!track) return;
+  // 🪵 LOG: Intentando desadjuntar un track.
+  console.log(`[ParticipantView] -> Detaching track: ${track.sid}`, track);
   const el = track.kind === 'video' ? videoEl.value : audioEl.value;
   if (el) {
     track.detach(el);
   }
 };
 
-// Observamos directamente el track DENTRO de la publicación.
-// Esto reacciona automáticamente a suscripciones, desuscripciones, y cambios en el track.
+watch(
+  () => props.publication,
+  (pub) => {
+    // 🪵 LOG: La prop 'publication' ha cambiado.
+    console.log('[ParticipantView] 👂 Publication prop changed:', pub);
+  }
+);
+
 watch(
   () => props.publication?.track,
   (newTrack, oldTrack) => {
+    // 🪵 LOG: El track dentro de la publicación ha cambiado.
+    console.log('[ParticipantView] 👂 Track watcher fired.', { newTrack, oldTrack });
     if (oldTrack) {
       detachTrack(oldTrack);
     }
@@ -63,9 +75,9 @@ watch(
 );
 
 onUnmounted(() => {
-  if (props.publication?.track) {
-    detachTrack(props.publication.track);
-  }
+  // 🪵 LOG: Componente ParticipantView desmontado.
+  console.log('[ParticipantView] 🧹 Component unmounted. Detaching track if exists.');
+  detachTrack(props.publication?.track);
 });
 </script>
 
@@ -82,9 +94,6 @@ video, audio {
   height: 100%;
   object-fit: cover;
 }
-/* El efecto espejo se aplica desde el componente padre (AdminStreamViewV2) */
-/* para que solo aplique al video del administrador. */
-
 .no-video-placeholder {
   position: absolute;
   inset: 0;
@@ -93,8 +102,7 @@ video, audio {
   justify-content: center;
   background-color: #111827;
 }
-
 audio {
-  display: none; /* El tag de audio no necesita ser visible */
+  display: none;
 }
 </style>

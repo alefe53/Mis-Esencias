@@ -20,7 +20,6 @@
             :is-local="true" 
             class="main-video"
           />
-          
           <div v-if="!cameraPublication || !streamState.isCameraEnabled" class="no-video-placeholder">
             📷 Cámara Apagada
           </div>
@@ -37,7 +36,6 @@
           >
             {{ streamState.isPublishing === 'pending' ? 'Publicando...' : '🚀 Publicar Media' }}
           </button>
-          
           <template v-else>
             <button @click="toggleCamera" :class="{ 'is-off': !streamState.isCameraEnabled }" :disabled="isActionPending">
               {{ streamState.isCameraEnabled ? '📷 Apagar Cámara' : '📷 Encender Cámara' }}
@@ -48,7 +46,6 @@
             <button disabled title="Próximamente">🖥️ Compartir</button>
           </template>
         </div>
-        
         <div class="stream-actions">
           <button @click="leaveStudio(true)" class="disconnect-btn">
             🚪 Salir del Studio
@@ -64,25 +61,27 @@ import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useStreamingStoreV2 } from '../stores/streamingStoreV2';
 import { useParticipantTracksV2 } from '../composables/streaming/useParticipantTracksV2';
-import ParticipantViewV2 from '../components/streaming/ParticipantViewV2.vue'; // Asegúrate que la ruta sea correcta
+// ❗️ Revisa que la ruta sea la correcta para tu proyecto
+import ParticipantViewV2 from '../components/streaming/ParticipantViewV2.vue'; 
 
 const streamingStore = useStreamingStoreV2();
 const { streamState, previewTrack, isActionPending, localParticipant } = storeToRefs(streamingStore);
 const { getPermissionsAndPreview, enterStudio, leaveStudio, publishMedia, toggleCamera, toggleMicrophone } = streamingStore;
 
-// Ref para el video de la VISTA PREVIA
 const previewVideoRef = ref<HTMLVideoElement | null>(null);
-
-// Usamos el composable para obtener nuestra propia publicación de cámara una vez que estemos en el room
 const { cameraPublication } = useParticipantTracksV2(localParticipant);
 
-// Watcher para adjuntar el track a la VISTA PREVIA
-// Este es el ÚNICO watcher que necesitamos para adjuntar video manualmente.
+// 🪵 LOG: Observando cambios en el participante local y la publicación de cámara
+watch(localParticipant, (p) => console.log('[ADMIN-VIEW] 👂 Local participant changed:', p));
+watch(cameraPublication, (pub) => console.log('[ADMIN-VIEW] 👂 Camera publication changed:', pub));
+
+
 watch([previewVideoRef, previewTrack], ([videoEl, track]) => {
+  // 🪵 LOG: Watcher de la vista previa
+  // console.log('[ADMIN-VIEW] 👂 Preview watcher fired', { videoEl, track });
   if (videoEl && track) {
     track.attach(videoEl);
   } else if (videoEl && !track) {
-    // Limpia si el track desaparece
     const stream = videoEl.srcObject as MediaStream;
     if (stream) {
       stream.getTracks().forEach(t => t.stop());
@@ -92,21 +91,24 @@ watch([previewVideoRef, previewTrack], ([videoEl, track]) => {
 }, { immediate: true });
 
 onMounted(() => {
+  console.log('[ADMIN-VIEW] 🚀 Component mounted. Getting permissions...');
   getPermissionsAndPreview();
 });
 
 onUnmounted(() => {
+  console.log('[ADMIN-VIEW] 🧹 Component unmounted. Leaving studio...');
   leaveStudio();
 });
 </script>
 
 <style scoped>
-/* Tus estilos están bien, no necesitan cambios. Los incluyo por completitud. */
+/* (Tus estilos aquí, sin cambios) */
 .admin-stream-layout { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(17, 24, 39, 0.95); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 1rem; box-sizing: border-box; }
 .stream-panel-full { width: 100%; max-width: 1280px; height: 95%; display: flex; flex-direction: column; background-color: #1f2937; border-radius: 8px; padding: 1rem; gap: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
 .video-container { flex-grow: 1; background-color: black; border-radius: 6px; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; min-height: 0; }
 .preview-video, .main-video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
-.preview-video { transform: scaleX(-1); } /* El mirror solo en la preview */
+.preview-video { transform: scaleX(-1); }
+.main-video :deep(video) { transform: scaleX(-1); } /* Aplica el espejo al video dentro del componente hijo */
 .no-video-placeholder { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #d1d5db; font-size: 1.5rem; background-color: #111827; z-index: 2; }
 .placeholder-content { position: relative; z-index: 2; background-color: rgba(0, 0, 0, 0.6); padding: 1rem 2rem; border-radius: 8px; color: white; text-align: center; }
 .placeholder-content button { margin-top: 1rem; background-color: #2563eb; color: white; font-weight: bold; border-radius: 8px; padding: 0.6em 1.2em; font-size: 1em; cursor: pointer; border: none;}
