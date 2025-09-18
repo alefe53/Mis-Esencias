@@ -92,17 +92,11 @@ const { getPermissionsAndPreview, enterStudio, leaveStudio, publishMedia, toggle
 
 const previewVideoRef = ref<HTMLVideoElement | null>(null);
 
-// El composable se auto-actualiza, obtenemos las publicaciones que necesitamos
 const { cameraPublication, screenSharePublication } = useParticipantTracksV2(localParticipant);
 
-// ❗️❗️❗️ CORRECCIÓN: La propiedad `mainPublication` ya no es necesaria.
-// La lógica ahora está directamente en el template con v-if, lo que es más claro y evita el conflicto.
-
-// 🪵 LOGS para depuración
 watch(cameraPublication, (pub) => console.log('[ADMIN-VIEW] 👂 Camera publication changed:', pub ? pub.trackSid : null));
 watch(screenSharePublication, (pub) => console.log('[ADMIN-VIEW] 👂 ScreenShare publication changed:', pub ? pub.trackSid : null));
 
-// Watcher para la vista previa inicial
 watch([previewVideoRef, previewTrack], ([videoEl, track]) => {
   if (videoEl && track) { track.attach(videoEl); } 
   else if (videoEl && !track) {
@@ -126,7 +120,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* (Tus estilos aquí, sin cambios) */
 .admin-stream-layout { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(17, 24, 39, 0.95); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 1rem; box-sizing: border-box; }
 .stream-panel-full { width: 100%; max-width: 1280px; height: 95%; display: flex; flex-direction: column; background-color: #1f2937; border-radius: 8px; padding: 1rem; gap: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
 .video-container { flex-grow: 1; background-color: black; border-radius: 6px; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; min-height: 0; }

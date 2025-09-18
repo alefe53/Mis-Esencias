@@ -108,10 +108,8 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
   async function leaveStudio(intentional = true) {
     console.log(`[STORE] 🚦 Action: leaveStudio (intentional: ${intentional})`);
     if (intentional && room.value) {
-      // El evento 'Disconnected' se encargará de la limpieza final.
       await room.value.disconnect();
     } else if (!room.value) {
-      // Si no hay room, forzamos la limpieza por si quedó algo colgado.
       console.log('[STORE] -> No room object found, performing manual cleanup.');
       localParticipant.value = null;
       previewTrack.value?.stop();
@@ -136,7 +134,6 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
       });
       console.log('[STORE] -> ✅ Camera track published. Enabling microphone...');
       
-      // ❗️ CORRECCIÓN: setMicrophoneEnabled no lleva opciones de 'name'.
       await room.value.localParticipant.setMicrophoneEnabled(true);
       console.log('[STORE] -> ✅ Microphone enabled.');
       
@@ -162,14 +159,14 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
     isActionPending.value = true;
     const currentState = streamState.isCameraEnabled;
     
-    _writableState.isCameraEnabled = newState; // Actualización optimista
+    _writableState.isCameraEnabled = newState; 
 
     try {
       await room.value.localParticipant.setCameraEnabled(newState);
       console.log(`[STORE] -> ✅ Camera state successfully set to ${newState}`);
     } catch (e) {
       console.error('[STORE] -> ❌ Error toggling camera. Reverting state.', e);
-      _writableState.isCameraEnabled = currentState; // Revertir
+      _writableState.isCameraEnabled = currentState;
       uiStore.showToast({ message: 'Error al cambiar la cámara.', color: '#ef4444' });
     } finally {
       isActionPending.value = false;
@@ -184,14 +181,14 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
     isActionPending.value = true;
     const currentState = streamState.isMicrophoneEnabled;
     
-    _writableState.isMicrophoneEnabled = newState; // Actualización optimista
+    _writableState.isMicrophoneEnabled = newState; 
 
     try {
       await room.value.localParticipant.setMicrophoneEnabled(newState);
        console.log(`[STORE] -> ✅ Microphone state successfully set to ${newState}`);
     } catch (e) {
       console.error('[STORE] -> ❌ Error toggling microphone. Reverting state.', e);
-      _writableState.isMicrophoneEnabled = currentState; // Revertir
+      _writableState.isMicrophoneEnabled = currentState; 
       uiStore.showToast({ message: 'Error con el micrófono.', color: '#ef4444' });
     } finally {
       isActionPending.value = false;
@@ -206,17 +203,13 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
     isActionPending.value = true;
     const currentState = streamState.isScreenSharing;
 
-    // Actualización optimista para que la UI reaccione al instante
     _writableState.isScreenSharing = newState;
 
     try {
-      // Usamos el método del SDK. Esto mostrará al usuario el diálogo para elegir qué compartir.
       await room.value.localParticipant.setScreenShareEnabled(newState, { audio: true });
       console.log(`[STORE] -> ✅ Screen share state successfully set to ${newState}`);
     } catch (e: any) {
       console.error('[STORE] -> ❌ Error toggling screen share. Reverting state.', e);
-      // Si el usuario cancela el diálogo, el SDK lanza un error "NotAllowedError".
-      // Revertimos el estado para que la UI vuelva a la normalidad.
       _writableState.isScreenSharing = currentState;
       if (e.name !== 'NotAllowedError') {
         uiStore.showToast({ message: 'Error al compartir pantalla.', color: '#ef4444' });
