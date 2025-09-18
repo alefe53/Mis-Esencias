@@ -22,17 +22,19 @@ export function useParticipantTracksV2(participant: Ref<Participant | null>) {
 
   watch(participant, (newP, oldP) => {
     if (oldP) {
+      // Limpiamos todos los listeners del participante anterior
       oldP.off(ParticipantEvent.TrackPublished, onPublicationsChanged);
       oldP.off(ParticipantEvent.TrackUnpublished, onPublicationsChanged);
       oldP.off(ParticipantEvent.TrackSubscribed, onPublicationsChanged);
       oldP.off(ParticipantEvent.TrackUnsubscribed, onPublicationsChanged);
     }
     if (newP) {
+      // Añadimos TODOS los listeners necesarios al nuevo participante
       newP.on(ParticipantEvent.TrackPublished, onPublicationsChanged);
       newP.on(ParticipantEvent.TrackUnpublished, onPublicationsChanged);
       newP.on(ParticipantEvent.TrackSubscribed, onPublicationsChanged);
       newP.on(ParticipantEvent.TrackUnsubscribed, onPublicationsChanged);
-      updatePublications();
+      updatePublications(); // Hacemos una actualización inicial
     }
   }, { immediate: true });
 
