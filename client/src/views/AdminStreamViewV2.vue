@@ -16,6 +16,7 @@
         
         <template v-else>
           <video ref="mainStudioVideoRef" autoplay muted playsinline class="main-video"></video>
+          
           <div v-if="streamState.isPublishing === 'active' && !streamState.isCameraEnabled" class="no-video-placeholder">
             Cámara Apagada
           </div>
@@ -55,12 +56,11 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { onMounted, onUnmounted, ref, watch, shallowRef } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useStreamingStoreV2 } from '../stores/streamingStoreV2';
-// Ya no necesitamos ParticipantViewV2 aquí para el admin, lo que simplifica todo
 import { useParticipantTracksV2 } from '../composables/streaming/useParticipantTracksV2';
-import type { Track } from 'livekit-client';
+import type { Track, LocalVideoTrack } from 'livekit-client';
 
 const streamingStore = useStreamingStoreV2();
 
@@ -73,38 +73,49 @@ const { cameraPublication: localCameraPublication } = useParticipantTracksV2(loc
 const previewVideoRef = ref<HTMLVideoElement | null>(null);
 const mainStudioVideoRef = ref<HTMLVideoElement | null>(null);
 
+// Mantiene una referencia al track que se está mostrando actualmente
+const currentVideoTrack = shallowRef<Track | undefined>(undefined);
+
 // Watcher para el video de PREVIEW
-watch([previewTrack, previewVideoRef], ([track, videoEl]) => {
-  if (track && videoEl) {
-    track.attach(videoEl);
+watch(previewVideoRef, (videoEl) => {
+  if (videoEl && previewTrack.value) {
+    previewTrack.value.attach(videoEl);
   }
 });
 
-// --- ESTE ES EL NUEVO WATCHER CLAVE ---
-let currentVideoTrack: Track | undefined;
-watch([mainStudioVideoRef, localCameraPublication, streamState], ([videoEl]) => {
-  if (!videoEl) return; // Si el video no está en el DOM, no hacer nada
+// --- ESTE ES EL WATCHER CLAVE Y CORREGIDO ---
+watch([mainStudioVideoRef, localCameraPublication, () => streamState.isPublishing], ([videoEl]) => {
+  if (!videoEl) return;
 
-  let newTrack: Track | undefined;
+  // TypeScript necesita que seamos explícitos con los tipos.
+  let newTrackSource: LocalVideoTrack | Track | null | undefined;
 
   // Decidimos qué track mostrar
   if (streamState.isPublishing === 'active') {
-    newTrack = localCameraPublication.value?.track;
-  } else {
-    newTrack = previewTrack.value;
+    // Cuando publicamos, mostramos el track de la publicación
+    newTrackSource = localCameraPublication.value?.track;
+  } else if (localParticipant.value) {
+    // Cuando estamos en el studio pero sin publicar, mostramos la preview
+    newTrackSource = previewTrack.value;
   }
 
-  // Si el track que queremos mostrar es diferente al que ya está, lo cambiamos
-  if (currentVideoTrack !== newTrack) {
-    if (currentVideoTrack) {
-      currentVideoTrack.detach(videoEl);
+  // Hacemos el "cast" para que TypeScript esté contento
+  const newTrack = newTrackSource as Track | undefined;
+
+  // Si el track que queremos mostrar es diferente al actual, lo cambiamos.
+  if (currentVideoTrack.value !== newTrack) {
+    // Primero, limpiamos el track anterior del elemento de video
+    if (currentVideoTrack.value) {
+      currentVideoTrack.value.detach(videoEl);
     }
+    // Luego, adjuntamos el nuevo track, si existe
     if (newTrack) {
       newTrack.attach(videoEl);
     }
-    currentVideoTrack = newTrack;
+    // Finalmente, actualizamos nuestra referencia al track actual
+    currentVideoTrack.value = newTrack;
   }
-});
+}, { deep: true }); // Usamos 'deep' para que reaccione a cambios dentro del streamState
 
 
 onMounted(() => {
@@ -117,7 +128,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Copia y pega aquí los estilos de tu AdminStreamView.vue original */
+/* LOS ESTILOS SON LOS MISMOS. SOLO COPIÁ Y PEGÁ LOS DE LA RESPUESTA ANTERIOR. */
 .admin-stream-layout { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(17, 24, 39, 0.95); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 1rem; box-sizing: border-box; }
 .stream-panel-full { width: 100%; max-width: 1280px; height: 95%; display: flex; flex-direction: column; background-color: #1f2937; border-radius: 8px; padding: 1rem; gap: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
 .video-container { flex-grow: 1; background-color: black; border-radius: 6px; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; min-height: 0; }
