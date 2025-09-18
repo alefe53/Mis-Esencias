@@ -244,36 +244,52 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
     console.log(`[STORE] 🚦 Action: toggleCameraFocus to ${newState}`);
     _writableState.cameraOverlay.isCameraFocus = newState;
   }
+async function startBroadcast() {
+    if (streamState.broadcastState === 'live' || streamState.broadcastState === 'starting') {
+        console.warn('[STORE] -> startBroadcast abortado. Ya está en vivo o iniciando.');
+        return;
+    }
+    console.log('[STORE] 🚦 Action: startBroadcast');
+    _writableState.broadcastState = 'starting';
+    
+    try {
+        console.log('[STORE] -> 📡 Enviando petición POST a /streaming/start...');
+        // CAMBIO: Apuntamos a la ruta POST /start que ya existe en tu backend.
+        await api.post('/streaming/start');
+        
+        _writableState.broadcastState = 'live';
+        console.log('[STORE] -> ✅ ¡Transmisión EN VIVO! El estado se ha actualizado.');
+        uiStore.showToast({ message: '¡Estás en vivo!', color: '#10b981' });
+    } catch (error) {
+        console.error('[STORE] -> ❌ Falló el inicio de la transmisión:', error);
+        _writableState.broadcastState = 'idle';
+        uiStore.showToast({ message: 'Error al iniciar transmisión.', color: '#ef4444' });
+    }
+  }
+  
+  async function stopBroadcast() {
+    if (streamState.broadcastState !== 'live') {
+        console.warn('[STORE] -> stopBroadcast abortado. No está en vivo o ya está finalizando.');
+        return;
+    }
+    console.log('[STORE] 🚦 Action: stopBroadcast');
+    _writableState.broadcastState = 'ending';
 
-  async function startBroadcast() {
-    if (streamState.broadcastState === 'live') return;
-    console.log('[STORE] 🚦 Action: startBroadcast');
-    _writableState.broadcastState = 'starting';
-    try {
-      await api.post('/streaming/status', { isLive: true });
-      _writableState.broadcastState = 'live';
-      console.log('[STORE] -> ✅ Broadcast is now LIVE.');
-      uiStore.showToast({ message: '¡Estás en vivo!', color: '#10b981' });
-    } catch (error) {
-      console.error('[STORE] -> ❌ Failed to start broadcast:', error);
-      _writableState.broadcastState = 'idle';
-      uiStore.showToast({ message: 'Error al iniciar transmisión.', color: '#ef4444' });
-    }
-  }
-  
-  async function stopBroadcast() {
-    if (streamState.broadcastState !== 'live') return;
-    console.log('[STORE] 🚦 Action: stopBroadcast');
-    _writableState.broadcastState = 'ending';
-    try {
-      await api.post('/streaming/status', { isLive: false });
-      _writableState.broadcastState = 'idle';
-      console.log('[STORE] -> ✅ Broadcast has ended.');
-    } catch (error) {
-      console.error('[STORE] -> ❌ Failed to stop broadcast:', error);
-      _writableState.broadcastState = 'live'; 
-    }
-  }
+    try {
+        console.log('[STORE] -> 📡 Enviando petición POST a /streaming/stop...');
+        // CAMBIO: Apuntamos a la ruta POST /stop que ya existe en tu backend.
+        await api.post('/streaming/stop');
+
+        _writableState.broadcastState = 'idle';
+        console.log('[STORE] -> ✅ La transmisión ha finalizado correctamente.');
+        uiStore.showToast({ message: 'Transmisión finalizada.', color: '#6b7280' });
+    } catch (error) {
+        console.error('[STORE] -> ❌ Falló al detener la transmisión:', error);
+        // Si falla, es mejor revertir al estado 'live' para que el usuario pueda intentar de nuevo.
+        _writableState.broadcastState = 'live';
+        uiStore.showToast({ message: 'Error al detener la transmisión.', color: '#ef4444' });
+    }
+  }
 
 
   return {
