@@ -104,18 +104,37 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
   async function toggleScreenShare() {
     if (!room.value?.localParticipant || isActionPending.value) return;
 
-    // ❗️ CAMBIO CLAVE: Actualización directa del estado.
     const newState = !streamState.isScreenSharing;
     console.log(`[STORE] 🚦 Action: toggleScreenShare. Setting state to ${newState}`);
-    _writableState.isScreenSharing = newState;
+    _writableState.isScreenSharing = newState; // Actualización directa para que la UI reaccione
 
     isActionPending.value = true;
     try {
+      // 1. Ejecutar el comando principal de compartir pantalla
       await room.value.localParticipant.setScreenShareEnabled(newState, { audio: true });
       console.log(`[STORE] -> ✅ Screen share command sent to LiveKit.`);
+
+      // ❗️ 2. LÓGICA DE REINICIO DE CÁMARA (SOLO AL INICIAR SCREEN SHARE)
+      if (newState === true) {
+        console.log('[STORE] -> 🔄 Refreshing camera track post-screenshare...');
+        // 3. Esperar un momento para que el navegador se estabilice
+        await new Promise(resolve => setTimeout(resolve, 500)); 
+        
+        // 4. Si la cámara debía estar encendida, forzar el ciclo de reinicio
+        if (streamState.isCameraEnabled) {
+          console.log('[STORE] -> -> Camera is enabled, performing refresh cycle (off/on).');
+          await room.value.localParticipant.setCameraEnabled(false);
+          // Pequeña pausa entre apagar y prender
+          await new Promise(resolve => setTimeout(resolve, 100)); 
+          await room.value.localParticipant.setCameraEnabled(true);
+          console.log('[STORE] -> ✅ Camera refresh cycle complete.');
+        } else {
+            console.log('[STORE] -> -> Camera is disabled, skipping refresh cycle.');
+        }
+      }
     } catch (e: any) {
-      console.error('[STORE] -> ❌ Error sending toggleScreenShare command. Reverting UI state.', e);
-      _writableState.isScreenSharing = !newState; // Revertimos en caso de error.
+      console.error('[STORE] -> ❌ Error in toggleScreenShare process. Reverting UI state.', e);
+      _writableState.isScreenSharing = !newState; // Revertimos si algo falla
       if (e.name !== 'NotAllowedError') {
         uiStore.showToast({ message: 'Error al compartir pantalla.', color: '#ef4444' });
       }
