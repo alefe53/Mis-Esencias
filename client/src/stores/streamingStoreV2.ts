@@ -39,6 +39,7 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
         if (pub.source === Track.Source.Camera) _writableState.isCameraEnabled = true;
         if (pub.source === Track.Source.Microphone) _writableState.isMicrophoneEnabled = true;
         if (pub.source === Track.Source.ScreenShare) _writableState.isScreenSharing = true;
+        broadcastLayoutState();
         console.log("📢 [EMITTER] Emitting 'local-track-changed'");
         appEmitter.emit('local-track-changed');
       })
@@ -47,6 +48,7 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
         if (pub.source === Track.Source.Camera) _writableState.isCameraEnabled = false;
         if (pub.source === Track.Source.Microphone) _writableState.isMicrophoneEnabled = false;
         if (pub.source === Track.Source.ScreenShare) _writableState.isScreenSharing = false;
+        broadcastLayoutState();
         console.log("📢 [EMITTER] Emitting 'local-track-changed'");
         appEmitter.emit('local-track-changed');
       })
@@ -141,6 +143,7 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
         isCameraFocus: streamState.cameraOverlay.isCameraFocus,
         position: streamState.cameraOverlay.position,
         size: streamState.cameraOverlay.size,
+        isCameraEnabled: streamState.isCameraEnabled,
     };
 
     const data = new TextEncoder().encode(JSON.stringify(layout));
@@ -204,6 +207,7 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
       uiStore.showToast({ message: 'Error al cambiar la cámara.', color: '#ef4444' });
     } finally {
       isActionPending.value = false;
+      broadcastLayoutState(); 
     }
   }
 
@@ -250,7 +254,6 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
       }
     } finally {
       isActionPending.value = false;
-      broadcastLayoutState(); 
     }
   }
 

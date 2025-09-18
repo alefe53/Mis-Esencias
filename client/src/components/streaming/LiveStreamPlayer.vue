@@ -50,6 +50,7 @@ const statusMessage = ref('Conectando a la transmisión...');
 const layoutState = reactive({
   isScreenSharing: false,
   isCameraFocus: false,
+   isCameraEnabled: false,
   position: 'bottom-left' as OverlayPosition,
   size: 'md' as OverlaySize,
 });
@@ -71,8 +72,15 @@ const mainPublication = computed(() => {
 });
 
 const showOverlay = computed(() => {
-  // El overlay solo se muestra si se comparte pantalla Y no estamos en modo "destacar".
-  return layoutState.isScreenSharing && !layoutState.isCameraFocus && cameraPublication.value;
+  // El overlay solo se muestra si:
+  // 1. Se comparte pantalla.
+  // 2. No estamos en modo "destacar cámara".
+  // 3. La publicación de la cámara existe.
+  // 4. ✨ El estado remoto indica que la cámara del admin está HABILITADA.
+  return layoutState.isScreenSharing && 
+         !layoutState.isCameraFocus && 
+         cameraPublication.value &&
+         layoutState.isCameraEnabled; // <-- AÑADE ESTA CONDICIÓN
 });
 
 // --- Lógica de manejo de eventos de LiveKit (LA PARTE CLAVE) ---
