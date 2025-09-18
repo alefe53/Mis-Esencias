@@ -6,19 +6,23 @@
           <video ref="previewVideoRef" autoplay muted playsinline class="preview-video"></video>
           <div class="placeholder-content">
             <p v-if="streamState.permissionError">{{ streamState.permissionError }}</p>
-            <p v-else-if="!previewTrack">Solicitando permisos...</p>
-            <p v-else>Cámara lista.</p>
-            <button @click="enterStudio" :disabled="streamState.isConnecting || !previewTrack">
+            <p v-else-if="!previewTrack">Solicitando permisos de cámara...</p>
+            <p v-else>Cámara lista para la vista previa.</p>
+            <button @click="enterStudio" :disabled="streamState.isConnecting || !previewTrack || !!streamState.permissionError">
               {{ streamState.isConnecting ? 'Entrando...' : '▶️ Entrar al Studio' }}
             </button>
           </div>
         </template>
         
         <template v-else>
-          <video ref="mainStudioVideoRef" autoplay muted playsinline class="main-video"></video>
+          <ParticipantViewV2 
+            :publication="cameraPublication" 
+            :is-local="true" 
+            class="main-video"
+          />
           
-          <div v-if="streamState.isPublishing === 'active' && !streamState.isCameraEnabled" class="no-video-placeholder">
-            Cámara Apagada
+          <div v-if="!cameraPublication || !streamState.isCameraEnabled" class="no-video-placeholder">
+            📷 Cámara Apagada
           </div>
         </template>
       </div>
@@ -31,14 +35,14 @@
             :disabled="streamState.isPublishing === 'pending'"
             class="start-publish-btn"
           >
-            🚀 Publicar Media
+            {{ streamState.isPublishing === 'pending' ? 'Publicando...' : '🚀 Publicar Media' }}
           </button>
           
           <template v-else>
-            <button @click="toggleCamera" :class="{ 'is-off': !streamState.isCameraEnabled }" :disabled="isProcessing">
+            <button @click="toggleCamera" :class="{ 'is-off': !streamState.isCameraEnabled }" :disabled="isActionPending">
               {{ streamState.isCameraEnabled ? '📷 Apagar Cámara' : '📷 Encender Cámara' }}
             </button>
-            <button @click="toggleMicrophone" :class="{ 'is-off': !streamState.isMicrophoneEnabled }" :disabled="isProcessing">
+            <button @click="toggleMicrophone" :class="{ 'is-off': !streamState.isMicrophoneEnabled }" :disabled="isActionPending">
               {{ streamState.isMicrophoneEnabled ? '🎤 Silenciar' : '🎤 Activar Mic' }}
             </button>
             <button disabled title="Próximamente">🖥️ Compartir</button>
@@ -46,7 +50,7 @@
         </div>
         
         <div class="stream-actions">
-          <button @click="leaveStudio()" class="disconnect-btn">
+          <button @click="leaveStudio(true)" class="disconnect-btn">
             🚪 Salir del Studio
           </button>
         </div>
@@ -56,75 +60,36 @@
 </template>
 
 <script setup lang="ts">
-// RUTA: src/views/AdminStreamViewV2.vue -> <script setup>
-
-import { onMounted, onUnmounted, ref, watch, shallowRef } from 'vue';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useStreamingStoreV2 } from '../stores/streamingStoreV2';
 import { useParticipantTracksV2 } from '../composables/streaming/useParticipantTracksV2';
-import type { Track, LocalVideoTrack } from 'livekit-client';
+import ParticipantViewV2 from './ParticipantViewV2.vue'; // Asegúrate que la ruta sea correcta
 
 const streamingStore = useStreamingStoreV2();
-
-const { streamState } = streamingStore; 
-const { previewTrack, isProcessing, localParticipant } = storeToRefs(streamingStore);
+const { streamState, previewTrack, isActionPending, localParticipant } = storeToRefs(streamingStore);
 const { getPermissionsAndPreview, enterStudio, leaveStudio, publishMedia, toggleCamera, toggleMicrophone } = streamingStore;
 
-const { cameraPublication: localCameraPublication } = useParticipantTracksV2(localParticipant);
-
+// Ref para el video de la VISTA PREVIA
 const previewVideoRef = ref<HTMLVideoElement | null>(null);
-const mainStudioVideoRef = ref<HTMLVideoElement | null>(null);
 
-const currentVideoTrack = shallowRef<Track | undefined>(undefined);
+// Usamos el composable para obtener nuestra propia publicación de cámara una vez que estemos en el room
+const { cameraPublication } = useParticipantTracksV2(localParticipant);
 
-// Watcher para el video de PREVIEW (sin cambios)
-watch(previewVideoRef, (videoEl) => {
-  if (videoEl && previewTrack.value) {
-    previewTrack.value.attach(videoEl);
+// Watcher para adjuntar el track a la VISTA PREVIA
+// Este es el ÚNICO watcher que necesitamos para adjuntar video manualmente.
+watch([previewVideoRef, previewTrack], ([videoEl, track]) => {
+  if (videoEl && track) {
+    track.attach(videoEl);
+  } else if (videoEl && !track) {
+    // Limpia si el track desaparece
+    const stream = videoEl.srcObject as MediaStream;
+    if (stream) {
+      stream.getTracks().forEach(t => t.stop());
+      videoEl.srcObject = null;
+    }
   }
-});
-
-// --- WATCHER CLAVE - VERSIÓN FINAL Y DEFINITIVA ---
-watch(
-  // 1. Observamos el elemento de video del studio
-  mainStudioVideoRef,
-  (videoEl) => {
-    if (!videoEl) return;
-
-    // 2. Cuando el video aparece, creamos OTRO watcher INTERNO que reacciona a los cambios de track
-    watch(
-      () => {
-        // 3. La fuente de la verdad es: ¿estamos publicando?
-        if (streamState.isPublishing === 'active') {
-          // Si sí, el track que queremos es el de la publicación
-          return localCameraPublication.value?.track;
-        } else if (localParticipant.value) {
-          // Si no, es el track de la preview
-          return previewTrack.value;
-        }
-        return undefined;
-      },
-      (newTrack) => {
-        // Hacemos el "cast" para que TypeScript esté contento
-        const trackToShow = newTrack as Track | undefined;
-
-        // 4. Comparamos el track que queremos mostrar con el que ya está
-        if (currentVideoTrack.value !== trackToShow) {
-          if (currentVideoTrack.value) {
-            currentVideoTrack.value.detach(videoEl);
-          }
-          if (trackToShow) {
-            trackToShow.attach(videoEl);
-          }
-          currentVideoTrack.value = trackToShow;
-        }
-      },
-      { immediate: true } // El watcher interno se ejecuta de inmediato
-    );
-  },
-  { flush: 'post' } // Nos aseguramos de que el watcher externo se ejecute después de que el DOM se haya actualizado
-);
-
+}, { immediate: true });
 
 onMounted(() => {
   getPermissionsAndPreview();
@@ -136,11 +101,12 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* LOS ESTILOS SON LOS MISMOS. SOLO COPIÁ Y PEGÁ LOS DE LA RESPUESTA ANTERIOR. */
+/* Tus estilos están bien, no necesitan cambios. Los incluyo por completitud. */
 .admin-stream-layout { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(17, 24, 39, 0.95); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 1rem; box-sizing: border-box; }
 .stream-panel-full { width: 100%; max-width: 1280px; height: 95%; display: flex; flex-direction: column; background-color: #1f2937; border-radius: 8px; padding: 1rem; gap: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
 .video-container { flex-grow: 1; background-color: black; border-radius: 6px; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; min-height: 0; }
-.preview-video, .main-video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; transform: scaleX(-1); }
+.preview-video, .main-video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+.preview-video { transform: scaleX(-1); } /* El mirror solo en la preview */
 .no-video-placeholder { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #d1d5db; font-size: 1.5rem; background-color: #111827; z-index: 2; }
 .placeholder-content { position: relative; z-index: 2; background-color: rgba(0, 0, 0, 0.6); padding: 1rem 2rem; border-radius: 8px; color: white; text-align: center; }
 .placeholder-content button { margin-top: 1rem; background-color: #2563eb; color: white; font-weight: bold; border-radius: 8px; padding: 0.6em 1.2em; font-size: 1em; cursor: pointer; border: none;}
