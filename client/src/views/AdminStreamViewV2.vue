@@ -108,6 +108,8 @@
 </template>
 
 <script setup lang="ts">
+// RUTA: src/views/AdminStreamViewV2.vue
+
 import { onMounted, onUnmounted, ref, watch, computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useStreamingStoreV2 } from '../stores/streamingStoreV2';
@@ -118,27 +120,34 @@ import ParticipantViewV2 from '../components/streaming/ParticipantViewV2.vue';
 import CameraOverlay from '../components/streaming/CameraOverlay.vue';
 
 const streamingStore = useStreamingStoreV2();
-const { streamState, previewTrack, isActionPending, localParticipant } = storeToRefs(streamingStore);
+
+// ✅ En lugar de storeToRefs, creamos un 'computed' que siempre nos da el estado más reciente.
+const streamState = computed(() => streamingStore.streamState);
+
+// Estas sí pueden seguir siendo refs
+const { previewTrack, isActionPending, localParticipant } = storeToRefs(streamingStore);
+
 const { 
   getPermissionsAndPreview, enterStudio, leaveStudio, 
   publishMedia, toggleCamera, toggleMicrophone, toggleScreenShare,
   setCameraOverlaySize, cycleCameraOverlayPosition,
-  toggleCameraFocus, startBroadcast, stopBroadcast
+  toggleCameraFocus, // Usamos la nueva acción del store
+  startBroadcast, stopBroadcast
 } = streamingStore;
 
 const previewVideoRef = ref<HTMLVideoElement | null>(null);
 
-// Obtenemos las publicaciones del participante local
 const { cameraPublication, screenSharePublication } = useParticipantTracksV2(localParticipant);
 
-  const layoutController = computed(() => ({
-    isScreenSharing: streamState.value.isScreenSharing,
-    isCameraFocus: streamState.value.cameraOverlay.isCameraFocus,
-    isCameraEnabled: streamState.value.isCameraEnabled,
-  }));
+// ✅ Ahora el layoutController usa nuestro 'computed' de streamState, asegurando reactividad total
+const layoutController = computed(() => ({
+  isScreenSharing: streamState.value.isScreenSharing,
+  isCameraFocus: streamState.value.cameraOverlay.isCameraFocus,
+  isCameraEnabled: streamState.value.isCameraEnabled,
+}));
 
 const { mainViewPublication, overlayViewPublication, showOverlay } = useStreamLayout(
-  layoutController, // <--- Le pasamos el objeto computado con la forma correcta
+  layoutController,
   { camera: cameraPublication, screen: screenSharePublication }
 );
 

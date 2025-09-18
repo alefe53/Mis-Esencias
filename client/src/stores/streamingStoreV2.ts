@@ -281,12 +281,10 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
     });
   }
    function toggleCameraFocus() {
-    const newState = !streamState.cameraOverlay.isCameraFocus;
+    const newState = !_writableState.cameraOverlay.isCameraFocus;
     console.log(`[STORE] 🚦 Action: toggleCameraFocus to ${newState}`);
     _writableState.cameraOverlay.isCameraFocus = newState;
-    nextTick(() => {
-      broadcastLayoutState();
-    });
+    broadcastLayoutState();
   }
 
 async function checkStreamStatus() {
