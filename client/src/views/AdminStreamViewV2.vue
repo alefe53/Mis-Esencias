@@ -16,12 +16,20 @@
         
         <template v-else>
           <ParticipantViewV2 
-            :publication="cameraPublication" 
-            :is-local="true" 
+            :publication="mainPublication" 
+            :is-local="!streamState.isScreenSharing" 
             class="main-video"
           />
-          <div v-if="!cameraPublication" class="no-video-placeholder">
-             📷 Cámara Apagada
+          
+          <div 
+            v-if="streamState.isScreenSharing && cameraPublication" 
+            class="camera-overlay"
+          >
+            <ParticipantViewV2 :publication="cameraPublication" :is-local="true" />
+          </div>
+
+          <div v-if="!mainPublication" class="no-video-placeholder">
+            📷 Cámara Apagada
           </div>
         </template>
       </div>
@@ -34,8 +42,9 @@
             :disabled="streamState.isPublishing === 'pending'"
             class="start-publish-btn"
           >
-            {{ streamState.isPublishing === 'pending' ? 'Publicando...' : '🚀 Publicar Media' }}
+           {{ streamState.isPublishing === 'pending' ? 'Publicando...' : '🚀 Publicar Media' }}
           </button>
+          
           <template v-else>
             <button @click="toggleCamera" :class="{ 'is-off': !streamState.isCameraEnabled }" :disabled="isActionPending">
               {{ streamState.isCameraEnabled ? '📷 Apagar Cámara' : '📷 Encender Cámara' }}
@@ -43,9 +52,16 @@
             <button @click="toggleMicrophone" :class="{ 'is-off': !streamState.isMicrophoneEnabled }" :disabled="isActionPending">
               {{ streamState.isMicrophoneEnabled ? '🎤 Silenciar' : '🎤 Activar Mic' }}
             </button>
-            <button disabled title="Próximamente">🖥️ Compartir</button>
+            <button 
+              @click="toggleScreenShare" 
+              :class="{ 'is-sharing': streamState.isScreenSharing }" 
+              :disabled="isActionPending"
+            >
+              {{ streamState.isScreenSharing ? '🖥️ Dejar de Compartir' : '🖥️ Compartir' }}
+            </button>
           </template>
         </div>
+        
         <div class="stream-actions">
           <button @click="leaveStudio(true)" class="disconnect-btn">
             🚪 Salir del Studio
@@ -57,8 +73,7 @@
 </template>
 
 <script setup lang="ts">
-// ❗️ CORRECCIÓN: Importamos nextTick
-import { onMounted, onUnmounted, ref, watch, nextTick } from 'vue';
+import { onMounted, onUnmounted, ref, watch, nextTick, computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useStreamingStoreV2 } from '../stores/streamingStoreV2';
 import { useParticipantTracksV2 } from '../composables/streaming/useParticipantTracksV2';
@@ -66,29 +81,44 @@ import ParticipantViewV2 from '../components/streaming/ParticipantViewV2.vue';
 
 const streamingStore = useStreamingStoreV2();
 const { streamState, previewTrack, isActionPending, localParticipant } = storeToRefs(streamingStore);
-const { getPermissionsAndPreview, enterStudio, leaveStudio, publishMedia, toggleCamera, toggleMicrophone } = streamingStore;
+// Obtenemos la nueva acción `toggleScreenShare` del store
+const { getPermissionsAndPreview, enterStudio, leaveStudio, publishMedia, toggleCamera, toggleMicrophone, toggleScreenShare } = streamingStore;
 
 const previewVideoRef = ref<HTMLVideoElement | null>(null);
 
-// ❗️ CORRECCIÓN: Obtenemos la función `updatePublications` del composable
-const { cameraPublication, updatePublications } = useParticipantTracksV2(localParticipant);
+// Obtenemos también la publicación de la pantalla desde el composable
+const { cameraPublication, screenSharePublication, updatePublications } = useParticipantTracksV2(localParticipant);
 
-// 🪵 LOG: Observando cambios clave
+// Esta propiedad computada decide qué se muestra en el viewport principal
+const mainPublication = computed(() => {
+  // Si estamos compartiendo pantalla y la publicación existe, esa es la principal.
+  if (streamState.value.isScreenSharing && screenSharePublication.value) {
+    // 🪵 LOG: El viewport principal ahora mostrará la pantalla compartida.
+    console.log('[ADMIN-VIEW] -> 🖥️ Main publication is now ScreenShare.');
+    return screenSharePublication.value;
+  }
+  // Si no, es la cámara.
+  // 🪵 LOG: El viewport principal ahora mostrará la cámara.
+  // console.log('[ADMIN-VIEW] -> 📷 Main publication is now Camera.');
+  return cameraPublication.value;
+});
+
+// 🪵 LOG: Observando cambios en las props reactivas clave para depuración
 watch(localParticipant, (p) => console.log('[ADMIN-VIEW] 👂 Local participant changed:', p));
 watch(cameraPublication, (pub) => console.log('[ADMIN-VIEW] 👂 Camera publication changed:', pub ? pub.trackSid : null));
+watch(screenSharePublication, (pub) => console.log('[ADMIN-VIEW] 👂 ScreenShare publication changed:', pub ? pub.trackSid : null));
 
-// ❗️ CORRECCIÓN: Watcher para forzar la actualización de publicaciones
+// Watcher para forzar la actualización de publicaciones cuando empezamos el stream
 watch(() => streamState.value.isPublishing, async (newState, oldState) => {
-  // 🪵 LOG: El estado de publicación ha cambiado
   console.log(`[ADMIN-VIEW] 👂 Publishing state changed from "${oldState}" to "${newState}"`);
   if (newState === 'active' && oldState === 'pending') {
     console.log('[ADMIN-VIEW] -> ✅ Publishing is active! Forcing publication update...');
-    // Esperamos al siguiente ciclo del DOM para asegurar que LiveKit haya actualizado el estado interno
     await nextTick();
     updatePublications();
   }
 });
 
+// Watcher para la vista previa inicial
 watch([previewVideoRef, previewTrack], ([videoEl, track]) => {
   if (videoEl && track) {
     track.attach(videoEl);
@@ -113,13 +143,11 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* (Tus estilos aquí, sin cambios) */
 .admin-stream-layout { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(17, 24, 39, 0.95); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 1rem; box-sizing: border-box; }
 .stream-panel-full { width: 100%; max-width: 1280px; height: 95%; display: flex; flex-direction: column; background-color: #1f2937; border-radius: 8px; padding: 1rem; gap: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
 .video-container { flex-grow: 1; background-color: black; border-radius: 6px; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; min-height: 0; }
-.preview-video, .main-video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
-.preview-video { transform: scaleX(-1); }
-.main-video :deep(video) { transform: scaleX(-1); }
+.preview-video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+.main-video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
 .no-video-placeholder { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #d1d5db; font-size: 1.5rem; background-color: #111827; z-index: 2; }
 .placeholder-content { position: relative; z-index: 2; background-color: rgba(0, 0, 0, 0.6); padding: 1rem 2rem; border-radius: 8px; color: white; text-align: center; }
 .placeholder-content button { margin-top: 1rem; background-color: #2563eb; color: white; font-weight: bold; border-radius: 8px; padding: 0.6em 1.2em; font-size: 1em; cursor: pointer; border: none;}
@@ -132,4 +160,36 @@ onUnmounted(() => {
 .disconnect-btn { background-color: #991b1b !important; }
 button:disabled { background-color: #374151 !important; cursor: not-allowed; opacity: 0.7; }
 
+/* --- NUEVOS ESTILOS PARA SCREEN SHARE --- */
+.camera-overlay {
+  position: absolute;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  width: 20%;
+  max-width: 280px;
+  min-width: 160px;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  z-index: 10;
+  transition: all 0.3s ease-in-out;
+}
+
+.device-controls button.is-sharing {
+  background-color: #059669; /* Verde para indicar que está activo */
+  box-shadow: 0 0 8px #10b981;
+}
+
+.main-video :deep(video) { 
+  /* La pantalla compartida debe ajustarse para verse completa */
+  object-fit: contain; 
+}
+
+.camera-overlay :deep(video) {
+  /* La cámara en el overlay sí debe cubrir su contenedor y tener el efecto espejo */
+  object-fit: cover;
+  transform: scaleX(-1);
+}
 </style>

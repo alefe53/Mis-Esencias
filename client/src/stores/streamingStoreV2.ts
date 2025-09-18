@@ -24,23 +24,25 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
   const previewTrack = shallowRef<LocalVideoTrack | null>(null);
   const isActionPending = shallowRef(false);
 
-  const setupRoomListeners = (newRoom: Room) => {
-    // 🪵 LOG: Configurando los listeners del room
+ const setupRoomListeners = (newRoom: Room) => {
     console.log('[STORE] 👂 Setting up room listeners...');
     newRoom
       .on(RoomEvent.LocalTrackPublished, (pub: TrackPublication) => {
         console.log(`✅ [STORE-EVENT] LocalTrackPublished: ${pub.source}`, pub);
         if (pub.source === Track.Source.Camera) _writableState.isCameraEnabled = true;
         if (pub.source === Track.Source.Microphone) _writableState.isMicrophoneEnabled = true;
+        // ❗️ NUEVO: Reaccionamos a la publicación de la pantalla
+        if (pub.source === Track.Source.ScreenShare) _writableState.isScreenSharing = true;
       })
       .on(RoomEvent.LocalTrackUnpublished, (pub: TrackPublication) => {
         console.log(`🛑 [STORE-EVENT] LocalTrackUnpublished: ${pub.source}`, pub);
         if (pub.source === Track.Source.Camera) _writableState.isCameraEnabled = false;
         if (pub.source === Track.Source.Microphone) _writableState.isMicrophoneEnabled = false;
+        // ❗️ NUEVO: Reaccionamos a la des-publicación de la pantalla
+        if (pub.source === Track.Source.ScreenShare) _writableState.isScreenSharing = false;
       })
       .on(RoomEvent.Disconnected, () => {
         console.log('🚪 [STORE-EVENT] Disconnected from room. Cleaning up...');
-        // Centralizamos la limpieza aquí para que sea la única fuente de verdad.
         room.value = null;
         localParticipant.value = null;
         previewTrack.value?.stop();
@@ -97,6 +99,8 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
       _writableState.isConnecting = false;
     }
   }
+
+  
 
   async function leaveStudio(intentional = true) {
     console.log(`[STORE] 🚦 Action: leaveStudio (intentional: ${intentional})`);
@@ -191,6 +195,34 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
     }
   }
 
+  async function toggleScreenShare() {
+    const newState = !streamState.isScreenSharing;
+    console.log(`[STORE] 🚦 Action: toggleScreenShare to ${newState}`);
+    if (!room.value?.localParticipant || isActionPending.value) return;
+
+    isActionPending.value = true;
+    const currentState = streamState.isScreenSharing;
+
+    // Actualización optimista para que la UI reaccione al instante
+    _writableState.isScreenSharing = newState;
+
+    try {
+      // Usamos el método del SDK. Esto mostrará al usuario el diálogo para elegir qué compartir.
+      await room.value.localParticipant.setScreenShareEnabled(newState, { audio: true });
+      console.log(`[STORE] -> ✅ Screen share state successfully set to ${newState}`);
+    } catch (e: any) {
+      console.error('[STORE] -> ❌ Error toggling screen share. Reverting state.', e);
+      // Si el usuario cancela el diálogo, el SDK lanza un error "NotAllowedError".
+      // Revertimos el estado para que la UI vuelva a la normalidad.
+      _writableState.isScreenSharing = currentState;
+      if (e.name !== 'NotAllowedError') {
+        uiStore.showToast({ message: 'Error al compartir pantalla.', color: '#ef4444' });
+      }
+    } finally {
+      isActionPending.value = false;
+    }
+  }
+
   return {
     streamState,
     previewTrack,
@@ -202,5 +234,6 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
     publishMedia,
     toggleCamera,
     toggleMicrophone,
+    toggleScreenShare,
   };
 });
