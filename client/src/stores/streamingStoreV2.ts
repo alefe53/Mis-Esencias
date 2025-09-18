@@ -194,20 +194,16 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
     if (!room.value?.localParticipant || isActionPending.value) return;
     
     isActionPending.value = true;
-    const currentState = streamState.isCameraEnabled;
-    
-    _writableState.isCameraEnabled = newState; 
-
     try {
+      // ❗️ CAMBIO: Ya no modificamos el estado aquí. Solo damos la orden.
       await room.value.localParticipant.setCameraEnabled(newState);
       console.log(`[STORE] -> ✅ Camera state successfully set to ${newState}`);
     } catch (e) {
-      console.error('[STORE] -> ❌ Error toggling camera. Reverting state.', e);
-      _writableState.isCameraEnabled = currentState;
+      console.error('[STORE] -> ❌ Error toggling camera.', e);
       uiStore.showToast({ message: 'Error al cambiar la cámara.', color: '#ef4444' });
     } finally {
       isActionPending.value = false;
-      broadcastLayoutState(); 
+      // ❗️ CAMBIO: El broadcast se hará desde el listener del evento, no aquí.
     }
   }
 
@@ -217,21 +213,18 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
     if (!room.value?.localParticipant || isActionPending.value) return;
     
     isActionPending.value = true;
-    const currentState = streamState.isMicrophoneEnabled;
-    
-    _writableState.isMicrophoneEnabled = newState; 
-
     try {
+      // ❗️ CAMBIO: Solo damos la orden.
       await room.value.localParticipant.setMicrophoneEnabled(newState);
-       console.log(`[STORE] -> ✅ Microphone state successfully set to ${newState}`);
+      console.log(`[STORE] -> ✅ Microphone state successfully set to ${newState}`);
     } catch (e) {
-      console.error('[STORE] -> ❌ Error toggling microphone. Reverting state.', e);
-      _writableState.isMicrophoneEnabled = currentState; 
+      console.error('[STORE] -> ❌ Error toggling microphone.', e);
       uiStore.showToast({ message: 'Error con el micrófono.', color: '#ef4444' });
     } finally {
       isActionPending.value = false;
     }
   }
+
 
   async function toggleScreenShare() {
     const newState = !streamState.isScreenSharing;
@@ -239,16 +232,13 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
     if (!room.value?.localParticipant || isActionPending.value) return;
 
     isActionPending.value = true;
-    const currentState = streamState.isScreenSharing;
-
-    _writableState.isScreenSharing = newState;
-
     try {
+      // ❗️ CAMBIO: Eliminamos la actualización optimista del estado.
       await room.value.localParticipant.setScreenShareEnabled(newState, { audio: true });
       console.log(`[STORE] -> ✅ Screen share state successfully set to ${newState}`);
     } catch (e: any) {
-      console.error('[STORE] -> ❌ Error toggling screen share. Reverting state.', e);
-      _writableState.isScreenSharing = currentState;
+      console.error('[STORE] -> ❌ Error toggling screen share.', e);
+      // ❗️ CAMBIO: Ya no revertimos el estado, porque nunca lo cambiamos.
       if (e.name !== 'NotAllowedError') {
         uiStore.showToast({ message: 'Error al compartir pantalla.', color: '#ef4444' });
       }

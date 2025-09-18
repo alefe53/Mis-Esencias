@@ -28,30 +28,26 @@ const isVideoEnabled = computed(() => {
   return props.publication?.track && !props.publication.isMuted;
 });
 
-// ❗️ ESTA ES LA CORRECCIÓN DEFINITIVA PARA LA PANTALLA NEGRA ❗️
-// Observamos tanto el track como la referencia al elemento de video.
 watch(
-  [() => props.publication?.track, videoEl], 
-  ([newTrack, vEl]) => {
-    // Primero, siempre limpiamos el track anterior para evitar fugas.
+  [() => props.publication, videoEl], 
+  ([newPublication, vEl]) => {
+    const newTrack = newPublication?.track;
+
     if (attachedTrack.value) {
-      const detachedElements = attachedTrack.value.detach();
-      detachedElements.forEach(el => el.remove());
+      attachedTrack.value.detach();
     }
     
     attachedTrack.value = newTrack ?? null;
 
-    // Solo adjuntamos si TENEMOS AMBOS: el track y el elemento del DOM.
     if (newTrack && vEl && newTrack.kind === 'video') {
       newTrack.attach(vEl);
     }
     
-    // Hacemos lo mismo para el audio.
     if (newTrack && audioEl.value && newTrack.kind === 'audio') {
       newTrack.attach(audioEl.value);
     }
   }, 
-  { immediate: true, deep: true }
+  { immediate: true } 
 );
 
 onUnmounted(() => {
