@@ -28,20 +28,22 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
 
   // --- LÓGICA DE EVENTOS DE LIVEKIT ---
   const setupRoomListeners = (newRoom: Room) => {
+    console.log('🎧 Configurando listeners para la sala.');
     newRoom
       .on(RoomEvent.LocalTrackPublished, (pub: TrackPublication) => {
+        console.log('🚀 EVENTO: LocalTrackPublished', { source: pub.source, kind: pub.kind });
         if (pub.source === Track.Source.Camera) _writableState.isCameraEnabled = true;
         if (pub.source === Track.Source.Microphone) _writableState.isMicrophoneEnabled = true;
-        // Futuro: if (pub.source === Track.Source.ScreenShare) ...
         broadcastState();
       })
       .on(RoomEvent.LocalTrackUnpublished, (pub: TrackPublication) => {
+        console.log('⏸️ EVENTO: LocalTrackUnpublished', { source: pub.source, kind: pub.kind });
         if (pub.source === Track.Source.Camera) _writableState.isCameraEnabled = false;
         if (pub.source === Track.Source.Microphone) _writableState.isMicrophoneEnabled = false;
         broadcastState();
       })
       .on(RoomEvent.Disconnected, () => {
-        // Limpieza si la desconexión no fue intencional
+        console.log('🚪 EVENTO: Desconectado de la sala.');
         leaveStudio(false);
       });
   };
@@ -67,35 +69,42 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
     }
   }
 
-  async function enterStudio() {
-    if (room.value || streamState.isConnecting) return;
-    if (!previewTrack.value) {
-      uiStore.showToast({ message: 'La cámara no está lista.', color: '#f97316' });
-      return;
+    async function enterStudio() {
+        if (room.value || streamState.isConnecting) return;
+        if (!previewTrack.value) {
+        uiStore.showToast({ message: 'La cámara no está lista.', color: '#f97316' });
+        return;
+        }
+
+        console.log('🎬 Iniciando enterStudio...');
+        _writableState.isConnecting = true;
+        try {
+        const response = await api.get('/streaming/token');
+        console.log('🔑 Token recibido:', response.data.token ? 'Sí' : 'No');
+
+        const newRoom = new Room({ adaptiveStream: true, dynacast: true });
+        
+        setupRoomListeners(newRoom);
+
+        console.log('🔗 Conectando a la sala de LiveKit...');
+        await newRoom.connect(import.meta.env.VITE_LIVEKIT_URL, response.data.token);
+        console.log('✅ Conexión a LiveKit exitosa.');
+        
+        room.value = newRoom;
+        localParticipant.value = newRoom.localParticipant;
+        console.log('👤 Participante local establecido:', localParticipant.value);
+
+        window.open('/chat-popup', 'chatWindow', 'width=400,height=600,scrollbars=no');
+        } catch (e) {
+        console.error('❌ ERROR en enterStudio:', e);
+        uiStore.showToast({ message: 'No se pudo entrar al estudio.', color: '#ef4444' });
+        await room.value?.disconnect();
+        room.value = null;
+        } finally {
+        _writableState.isConnecting = false;
+        console.log('🎬 enterStudio finalizado.');
+        }
     }
-
-    _writableState.isConnecting = true;
-    try {
-      const response = await api.get('/streaming/token');
-      const newRoom = new Room({ adaptiveStream: true, dynacast: true });
-      
-      setupRoomListeners(newRoom);
-
-      await newRoom.connect(import.meta.env.VITE_LIVEKIT_URL, response.data.token);
-      
-      room.value = newRoom;
-      localParticipant.value = newRoom.localParticipant;
-
-      window.open('/chat-popup', 'chatWindow', 'width=400,height=600,scrollbars=no');
-    } catch (e) {
-      console.error(e);
-      uiStore.showToast({ message: 'No se pudo entrar al estudio.', color: '#ef4444' });
-      await room.value?.disconnect();
-      room.value = null;
-    } finally {
-      _writableState.isConnecting = false;
-    }
-  }
 
   async function leaveStudio(intentional = true) {
     if (intentional) {

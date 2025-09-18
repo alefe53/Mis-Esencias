@@ -80,11 +80,10 @@ const { cameraPublication: localCameraPublication } = useParticipantTracksV2(loc
 const previewVideoRef = ref<HTMLVideoElement | null>(null);
 
 // Watch para adjuntar el track de PREVIEW al elemento de video
-watch(previewTrack, (track, oldTrack) => {
-  if (oldTrack && previewVideoRef.value) {
-    oldTrack.detach(previewVideoRef.value);
-  }
+watch(previewTrack, (track) => {
+  console.log('👀 CAMBIO EN PREVIEW TRACK:', track);
   if (track && previewVideoRef.value) {
+    console.log('✅ Adjuntando track a elemento de video de PREVIEW.');
     track.attach(previewVideoRef.value);
   }
 });
