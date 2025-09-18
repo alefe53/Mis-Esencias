@@ -15,22 +15,7 @@
         </template>
         
         <template v-else>
-          <video 
-            v-if="streamState.isPublishing !== 'active'" 
-            ref="mainStudioVideoRef" 
-            autoplay 
-            muted 
-            playsinline 
-            class="main-video"
-          ></video>
-          
-          <ParticipantViewV2 
-            v-else
-            :publication="localCameraPublication"
-            :is-local="true"
-            class="main-video"
-          />
-
+          <video ref="mainStudioVideoRef" autoplay muted playsinline class="main-video"></video>
           <div v-if="streamState.isPublishing === 'active' && !streamState.isCameraEnabled" class="no-video-placeholder">
             Cámara Apagada
           </div>
@@ -73,8 +58,9 @@
 import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useStreamingStoreV2 } from '../stores/streamingStoreV2';
-import ParticipantViewV2 from '../components/streaming/ParticipantViewV2.vue';
+// Ya no necesitamos ParticipantViewV2 aquí para el admin, lo que simplifica todo
 import { useParticipantTracksV2 } from '../composables/streaming/useParticipantTracksV2';
+import type { Track } from 'livekit-client';
 
 const streamingStore = useStreamingStoreV2();
 
@@ -85,22 +71,39 @@ const { getPermissionsAndPreview, enterStudio, leaveStudio, publishMedia, toggle
 const { cameraPublication: localCameraPublication } = useParticipantTracksV2(localParticipant);
 
 const previewVideoRef = ref<HTMLVideoElement | null>(null);
-const mainStudioVideoRef = ref<HTMLVideoElement | null>(null); // Ref para el video principal
+const mainStudioVideoRef = ref<HTMLVideoElement | null>(null);
 
-// Este watch se encarga de adjuntar el track a CUALQUIER elemento de video que esté visible
-watch(previewTrack, (track) => {
-  if (track) {
-    // Intenta adjuntar a ambos. Solo funcionará en el que esté montado en el DOM.
-    if (previewVideoRef.value) track.attach(previewVideoRef.value);
-    if (mainStudioVideoRef.value) track.attach(mainStudioVideoRef.value);
+// Watcher para el video de PREVIEW
+watch([previewTrack, previewVideoRef], ([track, videoEl]) => {
+  if (track && videoEl) {
+    track.attach(videoEl);
   }
 });
 
-// Watcher adicional para cuando el video del studio principal APARECE
-watch(mainStudioVideoRef, (videoEl) => {
-    if (videoEl && previewTrack.value) {
-        previewTrack.value.attach(videoEl);
+// --- ESTE ES EL NUEVO WATCHER CLAVE ---
+let currentVideoTrack: Track | undefined;
+watch([mainStudioVideoRef, localCameraPublication, streamState], ([videoEl]) => {
+  if (!videoEl) return; // Si el video no está en el DOM, no hacer nada
+
+  let newTrack: Track | undefined;
+
+  // Decidimos qué track mostrar
+  if (streamState.isPublishing === 'active') {
+    newTrack = localCameraPublication.value?.track;
+  } else {
+    newTrack = previewTrack.value;
+  }
+
+  // Si el track que queremos mostrar es diferente al que ya está, lo cambiamos
+  if (currentVideoTrack !== newTrack) {
+    if (currentVideoTrack) {
+      currentVideoTrack.detach(videoEl);
     }
+    if (newTrack) {
+      newTrack.attach(videoEl);
+    }
+    currentVideoTrack = newTrack;
+  }
 });
 
 
@@ -114,14 +117,11 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-
 /* Copia y pega aquí los estilos de tu AdminStreamView.vue original */
 .admin-stream-layout { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(17, 24, 39, 0.95); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 1rem; box-sizing: border-box; }
 .stream-panel-full { width: 100%; max-width: 1280px; height: 95%; display: flex; flex-direction: column; background-color: #1f2937; border-radius: 8px; padding: 1rem; gap: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
 .video-container { flex-grow: 1; background-color: black; border-radius: 6px; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; min-height: 0; }
-.preview-video, .main-video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
-.preview-video, video[ref="mainStudioVideoRef"] { transform: scaleX(-1); } /* Solo espeja la preview y el video local del studio */
-
+.preview-video, .main-video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; transform: scaleX(-1); }
 .no-video-placeholder { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #d1d5db; font-size: 1.5rem; background-color: #111827; z-index: 2; }
 .placeholder-content { position: relative; z-index: 2; background-color: rgba(0, 0, 0, 0.6); padding: 1rem 2rem; border-radius: 8px; color: white; text-align: center; }
 .placeholder-content button { margin-top: 1rem; background-color: #2563eb; color: white; font-weight: bold; border-radius: 8px; padding: 0.6em 1.2em; font-size: 1em; cursor: pointer; border: none;}
