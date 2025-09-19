@@ -67,15 +67,19 @@ const layoutState = reactive({
   size: 'md' as OverlaySize,
 });
 
-// ▼▼▼ CAMBIO 2: La nueva fuente de verdad para isScreenSharing ▼▼▼
+// ▼▼▼ CAMBIO 2: La nueva y ÚNICA fuente de verdad para isScreenSharing ▼▼▼
 // Esta propiedad computada es true ÚNICAMENTE si la publicación de la pantalla existe.
+// Es la verdad absoluta del SDK de LiveKit.
 const isScreenSharingFromTrack = computed(() => !!screenSharePublication.value);
 
 // ▼▼▼ CAMBIO 3: Pasamos la nueva fuente de verdad al composable del layout ▼▼▼
-const layoutStateRef = computed(() => ({
-  isScreenSharing: isScreenSharingFromTrack.value, // Usamos nuestra nueva propiedad computada
-  isCameraFocus: layoutState.isCameraFocus,
-}));
+const layoutStateRef = computed(() => {
+  console.log(`[LiveStreamPlayer] -> 💡 Estado para layout: isScreenSharing=${isScreenSharingFromTrack.value}, isCameraFocus=${layoutState.isCameraFocus}`);
+  return {
+    isScreenSharing: isScreenSharingFromTrack.value, // Usamos nuestra nueva propiedad computada
+    isCameraFocus: layoutState.isCameraFocus,
+  }
+});
 
 const { mainViewPublication, overlayViewPublication, showOverlay } = useStreamLayout(
   layoutStateRef,
@@ -109,7 +113,7 @@ onMounted(async () => {
             
             // if (typeof data.isScreenSharing === 'boolean') layoutState.isScreenSharing = data.isScreenSharing; // ELIMINADO
             
-            // Seguimos usando el DataChannel para lo que sí es bueno: estados de UI
+            // Seguimos usando el DataChannel para lo que sí es bueno: estados de UI que NO dependen de un track
             if (typeof data.isCameraFocus === 'boolean') layoutState.isCameraFocus = data.isCameraFocus;
             if (typeof data.position === 'string') layoutState.position = data.position;
             if (typeof data.size === 'string') layoutState.size = data.size;
@@ -123,7 +127,7 @@ onMounted(async () => {
     room.value = newRoom;
     statusMessage.value = 'Conexión exitosa. Esperando al anfitrión...';
 
-    // El request_layout sigue siendo una buena práctica para la sincronización inicial
+    // El request_layout sigue siendo una buena práctica para la sincronización inicial de los estados de UI
     try {
       const req = { type: 'request_layout' };
       const data = new TextEncoder().encode(JSON.stringify(req));
