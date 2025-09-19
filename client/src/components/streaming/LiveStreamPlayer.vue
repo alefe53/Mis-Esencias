@@ -44,12 +44,10 @@ import ParticipantViewV2 from './ParticipantViewV2.vue';
 import CameraOverlay from './CameraOverlay.vue';
 import apiPublic from '../../services/apiPublic';
 
-// --- Lógica de pantalla completa (sin cambios) ---
 const playerContainerRef = ref<HTMLElement | null>(null);
 const isFullscreen = ref(false);
 const updateFullscreenState = () => { isFullscreen.value = !!document.fullscreenElement; };
 const toggleFullscreen = () => { if (!playerContainerRef.value) return; if (!document.fullscreenElement) { playerContainerRef.value.requestFullscreen(); } else { document.exitFullscreen(); } };
-// ---
 
 const room = shallowRef<Room | null>(null);
 const adminParticipant = shallowRef<RemoteParticipant | null>(null);
@@ -59,19 +57,22 @@ const statusMessage = ref('Conectando a la transmisión...');
 // ▼▼▼ CAMBIO 1: Importamos la nueva bandera 'screenReady' ▼▼▼
 const { cameraPublication, screenSharePublication, screenReady } = useRemoteParticipantTracks(adminParticipant);
 
-// El estado local ya no necesita 'isScreenSharing'
+// El estado local de la UI ya NO necesita 'isScreenSharing'
 const layoutState = reactive({
   isCameraFocus: false,
-  isCameraEnabled: false,
   position: 'bottom-left' as OverlayPosition,
   size: 'md' as OverlaySize,
 });
 
-// ▼▼▼ CAMBIO 2: 'isScreenSharing' ahora se deriva directamente de nuestra bandera reactiva 'screenReady' ▼▼▼
-const layoutStateRef = computed(() => ({
-  isScreenSharing: screenReady.value, // ¡La nueva fuente de verdad!
-  isCameraFocus: layoutState.isCameraFocus,
-}));
+// ▼▼▼ CAMBIO 2: El estado que pasamos al layout AHORA DEPENDE de 'screenReady' ▼▼▼
+const layoutStateRef = computed(() => {
+  // Log para ver la decisión en tiempo real
+  console.log(`[LiveStreamPlayer] -> 💡 Calculando estado para layout: isScreenSharing=${screenReady.value}, isCameraFocus=${layoutState.isCameraFocus}`);
+  return {
+    isScreenSharing: screenReady.value, // ¡Esta es ahora la única fuente de verdad!
+    isCameraFocus: layoutState.isCameraFocus,
+  }
+});
 
 const { mainViewPublication, overlayViewPublication, showOverlay } = useStreamLayout(
   layoutStateRef,
@@ -82,23 +83,19 @@ const textDecoder = new TextDecoder();
 
 onMounted(async () => {
   document.addEventListener('fullscreenchange', updateFullscreenState);
-
   const newRoom = new Room({ adaptiveStream: true, dynacast: true });
 
   newRoom
-    .on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
-      if (!adminParticipant.value) { adminParticipant.value = participant; }
-    })
-    .on(RoomEvent.ParticipantDisconnected, (participant: RemoteParticipant) => {
-      if (adminParticipant.value?.sid === participant.sid) { adminParticipant.value = null; }
-    })
-    // DataChannel ya no maneja 'isScreenSharing'
+    .on(RoomEvent.ParticipantConnected, (p) => { if (!adminParticipant.value) adminParticipant.value = p; })
+    .on(RoomEvent.ParticipantDisconnected, (p) => { if (adminParticipant.value?.sid === p.sid) adminParticipant.value = null; })
+    // ▼▼▼ CAMBIO 3: DataChannel ya NO maneja 'isScreenSharing' ▼▼▼
     .on(RoomEvent.DataReceived, (payload) => {
         try {
             const raw = textDecoder.decode(payload as Uint8Array);
             const data = JSON.parse(raw);
-            console.debug('[LiveStreamPlayer] <- DataReceived:', data);
             
+            // Ya no le hacemos caso a data.isScreenSharing.
+            // Solo actualizamos los estados que no dependen de un track.
             if (typeof data.isCameraFocus === 'boolean') layoutState.isCameraFocus = data.isCameraFocus;
             if (typeof data.position === 'string') layoutState.position = data.position;
             if (typeof data.size === 'string') layoutState.size = data.size;
@@ -108,22 +105,16 @@ onMounted(async () => {
   try {
     const response = await apiPublic.get('/streaming/token?viewer=true');
     await newRoom.connect(import.meta.env.VITE_LIVEKIT_URL, response.data.token);
-    
     room.value = newRoom;
     statusMessage.value = 'Conexión exitosa. Esperando al anfitrión...';
 
-    // Sigue siendo buena idea pedir el estado de la UI (foco, posición, etc.) al conectar
-    try {
-      const req = { type: 'request_layout' };
-      const data = new TextEncoder().encode(JSON.stringify(req));
-      newRoom.localParticipant.publishData(data, { reliable: true });
-    } catch(e) {}
+    // Pedimos el estado de la UI (foco, posición) al conectar.
+    try { newRoom.localParticipant.publishData(new TextEncoder().encode(JSON.stringify({ type: 'request_layout' })), { reliable: true }); } catch(e) {}
 
     if (newRoom.remoteParticipants.size > 0 && !adminParticipant.value) {
         const [firstParticipant] = newRoom.remoteParticipants.values();
         adminParticipant.value = firstParticipant;
     }
-
   } catch (error) {
     statusMessage.value = 'No se pudo conectar a la transmisión.';
   }
@@ -131,9 +122,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   document.removeEventListener('fullscreenchange', updateFullscreenState);
-  if (room.value) {
-    room.value.disconnect();
-  }
+  if (room.value) room.value.disconnect();
 });
 
 const toggleMute = () => isMuted.value = !isMuted.value;

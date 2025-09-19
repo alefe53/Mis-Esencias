@@ -7,13 +7,14 @@ export function useRemoteParticipantTracks(participant: Ref<RemoteParticipant | 
   const cameraPublication = shallowRef<TrackPublication | null>(null);
   const screenSharePublication = shallowRef<TrackPublication | null>(null);
 
-  // ▼▼▼ NUEVAS BANDERAS REACTIVAS ▼▼▼
-  // Estas son las que Vue sí detectará cuando cambien.
+  // ▼▼▼ NUESTRAS BANDERAS REACTIVAS ▼▼▼
+  // Estas son simples booleanos que Vue SÍ entenderá cuando cambien.
   const cameraReady = shallowRef<boolean>(false);
   const screenReady  = shallowRef<boolean>(false);
 
   const updatePublications = (p: RemoteParticipant | null) => {
     if (!p) {
+      // Limpiamos todo si el participante se desconecta
       cameraPublication.value = null;
       screenSharePublication.value = null;
       cameraReady.value = false;
@@ -27,17 +28,23 @@ export function useRemoteParticipantTracks(participant: Ref<RemoteParticipant | 
     cameraPublication.value = camPub;
     screenSharePublication.value = scrPub;
 
-    // Actualizamos nuestras banderas reactivas basándonos en si el track real está disponible.
-    cameraReady.value = !!(camPub?.track);
-    screenReady.value = !!(scrPub?.track);
+    // Actualizamos nuestras banderas basándonos en si el track REAL existe.
+    // Esta es la única verdad que importa.
+    const newCameraReady = !!camPub?.track;
+    const newScreenReady = !!scrPub?.track;
 
-    console.debug('[ViewerTracks] -> 🔄 Publicaciones actualizadas:', {
-      participant: p.identity,
-      cameraReady: cameraReady.value,
-      screenReady: screenReady.value
-    });
+    // Solo actualizamos y logueamos si el estado realmente cambió para evitar ruido.
+    if (cameraReady.value !== newCameraReady) {
+      cameraReady.value = newCameraReady;
+      console.log(`[ViewerTracks] -> 🟢 Camera Ready cambió a: ${cameraReady.value}`);
+    }
+    if (screenReady.value !== newScreenReady) {
+      screenReady.value = newScreenReady;
+      console.log(`[ViewerTracks] -> 🖥️ Screen Ready cambió a: ${screenReady.value}`);
+    }
   };
 
+  // Un único handler para todos los eventos que puedan afectar el estado de los tracks
   const onTrackStateChanged = () => {
     console.log('[ViewerTracks] -> 👂 Evento de track detectado. Re-evaluando publicaciones...');
     if (participant.value) {
@@ -45,34 +52,32 @@ export function useRemoteParticipantTracks(participant: Ref<RemoteParticipant | 
     }
   };
 
+  // Observamos cambios en el participante (cuando se conecta o desconecta)
   watch(participant, (newP, oldP) => {
     if (oldP) {
+      // Limpiamos listeners del participante anterior para evitar fugas de memoria
       oldP.off(ParticipantEvent.TrackPublished, onTrackStateChanged);
       oldP.off(ParticipantEvent.TrackUnpublished, onTrackStateChanged);
-      oldP.off(ParticipantEvent.TrackMuted, onTrackStateChanged);
-      oldP.off(ParticipantEvent.TrackUnmuted, onTrackStateChanged);
       oldP.off(ParticipantEvent.TrackSubscribed, onTrackStateChanged);
       oldP.off(ParticipantEvent.TrackUnsubscribed, onTrackStateChanged);
     }
     if (newP) {
+      // Nos suscribimos a todos los eventos relevantes del nuevo participante
       newP.on(ParticipantEvent.TrackPublished, onTrackStateChanged);
       newP.on(ParticipantEvent.TrackUnpublished, onTrackStateChanged);
-      newP.on(ParticipantEvent.TrackMuted, onTrackStateChanged);
-      newP.on(ParticipantEvent.TrackUnmuted, onTrackStateChanged);
       newP.on(ParticipantEvent.TrackSubscribed, onTrackStateChanged);
       newP.on(ParticipantEvent.TrackUnsubscribed, onTrackStateChanged);
     }
+    // Actualizamos el estado inicial
     updatePublications(newP);
   }, { immediate: true });
 
   onUnmounted(() => {
-    // Limpieza
+    // Limpieza final
     const p = participant.value;
     if (p) {
       p.off(ParticipantEvent.TrackPublished, onTrackStateChanged);
       p.off(ParticipantEvent.TrackUnpublished, onTrackStateChanged);
-      p.off(ParticipantEvent.TrackMuted, onTrackStateChanged);
-      p.off(ParticipantEvent.TrackUnmuted, onTrackStateChanged);
       p.off(ParticipantEvent.TrackSubscribed, onTrackStateChanged);
       p.off(ParticipantEvent.TrackUnsubscribed, onTrackStateChanged);
     }
@@ -81,7 +86,7 @@ export function useRemoteParticipantTracks(participant: Ref<RemoteParticipant | 
   return {
     cameraPublication,
     screenSharePublication,
-    // Exportamos las nuevas banderas
+    // Exportamos nuestras nuevas y fiables banderas
     cameraReady,
     screenReady,
   };
