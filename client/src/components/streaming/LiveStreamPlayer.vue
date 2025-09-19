@@ -96,13 +96,22 @@ onMounted(async () => {
     })
     .on(RoomEvent.DataReceived, (payload) => {
         try {
-          const raw = textDecoder.decode(payload as Uint8Array);
-          const data = JSON.parse(raw);
-          Object.assign(layoutState, data);
+            const raw = textDecoder.decode(payload as Uint8Array);
+            const data = JSON.parse(raw);
+
+            console.log('[LiveStreamPlayer] <- 📩 DataReceived:', data);
+
+            // Asignación segura y explícita
+            if (typeof data.isScreenSharing === 'boolean') layoutState.isScreenSharing = data.isScreenSharing;
+            if (typeof data.isCameraFocus === 'boolean') layoutState.isCameraFocus = data.isCameraFocus;
+            if (typeof data.isCameraEnabled === 'boolean') layoutState.isCameraEnabled = data.isCameraEnabled;
+            if (typeof data.position === 'string') layoutState.position = data.position;
+            if (typeof data.size === 'string') layoutState.size = data.size;
+            
         } catch (e) {
-          console.error('[LiveStreamPlayer] ❌ Error procesando DataReceived:', e);
+            console.error('[LiveStreamPlayer] ❌ Error procesando DataReceived:', e, 'payload:', payload);
         }
-      })
+    })
 
   try {
     const response = await apiPublic.get('/streaming/token?viewer=true');
