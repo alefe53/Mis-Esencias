@@ -1,4 +1,3 @@
-// RUTA: src/components/streaming/ParticipantViewV2.vue
 <template>
   <div class="participant-view">
     <video ref="videoEl" autoplay playsinline :muted="isMuted"></video>
@@ -13,12 +12,10 @@
 
 <script setup lang="ts">
 import { ref, watch, onUnmounted, computed, shallowRef, nextTick, watchEffect } from 'vue';
-// ▼▼▼ CORRECCIÓN DE IMPORTACIÓN ▼▼▼
 import { 
-  Track as LiveKitTrack, // Renombramos 'Track' a 'LiveKitTrack' para evitar conflictos
-  type TrackPublication,   // Mantenemos 'type' para las que son solo tipos
+  type Track as LiveKitTrack,
+  type TrackPublication
 } from 'livekit-client';
-// ▲▲▲ FIN DE CORRECCIÓN ▲▲▲
 
 const props = defineProps<{
   publication: TrackPublication | null;
@@ -36,7 +33,6 @@ const isVideoEnabled = computed(() => {
 watchEffect(() => {
     console.log(`[ParticipantViewV2] -> 👁️‍🗨️ Estado render:`, {
         source: props.publication?.source ?? 'N/A',
-        trackSid: props.publication?.trackSid ?? 'N/A',
         hasTrack: !!props.publication?.track,
         isMuted: props.publication?.isMuted,
         isVideoEnabled: isVideoEnabled.value
@@ -46,12 +42,34 @@ watchEffect(() => {
 async function attachTrackToEl(track: LiveKitTrack | null) {
   await nextTick();
   if (!track) return;
+  
+  const el = track.kind === 'video' ? videoEl.value : audioEl.value;
+  if (!el) return;
 
   try {
-    const el = track.kind === 'video' ? videoEl.value : audioEl.value;
-    if (el) {
-      track.attach(el);
-      console.log(`[ParticipantViewV2] -> ✅ Attach exitoso de track ${track.sid} a elemento.`);
+    track.attach(el);
+    console.log(`[ParticipantViewV2] -> ✅ Attach inicial de track ${track.sid}.`);
+
+    // Lógica para el video: verificar si se está renderizando.
+    if (track.kind === 'video' && el instanceof HTMLVideoElement) {
+      // Intentamos darle play, puede ser necesario por políticas del navegador
+      try {
+        await el.play();
+      } catch (e) {
+        // Ignoramos errores de autoplay, el attach es lo importante
+      }
+
+      // Esperamos un momento para que el navegador procese los frames
+      setTimeout(() => {
+        if (el.videoWidth === 0 && el.videoHeight === 0) {
+          console.warn(`[ParticipantViewV2] -> ⚠️ No se detectan frames en el video ${track.sid}. Reintentando attach...`);
+          // Forzamos un re-attach
+          track.detach(el);
+          track.attach(el);
+        } else {
+          console.log(`[ParticipantViewV2] -> ✨ Frames detectados para ${track.sid} (${el.videoWidth}x${el.videoHeight}).`);
+        }
+      }, 300); // Un delay de 300ms suele ser suficiente
     }
   } catch (err) {
     console.warn(`[ParticipantViewV2] -> ⚠️ Attach del track ${track.sid} falló:`, err);
@@ -73,13 +91,10 @@ watch(() => props.publication, (newPub) => {
     }
 
     const onSubscribed = (track: LiveKitTrack) => {
-        console.log(`[ParticipantViewV2] -> ✨ Track ${track.sid} suscrito, procediendo a attach.`);
         attachedTrack.value = track;
         attachTrackToEl(track);
-        // ▼▼▼ USAMOS EL ALIAS 'LiveKitTrack' ▼▼▼
         newPub.off('subscribed', onSubscribed);
     };
-    // ▼▼▼ USAMOS EL ALIAS 'LiveKitTrack' ▼▼▼
     newPub.on('subscribed', onSubscribed);
   },
   { immediate: true }
