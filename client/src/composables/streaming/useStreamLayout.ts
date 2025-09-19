@@ -14,6 +14,7 @@ interface Publications {
 }
 
 function publicationHasActiveTrack(pub: TrackPublication | null): boolean {
+  // Un track está activo y listo para renderizar si la propiedad .track existe.
   return !!pub?.track;
 }
 
@@ -66,6 +67,7 @@ export function useStreamLayout(
     const { camera } = publications;
 
     // La lógica del overlay se mantiene, es correcta.
+    // Se muestra si se comparte pantalla, la cámara no es el foco y la cámara tiene un track activo.
     const shouldShow = isScreenSharing && !isCameraFocus && publicationHasActiveTrack(camera.value);
 
     return shouldShow ? camera.value : null;
