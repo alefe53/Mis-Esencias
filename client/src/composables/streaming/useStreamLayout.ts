@@ -39,8 +39,6 @@ export function useStreamLayout(
       return camera.value;
     }
 
-    // ▼▼▼ LÓGICA CORREGIDA Y MÁS ESTRICTA ▼▼▼
-
     // REGLA 2: Si estamos en modo "Compartir Pantalla".
     if (isScreenSharing) {
       // La vista principal DEBE ser la pantalla si el track está listo.
