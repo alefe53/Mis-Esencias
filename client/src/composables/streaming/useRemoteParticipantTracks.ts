@@ -13,48 +13,52 @@ export function useRemoteParticipantTracks(participant: Ref<RemoteParticipant | 
       screenSharePublication.value = null;
       return;
     }
-    // Obtenemos las publicaciones actuales
     cameraPublication.value = p.getTrackPublication(Track.Source.Camera) ?? null;
     screenSharePublication.value = p.getTrackPublication(Track.Source.ScreenShare) ?? null;
   };
 
-  const onTrackSubscribed = (_track: any, publication: TrackPublication) => {
-    // Cuando un track se suscribe, lo actualizamos para asegurar la reactividad
-    if (publication.source === Track.Source.Camera) {
-        cameraPublication.value = publication;
-    } else if (publication.source === Track.Source.ScreenShare) {
-        screenSharePublication.value = publication;
+  // Esta función se activará cuando el admin publique o despublique un track
+  const onPublicationsChanged = () => {
+    if(participant.value) {
+        updatePublications(participant.value);
     }
-  };
-  
-  const onTrackUnsubscribed = (_track: any, publication: TrackPublication) => {
-      if (publication.source === Track.Source.Camera) {
-          cameraPublication.value = null;
-      } else if (publication.source === Track.Source.ScreenShare) {
-          screenSharePublication.value = null;
-      }
-  };
+  }
 
-  // Observamos si el participante cambia (por ejemplo, de null a un participante real)
+  // Esta función se activará cuando el admin apague/prenda su cámara (mute/unmute)
+   const onMutedChanged = () => {
+    // Cuando el estado de mute cambia, simplemente volvemos a ejecutar
+    // nuestra función principal de actualización.
+    // Esto asegura que cualquier componente que dependa de `cameraPublication`
+    // reciba el objeto actualizado directamente desde el SDK, sin crear copias inválidas.
+    if (participant.value) {
+        updatePublications(participant.value);
+    }
+  }
   watch(participant, (newP, oldP) => {
     if (oldP) {
-      oldP.off(ParticipantEvent.TrackSubscribed, onTrackSubscribed);
-      oldP.off(ParticipantEvent.TrackUnsubscribed, onTrackUnsubscribed);
+      // Limpiamos los listeners del participante anterior
+      oldP.off(ParticipantEvent.TrackPublished, onPublicationsChanged);
+      oldP.off(ParticipantEvent.TrackUnpublished, onPublicationsChanged);
+      oldP.off(ParticipantEvent.TrackMuted, onMutedChanged);
+      oldP.off(ParticipantEvent.TrackUnmuted, onMutedChanged);
     }
     if (newP) {
-      // Nos suscribimos a los eventos del nuevo participante
-      newP.on(ParticipantEvent.TrackSubscribed, onTrackSubscribed);
-      newP.on(ParticipantEvent.TrackUnsubscribed, onTrackUnsubscribed);
+      // Nos suscribimos a los eventos correctos del nuevo participante
+      newP.on(ParticipantEvent.TrackPublished, onPublicationsChanged);
+      newP.on(ParticipantEvent.TrackUnpublished, onPublicationsChanged);
+      newP.on(ParticipantEvent.TrackMuted, onMutedChanged);
+      newP.on(ParticipantEvent.TrackUnmuted, onMutedChanged);
     }
-    // Actualizamos las publicaciones inmediatamente
     updatePublications(newP);
   }, { immediate: true });
 
   onUnmounted(() => {
     const p = participant.value;
     if (p) {
-      p.off(ParticipantEvent.TrackSubscribed, onTrackSubscribed);
-      p.off(ParticipantEvent.TrackUnsubscribed, onTrackUnsubscribed);
+      p.off(ParticipantEvent.TrackPublished, onPublicationsChanged);
+      p.off(ParticipantEvent.TrackUnpublished, onPublicationsChanged);
+      p.off(ParticipantEvent.TrackMuted, onMutedChanged);
+      p.off(ParticipantEvent.TrackUnmuted, onMutedChanged);
     }
   });
 
