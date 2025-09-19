@@ -56,30 +56,22 @@ const adminParticipant = shallowRef<RemoteParticipant | null>(null);
 const isMuted = ref(true);
 const statusMessage = ref('Conectando a la transmisión...');
 
-const { cameraPublication, screenSharePublication } = useRemoteParticipantTracks(adminParticipant);
+// ▼▼▼ CAMBIO 1: Importamos la nueva bandera 'screenReady' ▼▼▼
+const { cameraPublication, screenSharePublication, screenReady } = useRemoteParticipantTracks(adminParticipant);
 
-// ▼▼▼ CAMBIO 1: El estado reactivo ya NO INCLUYE isScreenSharing ▼▼▼
+// El estado local ya no necesita 'isScreenSharing'
 const layoutState = reactive({
-  // isScreenSharing: false, // ELIMINADO
   isCameraFocus: false,
   isCameraEnabled: false,
   position: 'bottom-left' as OverlayPosition,
   size: 'md' as OverlaySize,
 });
 
-// ▼▼▼ CAMBIO 2: La nueva y ÚNICA fuente de verdad para isScreenSharing ▼▼▼
-// Esta propiedad computada es true ÚNICAMENTE si la publicación de la pantalla existe.
-// Es la verdad absoluta del SDK de LiveKit.
-const isScreenSharingFromTrack = computed(() => !!screenSharePublication.value);
-
-// ▼▼▼ CAMBIO 3: Pasamos la nueva fuente de verdad al composable del layout ▼▼▼
-const layoutStateRef = computed(() => {
-  console.log(`[LiveStreamPlayer] -> 💡 Estado para layout: isScreenSharing=${isScreenSharingFromTrack.value}, isCameraFocus=${layoutState.isCameraFocus}`);
-  return {
-    isScreenSharing: isScreenSharingFromTrack.value, // Usamos nuestra nueva propiedad computada
-    isCameraFocus: layoutState.isCameraFocus,
-  }
-});
+// ▼▼▼ CAMBIO 2: 'isScreenSharing' ahora se deriva directamente de nuestra bandera reactiva 'screenReady' ▼▼▼
+const layoutStateRef = computed(() => ({
+  isScreenSharing: screenReady.value, // ¡La nueva fuente de verdad!
+  isCameraFocus: layoutState.isCameraFocus,
+}));
 
 const { mainViewPublication, overlayViewPublication, showOverlay } = useStreamLayout(
   layoutStateRef,
@@ -95,25 +87,18 @@ onMounted(async () => {
 
   newRoom
     .on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
-      if (!adminParticipant.value) {
-        adminParticipant.value = participant;
-      }
+      if (!adminParticipant.value) { adminParticipant.value = participant; }
     })
     .on(RoomEvent.ParticipantDisconnected, (participant: RemoteParticipant) => {
-      if (adminParticipant.value?.sid === participant.sid) {
-        adminParticipant.value = null;
-      }
+      if (adminParticipant.value?.sid === participant.sid) { adminParticipant.value = null; }
     })
-    // ▼▼▼ CAMBIO 4: El handler ya NO actualiza layoutState.isScreenSharing ▼▼▼
+    // DataChannel ya no maneja 'isScreenSharing'
     .on(RoomEvent.DataReceived, (payload) => {
         try {
             const raw = textDecoder.decode(payload as Uint8Array);
             const data = JSON.parse(raw);
             console.debug('[LiveStreamPlayer] <- DataReceived:', data);
             
-            // if (typeof data.isScreenSharing === 'boolean') layoutState.isScreenSharing = data.isScreenSharing; // ELIMINADO
-            
-            // Seguimos usando el DataChannel para lo que sí es bueno: estados de UI que NO dependen de un track
             if (typeof data.isCameraFocus === 'boolean') layoutState.isCameraFocus = data.isCameraFocus;
             if (typeof data.position === 'string') layoutState.position = data.position;
             if (typeof data.size === 'string') layoutState.size = data.size;
@@ -127,7 +112,7 @@ onMounted(async () => {
     room.value = newRoom;
     statusMessage.value = 'Conexión exitosa. Esperando al anfitrión...';
 
-    // El request_layout sigue siendo una buena práctica para la sincronización inicial de los estados de UI
+    // Sigue siendo buena idea pedir el estado de la UI (foco, posición, etc.) al conectar
     try {
       const req = { type: 'request_layout' };
       const data = new TextEncoder().encode(JSON.stringify(req));

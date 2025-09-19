@@ -7,24 +7,39 @@ export function useRemoteParticipantTracks(participant: Ref<RemoteParticipant | 
   const cameraPublication = shallowRef<TrackPublication | null>(null);
   const screenSharePublication = shallowRef<TrackPublication | null>(null);
 
+  // ▼▼▼ NUEVAS BANDERAS REACTIVAS ▼▼▼
+  // Estas son las que Vue sí detectará cuando cambien.
+  const cameraReady = shallowRef<boolean>(false);
+  const screenReady  = shallowRef<boolean>(false);
+
   const updatePublications = (p: RemoteParticipant | null) => {
     if (!p) {
       cameraPublication.value = null;
       screenSharePublication.value = null;
+      cameraReady.value = false;
+      screenReady.value = false;
       return;
     }
-    cameraPublication.value = p.getTrackPublication(Track.Source.Camera) ?? null;
-    screenSharePublication.value = p.getTrackPublication(Track.Source.ScreenShare) ?? null;
+
+    const camPub = p.getTrackPublication(Track.Source.Camera) ?? null;
+    const scrPub = p.getTrackPublication(Track.Source.ScreenShare) ?? null;
+
+    cameraPublication.value = camPub;
+    screenSharePublication.value = scrPub;
+
+    // Actualizamos nuestras banderas reactivas basándonos en si el track real está disponible.
+    cameraReady.value = !!(camPub?.track);
+    screenReady.value = !!(scrPub?.track);
 
     console.debug('[ViewerTracks] -> 🔄 Publicaciones actualizadas:', {
       participant: p.identity,
-      camera: cameraPublication.value ? { sid: cameraPublication.value.trackSid, hasTrack: !!cameraPublication.value.track } : null,
-      screen: screenSharePublication.value ? { sid: screenSharePublication.value.trackSid, hasTrack: !!screenSharePublication.value.track } : null
+      cameraReady: cameraReady.value,
+      screenReady: screenReady.value
     });
   };
 
   const onTrackStateChanged = () => {
-    console.log('[ViewerTracks] -> 👂 Evento de track detectado (Published, Subscribed, Muted, etc). Re-evaluando...');
+    console.log('[ViewerTracks] -> 👂 Evento de track detectado. Re-evaluando publicaciones...');
     if (participant.value) {
       updatePublications(participant.value);
     }
@@ -51,13 +66,23 @@ export function useRemoteParticipantTracks(participant: Ref<RemoteParticipant | 
   }, { immediate: true });
 
   onUnmounted(() => {
-    if (participant.value) {
-        onTrackStateChanged(); // Re-assign with empty participant
+    // Limpieza
+    const p = participant.value;
+    if (p) {
+      p.off(ParticipantEvent.TrackPublished, onTrackStateChanged);
+      p.off(ParticipantEvent.TrackUnpublished, onTrackStateChanged);
+      p.off(ParticipantEvent.TrackMuted, onTrackStateChanged);
+      p.off(ParticipantEvent.TrackUnmuted, onTrackStateChanged);
+      p.off(ParticipantEvent.TrackSubscribed, onTrackStateChanged);
+      p.off(ParticipantEvent.TrackUnsubscribed, onTrackStateChanged);
     }
   });
 
   return {
     cameraPublication,
     screenSharePublication,
+    // Exportamos las nuevas banderas
+    cameraReady,
+    screenReady,
   };
 }
