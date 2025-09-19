@@ -36,7 +36,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted, shallowRef, computed } from 'vue';
-import { Room, RoomEvent, type RemoteParticipant, type TrackPublication } from 'livekit-client';
+import { Room, RoomEvent, Track, type RemoteParticipant, type TrackPublication } from 'livekit-client'; // Importa 'Track'
 import { useRemoteParticipantTracks } from '../../composables/streaming/useRemoteParticipantTracks';
 import { useStreamLayout } from '../../composables/streaming/useStreamLayout';
 import type { OverlayPosition, OverlaySize } from '../../composables/streaming/useStreamStateV2';
@@ -84,6 +84,40 @@ const { mainViewPublication, overlayViewPublication, showOverlay } = useStreamLa
 
 const textDecoder = new TextDecoder();
 
+// ▼▼▼ FUNCIÓN DE AYUDA PARA ESPERAR EL TRACK DE PANTALLA ▼▼▼
+async function waitForScreenPublication(participant: RemoteParticipant | null, timeout = 3000): Promise<boolean> {
+  if (!participant) return false;
+
+  const check = () => {
+    const pub = participant.getTrackPublication(Track.Source.ScreenShare);
+    // El track está listo si la publicación existe y tiene la propiedad .track
+    return !!pub?.track;
+  };
+
+  // Chequeo inmediato
+  if (check()) {
+    console.log('[LiveStreamPlayer] -> waitForScreen: El track de pantalla ya estaba disponible.');
+    return true;
+  }
+
+  // Si no, esperamos con polling
+  return new Promise((resolve) => {
+    const interval = 150;
+    const startTime = Date.now();
+    const pollTimer = setInterval(() => {
+      if (check()) {
+        clearInterval(pollTimer);
+        console.log('[LiveStreamPlayer] -> waitForScreen: Track de pantalla encontrado tras polling.');
+        resolve(true);
+      } else if (Date.now() - startTime > timeout) {
+        clearInterval(pollTimer);
+        console.warn('[LiveStreamPlayer] -> waitForScreen: Timeout esperando el track de pantalla.');
+        resolve(false);
+      }
+    }, interval);
+  });
+}
+
 onMounted(async () => {
   document.addEventListener('fullscreenchange', updateFullscreenState);
 
@@ -100,17 +134,38 @@ onMounted(async () => {
         adminParticipant.value = null;
       }
     })
-    .on(RoomEvent.DataReceived, (payload) => {
+    // ▼▼▼ HANDLER DE DATOS MEJORADO CON LÓGICA DE ESPERA ▼▼▼
+    .on(RoomEvent.DataReceived, async (payload) => {
         try {
             const raw = textDecoder.decode(payload as Uint8Array);
             const data = JSON.parse(raw);
             console.debug('[LiveStreamPlayer] <- DataReceived:', data);
-            if (typeof data.isScreenSharing === 'boolean') layoutState.isScreenSharing = data.isScreenSharing;
+
+            // Si el admin anuncia que está compartiendo pantalla...
+            if (typeof data.isScreenSharing === 'boolean') {
+              if (data.isScreenSharing === true) {
+                // ...NO aplicamos el estado inmediatamente. Esperamos a que el track llegue.
+                const isReady = await waitForScreenPublication(adminParticipant.value);
+                if (isReady) {
+                  console.log('[LiveStreamPlayer] -> Track de pantalla confirmado. Aplicando estado isScreenSharing=true.');
+                  layoutState.isScreenSharing = true;
+                } else {
+                  // Si hay timeout, aplicamos el estado de todas formas para no bloquear la UI.
+                  layoutState.isScreenSharing = true;
+                }
+              } else {
+                // Si deja de compartir, lo aplicamos al instante.
+                layoutState.isScreenSharing = false;
+              }
+            }
+            
+            // Los demás estados se aplican directamente.
             if (typeof data.isCameraFocus === 'boolean') layoutState.isCameraFocus = data.isCameraFocus;
             if (typeof data.isCameraEnabled === 'boolean') layoutState.isCameraEnabled = data.isCameraEnabled;
             if (typeof data.position === 'string') layoutState.position = data.position;
             if (typeof data.size === 'string') layoutState.size = data.size;
         } catch (e) {
+          // Ignorar errores
         }
     });
 
@@ -121,13 +176,13 @@ onMounted(async () => {
     room.value = newRoom;
     statusMessage.value = 'Conexión exitosa. Esperando al anfitrión...';
 
+    // Petición inicial de estado (esto sigue siendo una buena práctica)
     try {
-      const req = { type: 'request_layout', ts: Date.now() };
+      const req = { type: 'request_layout' };
       const data = new TextEncoder().encode(JSON.stringify(req));
       newRoom.localParticipant.publishData(data, { reliable: true });
-      console.log('[LiveStreamPlayer] -> ✅ Enviada petición de layout al admin.');
     } catch(e) {
-      console.warn('[LiveStreamPlayer] -> ⚠️ No se pudo enviar la petición de layout.', e);
+      // Ignorar error
     }
 
     if (newRoom.remoteParticipants.size > 0 && !adminParticipant.value) {
@@ -153,6 +208,7 @@ const handleInteraction = () => { if (isMuted.value) isMuted.value = false; };
 </script>
 
 <style scoped>
+/* Estilos no necesitan cambios */
 .livestream-player { width: 100%; height: 100%; background-color: #000; position: relative; border-radius: 8px; overflow: hidden; cursor: pointer; }
 .main-video-area { width: 100%; height: 100%; }
 .placeholder { display: flex; justify-content: center; align-items: center; width: 100%; height: 100%; color: #a0a0a0; font-size: 1.2rem; }
