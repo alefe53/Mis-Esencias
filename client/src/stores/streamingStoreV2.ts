@@ -11,7 +11,7 @@ import {
   LocalVideoTrack,
   type TrackPublication,
   type VideoCaptureOptions,
-  type LocalTrackPublication, // Asegúrate de importar esto
+  LocalTrackPublication, // Asegúrate de importar esto
 } from 'livekit-client';
 
 import { useStreamStateV2, type OverlaySize, type OverlayPosition } from '../composables/streaming/useStreamStateV2';
@@ -34,7 +34,6 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
   const previewTrack = shallowRef<LocalVideoTrack | null>(null);
   const isActionPending = shallowRef(false);
 
-  // ▼▼▼ CORRECCIÓN 1: AÑADIR ESTA LÍNEA ▼▼▼
   const cameraOptions: VideoCaptureOptions = { resolution: { width: 1280, height: 720 } };
 
   const layoutStateForBroadcast = computed(() => ({
@@ -57,11 +56,34 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
 
   watch(layoutStateForBroadcast, broadcastLayoutState, { deep: true });
 
+  function broadcastWithRetries(times = [250, 800, 2000]) {
+    times.forEach((delay, idx) => {
+      setTimeout(() => {
+        console.log(`[STORE-BROADCAST-RETRY] -> Intento ${idx + 1} (delay ${delay}ms)`);
+        broadcastLayoutState();
+      }, delay);
+    });
+  }
+
+
   const setupRoomListeners = (newRoom: Room) => {
     newRoom
         .on(RoomEvent.ParticipantConnected, () => {
             console.log('👤 [STORE-EVENT] Un espectador se ha conectado. Enviando estado actual del layout...');
-            setTimeout(broadcastLayoutState, 500); 
+            broadcastWithRetries();
+      })
+      .on(RoomEvent.DataReceived, (payload, participant) => {
+        try {
+          const text = new TextDecoder().decode(payload as Uint8Array);
+          const data = JSON.parse(text);
+          if (data?.type === 'request_layout') {
+            console.log(`[STORE-EVENT] -> Petición de layout recibida de ${participant?.identity}. Respondiendo...`);
+            // Responder inmediatamente a la petición
+            broadcastLayoutState();
+          }
+        } catch (e) {
+          console.error(e);
+        }
       })
       .on(RoomEvent.LocalTrackPublished, (pub: TrackPublication) => {
         console.log(`✅ [STORE-EVENT] LocalTrackPublished: ${pub.source}.`);
@@ -81,16 +103,12 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
       });
   };
   
-  // ▼▼▼ CORRECCIÓN 2: FUNCIÓN `restartCameraTrack` MODIFICADA ▼▼▼
   async function restartCameraTrack() {
   if (!room.value?.localParticipant) return;
   const participant = room.value.localParticipant;
   const cameraPublication = participant.getTrackPublication(Track.Source.Camera);
-
-  // Obtenemos el track directamente de la publicación
   const cameraTrack = cameraPublication?.track;
 
-  // Verificamos que el track exista y sea un LocalVideoTrack, que es el que tiene el método restartTrack
   if (!cameraTrack || !(cameraTrack instanceof LocalVideoTrack)) {
     console.warn('[STORE-RESTART-CAM] -> ⚠️ No se encontró un track de video local para reiniciar.');
     return;
@@ -106,28 +124,27 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
   }
 }
 
+
   async function toggleScreenShare() {
-    if (!room.value?.localParticipant || isActionPending.value) return;
-    const newState = !streamState.isScreenSharing;
-    _writableState.isScreenSharing = newState;
-    isActionPending.value = true;
-    try {
-      await room.value.localParticipant.setScreenShareEnabled(newState, { audio: true });
-      console.log(`[STORE] -> ✅ Comando de ScreenShare enviado a LiveKit.`);
-      if (newState === true && streamState.isCameraEnabled) {
-        await new Promise(resolve => setTimeout(resolve, 300));
-        await restartCameraTrack();
+      if (!room.value?.localParticipant || isActionPending.value) return;
+      const newState = !streamState.isScreenSharing;
+      _writableState.isScreenSharing = newState;
+      isActionPending.value = true;
+      try {
+        await room.value.localParticipant.setScreenShareEnabled(newState, { audio: true });
+        console.log(`[STORE] -> ✅ Comando de ScreenShare enviado a LiveKit.`);
+        if (newState === true && streamState.isCameraEnabled) {
+          await new Promise(resolve => setTimeout(resolve, 300));
+          await restartCameraTrack();
+        }
+      } catch (e: any) {
+        console.error('[STORE] -> ❌ Error en toggleScreenShare. Revirtiendo estado.', e);
+        _writableState.isScreenSharing = !newState;
+      } finally {
+        isActionPending.value = false;
       }
-    } catch (e: any) {
-      console.error('[STORE] -> ❌ Error en toggleScreenShare. Revirtiendo estado.', e);
-      _writableState.isScreenSharing = !newState;
-      if (e.name !== 'NotAllowedError') {
-        uiStore.showToast({ message: 'Error al compartir pantalla.', color: '#ef4444' });
-      }
-    } finally {
-      isActionPending.value = false;
     }
-  }
+
 
   async function toggleCamera() {
     if (!room.value?.localParticipant || isActionPending.value) return;

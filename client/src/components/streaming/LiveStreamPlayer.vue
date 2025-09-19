@@ -27,7 +27,8 @@
           {{ isMuted ? '🔇' : '🔊' }}
         </button>
         <button @click.stop="toggleFullscreen" class="control-button">
-          {{ isFullscreen ? '⤡' : '⤢' }} </button>
+          {{ isFullscreen ? '⤡' : '⤢' }}
+        </button>
       </div>
     </div>
   </div>
@@ -43,7 +44,6 @@ import ParticipantViewV2 from './ParticipantViewV2.vue';
 import CameraOverlay from './CameraOverlay.vue';
 import apiPublic from '../../services/apiPublic';
 
-// 3. Lógica para la pantalla completa
 const playerContainerRef = ref<HTMLElement | null>(null);
 const isFullscreen = ref(false);
 
@@ -53,17 +53,12 @@ const updateFullscreenState = () => {
 
 const toggleFullscreen = () => {
   if (!playerContainerRef.value) return;
-
   if (!document.fullscreenElement) {
-    playerContainerRef.value.requestFullscreen().catch(err => {
-      console.error(`Error al intentar entrar en pantalla completa: ${err.message} (${err.name})`);
-    });
+    playerContainerRef.value.requestFullscreen();
   } else {
     document.exitFullscreen();
   }
 };
-// --- Fin de la lógica de pantalla completa ---
-
 
 const room = shallowRef<Room | null>(null);
 const adminParticipant = shallowRef<RemoteParticipant | null>(null);
@@ -90,7 +85,6 @@ const { mainViewPublication, overlayViewPublication, showOverlay } = useStreamLa
 const textDecoder = new TextDecoder();
 
 onMounted(async () => {
-  // 4. Añadimos el listener para el estado de pantalla completa
   document.addEventListener('fullscreenchange', updateFullscreenState);
 
   const newRoom = new Room({ adaptiveStream: true, dynacast: true });
@@ -110,13 +104,13 @@ onMounted(async () => {
         try {
             const raw = textDecoder.decode(payload as Uint8Array);
             const data = JSON.parse(raw);
+            console.debug('[LiveStreamPlayer] <- DataReceived:', data);
             if (typeof data.isScreenSharing === 'boolean') layoutState.isScreenSharing = data.isScreenSharing;
             if (typeof data.isCameraFocus === 'boolean') layoutState.isCameraFocus = data.isCameraFocus;
             if (typeof data.isCameraEnabled === 'boolean') layoutState.isCameraEnabled = data.isCameraEnabled;
             if (typeof data.position === 'string') layoutState.position = data.position;
             if (typeof data.size === 'string') layoutState.size = data.size;
         } catch (e) {
-            console.error('[LiveStreamPlayer] ❌ Error procesando DataReceived:', e);
         }
     });
 
@@ -126,6 +120,15 @@ onMounted(async () => {
     
     room.value = newRoom;
     statusMessage.value = 'Conexión exitosa. Esperando al anfitrión...';
+
+    try {
+      const req = { type: 'request_layout', ts: Date.now() };
+      const data = new TextEncoder().encode(JSON.stringify(req));
+      newRoom.localParticipant.publishData(data, { reliable: true });
+      console.log('[LiveStreamPlayer] -> ✅ Enviada petición de layout al admin.');
+    } catch(e) {
+      console.warn('[LiveStreamPlayer] -> ⚠️ No se pudo enviar la petición de layout.', e);
+    }
 
     if (newRoom.remoteParticipants.size > 0 && !adminParticipant.value) {
         const [firstParticipant] = newRoom.remoteParticipants.values();
@@ -139,9 +142,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
-  // 5. Limpiamos el listener
   document.removeEventListener('fullscreenchange', updateFullscreenState);
-
   if (room.value) {
     room.value.disconnect();
   }
@@ -161,28 +162,7 @@ const handleInteraction = () => { if (isMuted.value) isMuted.value = false; };
 .status-indicator { color: white; font-weight: bold; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; background-color: rgba(0,0,0,0.5); padding: 0.3rem 0.7rem; border-radius: 15px; }
 .live-dot { width: 10px; height: 10px; background-color: #e53e3e; border-radius: 50%; animation: pulse 1.5s infinite; }
 @keyframes pulse { 0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(229, 62, 62, 0); } 100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(229, 62, 62, 0); } }
-
-.right-controls {
-  display: flex;
-  gap: 0.5rem;
-}
-.control-button { 
-  background-color: rgba(255, 255, 255, 0.2); 
-  color: white; 
-  border: 1px solid rgba(255, 255, 255, 0.3); 
-  border-radius: 6px; 
-  padding: 0.5rem; 
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.2rem; 
-  cursor: pointer; 
-  font-weight: 500; 
-  transition: background-color 0.2s; 
-}
-.control-button:hover { 
-  background-color: rgba(255, 255, 255, 0.4); 
-}
+.right-controls { display: flex; gap: 0.5rem; }
+.control-button { background-color: rgba(255, 255, 255, 0.2); color: white; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 6px; padding: 0.5rem; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; cursor: pointer; font-weight: 500; transition: background-color 0.2s; }
+.control-button:hover { background-color: rgba(255, 255, 255, 0.4); }
 </style>
