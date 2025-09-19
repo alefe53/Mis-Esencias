@@ -13,10 +13,6 @@ interface Publications {
   screen: ShallowRef<TrackPublication | null>;
 }
 
-/**
- * Helper que determina si una publicación tiene un track listo para ser mostrado.
- * La clave es `publication.track`, que el SDK rellena una vez suscrito.
- */
 function publicationHasActiveTrack(pub: TrackPublication | null): boolean {
   return !!pub?.track;
 }
@@ -31,7 +27,6 @@ export function useStreamLayout(
     const { isScreenSharing, isCameraFocus } = layoutState;
     const { camera, screen } = publications;
 
-    // Log de decisión para depuración
     console.log('[useStreamLayout] -> 🤔 Recalculando main view:', {
         isScreenSharing,
         isCameraFocus,
@@ -39,22 +34,31 @@ export function useStreamLayout(
         screenHasTrack: publicationHasActiveTrack(screen.value)
     });
 
-    // Si la cámara es el foco y tiene un track activo, es la principal.
+    // REGLA 1: El foco en la cámara siempre tiene la máxima prioridad.
     if (isCameraFocus && publicationHasActiveTrack(camera.value)) {
       return camera.value;
     }
 
-    // Si se comparte pantalla y tiene un track activo, es la principal.
-    if (isScreenSharing && publicationHasActiveTrack(screen.value)) {
-      return screen.value;
-    }
+    // ▼▼▼ LÓGICA CORREGIDA Y MÁS ESTRICTA ▼▼▼
 
-    // Como fallback, si la cámara tiene un track activo, se muestra.
+    // REGLA 2: Si estamos en modo "Compartir Pantalla".
+    if (isScreenSharing) {
+      // La vista principal DEBE ser la pantalla si el track está listo.
+      if (publicationHasActiveTrack(screen.value)) {
+        return screen.value;
+      }
+      // IMPORTANTE: Si el track de la pantalla aún no llega, no mostramos NADA en la vista principal.
+      // NO hay fallback a la cámara aquí. Esto previene la duplicación.
+      return null;
+    }
+    
+    // REGLA 3: Si no se está compartiendo pantalla (modo normal).
+    // La vista principal es la cámara si está disponible.
     if (publicationHasActiveTrack(camera.value)) {
       return camera.value;
     }
     
-    // Si nada tiene un track activo, no se muestra nada.
+    // Fallback final si no hay nada que mostrar.
     return null;
   });
 
@@ -63,10 +67,7 @@ export function useStreamLayout(
     const { isScreenSharing, isCameraFocus } = layoutState;
     const { camera } = publications;
 
-    // El overlay (cámara) se muestra si:
-    // 1. Se está compartiendo pantalla.
-    // 2. La cámara NO es el foco.
-    // 3. La publicación de la cámara tiene un track activo.
+    // La lógica del overlay se mantiene, es correcta.
     const shouldShow = isScreenSharing && !isCameraFocus && publicationHasActiveTrack(camera.value);
 
     return shouldShow ? camera.value : null;
