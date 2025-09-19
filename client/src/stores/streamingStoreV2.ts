@@ -70,14 +70,12 @@ export const useStreamingStoreV2 = defineStore('streamingV2', () => {
         if (pub.source === Track.Source.Camera) _writableState.isCameraEnabled = true;
         if (pub.source === Track.Source.Microphone) _writableState.isMicrophoneEnabled = true;
         if (pub.source === Track.Source.ScreenShare) _writableState.isScreenSharing = true;
-        appEmitter.emit('local-track-changed');
       })
       .on(RoomEvent.LocalTrackUnpublished, (pub: TrackPublication) => {
         console.log(`🛑 [STORE-EVENT] LocalTrackUnpublished: ${pub.source}. Confirmando estado.`);
         if (pub.source === Track.Source.Camera) _writableState.isCameraEnabled = false;
         if (pub.source === Track.Source.Microphone) _writableState.isMicrophoneEnabled = false;
         if (pub.source === Track.Source.ScreenShare) _writableState.isScreenSharing = false;
-        appEmitter.emit('local-track-changed');
       })
       .on(RoomEvent.Disconnected, () => {
         console.log('🚪 [STORE-EVENT] Disconnected. Cleaning up...');

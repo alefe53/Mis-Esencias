@@ -12,7 +12,7 @@
 
 <script setup lang="ts">
 
-import { ref, watch, onUnmounted, computed, shallowRef } from 'vue';
+import { ref, watch, onUnmounted, computed, shallowRef, watchEffect } from 'vue';
 import type { Track, TrackPublication } from 'livekit-client';
 
 const props = defineProps<{
@@ -26,6 +26,17 @@ const attachedTrack = shallowRef<Track | null>(null);
 
 const isVideoEnabled = computed(() => {
   return props.publication?.track && !props.publication.isMuted;
+});
+
+watchEffect(() => {
+    console.log(`[ParticipantViewV2] -> 👁️‍🗨️ Renderizando track:`, {
+        source: props.publication?.source ?? 'N/A',
+        trackSid: props.publication?.trackSid ?? 'N/A',
+        isSubscribed: props.publication?.isSubscribed,
+        isMuted: props.publication?.isMuted,
+        // El resultado final que decide si se muestra el video o el placeholder
+        isVideoEnabled: isVideoEnabled.value 
+    });
 });
 
 watch(

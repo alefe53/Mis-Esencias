@@ -110,7 +110,7 @@
 <script setup lang="ts">
 // RUTA: src/views/AdminStreamViewV2.vue
 
-import { onMounted, onUnmounted, ref, watch, computed } from 'vue';
+import { onMounted, onUnmounted, ref, watch, computed, watchEffect } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useStreamingStoreV2 } from '../stores/streamingStoreV2';
 import { useParticipantTracksV2 } from '../composables/streaming/useParticipantTracksV2';
@@ -150,6 +150,18 @@ const { mainViewPublication, overlayViewPublication, showOverlay } = useStreamLa
   layoutController,
   { camera: cameraPublication, screen: screenSharePublication }
 );
+
+watchEffect(() => {
+  console.log('[AdminView-Layout] -> 🕵️‍♂️ Estado del layout recalculado:', {
+    mainSource: mainViewPublication.value?.source ?? 'Ninguna',
+    mainSID: mainViewPublication.value?.trackSid,
+    overlaySource: overlayViewPublication.value?.source ?? 'Ninguna',
+    overlaySID: overlayViewPublication.value?.trackSid,
+    showOverlay: showOverlay.value,
+    isScreenSharing_state: streamState.value.isScreenSharing,
+    isCameraFocus_state: streamState.value.cameraOverlay.isCameraFocus
+  });
+});
 
 const handleSizeChange = (event: Event) => {
   const target = event.target as HTMLSelectElement | null;
