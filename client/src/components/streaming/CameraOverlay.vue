@@ -1,8 +1,12 @@
-// RUTA: src/components/streaming/CameraOverlay.vue
+
 <template>
   <div :class="['camera-overlay', position, size]">
-    <ParticipantViewV2 :publication="publication" :is-muted="true" />
-  </div>
+    <ParticipantViewV2 
+      :publication="publication" 
+      :is-muted="true"
+      :key="publication?.trackSid" 
+    />
+    </div>
 </template>
 
 <script setup lang="ts">
