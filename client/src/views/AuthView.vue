@@ -177,7 +177,6 @@ const handleGoogleLogin = async () => {
 }
 
 onMounted(() => {
-  alert('La URL de la API es: ' + import.meta.env.VITE_API_BASE_URL);
   const { data: authListener } = supabase.auth.onAuthStateChange(
     async (event, session) => {
       if (event === 'SIGNED_IN' && session?.provider_token) {
