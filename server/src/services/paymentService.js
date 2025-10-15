@@ -19,28 +19,42 @@ class PaymentService {
         const totalAmount = parseFloat((Number(tier.price) * durationMonths).toFixed(2));
         const itemName = `${tier.name} - ${durationMonths} mes(es)`;
 
+
         if (provider === "mercadopago") {
             const preference = new Preference(mpClient);
-            
+
+            // 1. Detectamos si estamos en modo de prueba (Sandbox)
+            const isSandbox = String(config.mercadoPago.ACCESS_TOKEN || '').startsWith('TEST-');
+
             const preferencePayload = {
                 items: [{
                     id: String(tier.id),
                     title: itemName,
                     quantity: 1,
                     unit_price: totalAmount,
-                    currency_id: 'ARS'
+                    // OJO: Si tus precios están en USD, cambia esto a 'USD'
+                    currency_id: 'USD'
                 }],
-                payer: {
-                    email: user.email,
-                    name: user.first_name,
-                    surname: user.last_name
-                },
+                
+                // 2. Solo añadimos el 'payer' si NO estamos en modo de prueba
+                // Esto soluciona el error "Una de las partes es de prueba"
+                ...(!isSandbox && {
+                    payer: {
+                        email: user.email,
+                        name: user.first_name,
+                        surname: user.last_name
+                    }
+                }),
+
                 back_urls: {
                     success: `${config.CORS_ORIGIN}/profile?payment=success`,
                     failure: `${config.CORS_ORIGIN}/profile?payment=failure`,
                     pending: `${config.CORS_ORIGIN}/profile?payment=pending`
                 },
+                
+                // 3. Aseguramos que la notification_url sea la URL pública correcta de tu backend
                 notification_url: `${config.server.BASE_URL}/api/payments/webhooks/mercadopago`,
+                
                 external_reference: user.id,
                 metadata: {
                     user_id: user.id,
@@ -50,14 +64,18 @@ class PaymentService {
             };
 
             try {
+                console.log("Creando preferencia de MP con el siguiente payload:", JSON.stringify(preferencePayload, null, 2));
                 const result = await preference.create({ body: preferencePayload });
                 return { init_point: result.init_point, preferenceId: result.id };
             } catch (error) {
-                console.error("Error al crear la preferencia de Mercado Pago:", error.message);
+                // Logging mejorado para ver el error exacto de la API de Mercado Pago
+                console.error("Error al crear la preferencia de Mercado Pago:", error);
+                if (error?.cause) {
+                    console.error("Detalle del error de la API de MP:", JSON.stringify(error.cause, null, 2));
+                }
                 throw new Error("No se pudo generar el enlace de pago. Por favor, intente más tarde.");
             }
         }
-
         if (provider === "paypal") {
             const orderPayload = {
                 intent: 'CAPTURE',

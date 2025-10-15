@@ -1,4 +1,4 @@
-// src/middlewares/auth.middleware.js
+// src/middlewares/authMiddleware.js
 import jwt from "jsonwebtoken";
 import { config } from "../config/config.js";
 
