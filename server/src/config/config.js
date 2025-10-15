@@ -3,6 +3,7 @@ export const config = {
 	server: {
 		PORT: process.env.PORT,
 		HOST: process.env.HOST || "0.0.0.0",
+		BASE_URL: process.env.BASE_URL || `http://${process.env.HOST || 'localhost'}:${process.env.PORT || 3000}`
 	},
 	supabase: {
 		URL: process.env.SUPABASE_URL,
