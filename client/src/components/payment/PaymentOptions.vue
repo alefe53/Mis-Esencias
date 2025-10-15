@@ -32,7 +32,7 @@ import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useSubscriptionStore } from '../../stores/subscriptionStore'
 import { useMercadoPago } from '../../composables/useMercadoPago'
-import { usePayPal } from '../../composables/usePayPal'
+//import { usePayPal } from '../../composables/usePayPal'
 import MercadoPagoBrick from './MercadoPagoBrick.vue'
 
 const props = defineProps<{
@@ -49,10 +49,10 @@ const {
   handleMercadoPago,
 } = useMercadoPago(props)
 
-const { isProcessing: isProcessingPP, paypalButtonContainer } = usePayPal(props)
+//const { isProcessing: isProcessingPP, paypalButtonContainer } = usePayPal(props)
 
 const isProcessing = computed(
-  () => isProcessingMP.value || isProcessingPP.value,
+  () => isProcessingMP.value, // || isProcessingPP.value,
 )
 </script>
 

@@ -1,3 +1,4 @@
+//src/repositories/paymentRepository.js
 import { supabase } from "../config/supabase.js";
 
 export const getTierById = async (tierId) => {
