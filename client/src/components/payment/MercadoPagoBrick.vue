@@ -36,7 +36,7 @@ const initializeBrick = async () => {
     const settings = {
       initialization: {
         preferenceId: props.preferenceId,
-        redirectMode: 'modal',
+        redirectMode: 'self',
       },
       customization: {
         texts: {
