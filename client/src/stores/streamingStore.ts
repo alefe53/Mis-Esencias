@@ -20,7 +20,7 @@ import { useUiStore } from './uiStore'
 const STREAM_STATE_UPDATE_TOPIC = 'stream-state-update'
 const textEncoder = new TextEncoder()
 const textDecoder = new TextDecoder()
-const isCameraTogglePending = ref(false);
+const isCameraTogglePending = ref(false)
 
 export const useStreamingStore = defineStore('streaming', () => {
   // --- ESTADO CENTRALIZADO ---
@@ -35,9 +35,9 @@ export const useStreamingStore = defineStore('streaming', () => {
   const isRecording = ref(false)
   const isScreenSharing = ref(false) // <-- ÚNICA FUENTE DE VERDAD
   const egressId = ref<string | null>(null)
-  const isIntentionalDisconnect = ref(false);
+  const isIntentionalDisconnect = ref(false)
 
-  const isCameraTogglePending = ref(false);
+  const isCameraTogglePending = ref(false)
   const isCameraEnabled = ref(false)
   const isMicrophoneEnabled = ref(false)
 
@@ -117,14 +117,18 @@ export const useStreamingStore = defineStore('streaming', () => {
       // screen share
       if (pub.source === Track.Source.ScreenShare) {
         isScreenSharing.value = true
-        console.log('[store] LocalTrackPublished', { source: pub.source, participant: participant.identity })
-
+        console.log('[store] LocalTrackPublished', {
+          source: pub.source,
+          participant: participant.identity,
+        })
       }
       // cámara
       if (pub.source === Track.Source.Camera) {
         isCameraEnabled.value = true
-        console.log('[store] LocalTrackPublished', { source: pub.source, participant: participant.identity })
-
+        console.log('[store] LocalTrackPublished', {
+          source: pub.source,
+          participant: participant.identity,
+        })
       }
       // micrófono (al publicar audio local)
       if (pub.track?.kind === 'audio') {
@@ -180,7 +184,8 @@ export const useStreamingStore = defineStore('streaming', () => {
         if (state === ConnectionState.Connected) {
           isConnecting.value = false
           isCameraEnabled.value = !!newRoom.localParticipant?.isCameraEnabled
-          isMicrophoneEnabled.value = !!newRoom.localParticipant?.isMicrophoneEnabled
+          isMicrophoneEnabled.value =
+            !!newRoom.localParticipant?.isMicrophoneEnabled
 
           localParticipant.value = newRoom.localParticipant
           if (newRoom.localParticipant.permissions?.canPublish) {
@@ -213,8 +218,8 @@ export const useStreamingStore = defineStore('streaming', () => {
       })
   }
   async function intentionallyDisconnect() {
-    isIntentionalDisconnect.value = true;
-    await disconnect();
+    isIntentionalDisconnect.value = true
+    await disconnect()
   }
 
   const _resetState = () => {
@@ -229,7 +234,7 @@ export const useStreamingStore = defineStore('streaming', () => {
     isScreenSharing.value = false
     egressId.value = null
     isConnecting.value = false
-    isIntentionalDisconnect.value = false;
+    isIntentionalDisconnect.value = false
     isPublishing.value = false
     isDisconnecting.value = false
     isCameraFullScreen.value = false
@@ -300,9 +305,9 @@ export const useStreamingStore = defineStore('streaming', () => {
   async function toggleCameraOverlay(enabled: boolean) {
     if (!room.value?.localParticipant) return
     isCameraOverlayEnabled.value = enabled
-    await _broadcastStreamState() 
+    await _broadcastStreamState()
   }
-  
+
   async function startPublishing() {
     if (!room.value || !room.value.localParticipant || isPublishing.value)
       return
@@ -409,26 +414,25 @@ export const useStreamingStore = defineStore('streaming', () => {
     }
   }
 
-async function disconnect() {
-    if (!room.value || isDisconnecting.value) return;
+  async function disconnect() {
+    if (!room.value || isDisconnecting.value) return
 
-    isDisconnecting.value = true;
+    isDisconnecting.value = true
     try {
       if (room.value.localParticipant?.permissions?.canPublish) {
         if (isStreamLive.value) {
-          await endStream();
+          await endStream()
         }
       }
-      await room.value.disconnect();
+      await room.value.disconnect()
     } catch (error) {
-      console.error('Error durante el proceso de desconexión:', error);
+      console.error('Error durante el proceso de desconexión:', error)
     } finally {
-      _resetState();
+      _resetState()
       // isDisconnecting ya se resetea en _resetState, pero lo dejamos por claridad
-      isDisconnecting.value = false;
+      isDisconnecting.value = false
     }
   }
-
 
   function listenToStreamStatus() {
     if (realtimeChannel) return
@@ -471,7 +475,7 @@ async function disconnect() {
     }
   }
 
-// streamingStore.ts - reemplazar toggleCamera
+  // streamingStore.ts - reemplazar toggleCamera
   const cameraToggleWaitTimeoutMs = 4000
 
   async function toggleCamera(enabled: boolean) {
@@ -508,7 +512,7 @@ async function disconnect() {
       // Esperamos que el evento LocalTrackPublished confirme el estado
       const start = Date.now()
       while (!settled && Date.now() - start < cameraToggleWaitTimeoutMs) {
-        await new Promise(r => setTimeout(r, 100))
+        await new Promise((r) => setTimeout(r, 100))
       }
 
       // Si no se resolvió por evento, consultamos el estado final del SDK
@@ -525,12 +529,12 @@ async function disconnect() {
       // revertir si algo
       isCameraEnabled.value = !!room.value.localParticipant?.isCameraEnabled
     } finally {
-      try { room.value.off(RoomEvent.LocalTrackPublished, onLocalTrackPublished) } catch {}
+      try {
+        room.value.off(RoomEvent.LocalTrackPublished, onLocalTrackPublished)
+      } catch {}
       isCameraTogglePending.value = false
     }
   }
-
-
 
   async function toggleMicrophone(enabled: boolean) {
     if (room.value?.localParticipant) {
@@ -549,7 +553,6 @@ async function disconnect() {
       }
     }
   }
-
 
   async function changeMicrophone(deviceId: string) {
     if (room.value && room.value.localParticipant?.isMicrophoneEnabled) {
@@ -630,7 +633,10 @@ async function disconnect() {
               // esperar un ratito y comprobar
               await new Promise((r) => setTimeout(r, 200))
             } catch (err) {
-              console.warn('Reintento para activar cámara tras screen share falló', err)
+              console.warn(
+                'Reintento para activar cámara tras screen share falló',
+                err,
+              )
             }
           }
         }
@@ -655,11 +661,10 @@ async function disconnect() {
     }
   }
 
-
   async function toggleCameraFullScreen() {
     if (!room.value?.localParticipant) return
     isCameraFullScreen.value = !isCameraFullScreen.value
-    await _broadcastStreamState() 
+    await _broadcastStreamState()
   }
 
   async function updateCameraOverlayPosition(pos: { x: number; y: number }) {
@@ -767,6 +772,5 @@ async function disconnect() {
     setLiveStatus,
     unsubscribeFromStreamStatus,
     toggleCameraOverlay,
-    
   }
 })

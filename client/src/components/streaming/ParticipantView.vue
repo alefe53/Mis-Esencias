@@ -14,40 +14,40 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onUnmounted } from 'vue';
-import { type TrackPublication, type Track } from 'livekit-client';
+import { ref, watch, onUnmounted } from 'vue'
+import { type TrackPublication, type Track } from 'livekit-client'
 
 const props = defineProps<{
-  publication: TrackPublication | null;
-  isLocal?: boolean;
-}>();
+  publication: TrackPublication | null
+  isLocal?: boolean
+}>()
 
-const videoEl = ref<HTMLVideoElement | null>(null);
-const isVideoEnabled = ref(false);
+const videoEl = ref<HTMLVideoElement | null>(null)
+const isVideoEnabled = ref(false)
 
 // Esta función ahora toma un Track, es más simple.
 const attach = (track: Track) => {
-  if (!videoEl.value) return;
+  if (!videoEl.value) return
   try {
-    track.attach(videoEl.value);
-    isVideoEnabled.value = true;
+    track.attach(videoEl.value)
+    isVideoEnabled.value = true
   } catch (e) {
-    console.error('Error al adjuntar el track:', e);
+    console.error('Error al adjuntar el track:', e)
   }
-};
+}
 
 // Esta función ahora toma un Track, es más simple.
 const detach = (track: Track) => {
-  if (!videoEl.value) return;
+  if (!videoEl.value) return
   try {
-    track.detach(videoEl.value);
+    track.detach(videoEl.value)
   } catch (e) {
-    console.error('Error al desadjuntar el track:', e);
+    console.error('Error al desadjuntar el track:', e)
   } finally {
-    videoEl.value.srcObject = null;
-    isVideoEnabled.value = false;
+    videoEl.value.srcObject = null
+    isVideoEnabled.value = false
   }
-};
+}
 
 // ✅ LÓGICA CLAVE CORREGIDA Y SIMPLIFICADA
 // Usamos un solo 'watch' para observar directamente la propiedad 'track'
@@ -57,28 +57,28 @@ watch(
   (newTrack, oldTrack) => {
     if (oldTrack) {
       // Si había un track anterior, lo desadjuntamos.
-      detach(oldTrack);
+      detach(oldTrack)
     }
     if (newTrack) {
       // Si hay un nuevo track (porque nos suscribimos o es local), lo adjuntamos.
-      attach(newTrack);
+      attach(newTrack)
     } else {
       // Si no hay track, nos aseguramos de que el video esté limpio.
       if (videoEl.value) {
-        videoEl.value.srcObject = null;
+        videoEl.value.srcObject = null
       }
-      isVideoEnabled.value = false;
+      isVideoEnabled.value = false
     }
   },
-  { immediate: true } // 'immediate' se asegura de que se ejecute al montar el componente.
-);
+  { immediate: true }, // 'immediate' se asegura de que se ejecute al montar el componente.
+)
 
 onUnmounted(() => {
   // Limpieza final
   if (props.publication?.track) {
-    detach(props.publication.track);
+    detach(props.publication.track)
   }
-});
+})
 </script>
 
 <style scoped>

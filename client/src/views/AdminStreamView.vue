@@ -7,10 +7,14 @@
             :publication="mainPublication"
             :is-local="true"
             class="main-video"
-            :class="{ 'fill-container': !isScreenSharing || isCameraFullScreen }"
+            :class="{
+              'fill-container': !isScreenSharing || isCameraFullScreen,
+            }"
           />
           <div
-            v-if="!isCameraFullScreen && isScreenSharing && isCameraOverlayEnabled"
+            v-if="
+              !isCameraFullScreen && isScreenSharing && isCameraOverlayEnabled
+            "
             class="camera-overlay"
           >
             <video
@@ -54,7 +58,7 @@
           >
             🚀 Publicar Media
           </button>
-          
+
           <template v-else>
             <button
               @click="toggleCameraOverlay(!isCameraOverlayEnabled)"
@@ -70,7 +74,9 @@
               :class="{ 'is-off': !isCameraEnabled }"
               title="Publica o deja de publicar tu cámara para los espectadores"
             >
-              {{ isCameraEnabled ? '📡 Dejar de Publicar' : '📡 Publicar Cámara' }}
+              {{
+                isCameraEnabled ? '📡 Dejar de Publicar' : '📡 Publicar Cámara'
+              }}
             </button>
             <button
               @click="toggleMicrophone(!isMicrophoneEnabled)"
@@ -78,7 +84,7 @@
             >
               {{ isMicrophoneEnabled ? '🎤 Silenciar' : '🎤 Activar' }}
             </button>
-             <button
+            <button
               @click="toggleScreenShare"
               :class="{ 'is-sharing': isScreenSharing }"
             >
@@ -86,9 +92,13 @@
             </button>
           </template>
         </div>
-        
+
         <div class="stream-actions">
-           <button v-if="isPublishing" @click="stopPublishing" class="pause-stream-btn">
+          <button
+            v-if="isPublishing"
+            @click="stopPublishing"
+            class="pause-stream-btn"
+          >
             ⏸️ Parar Publicación
           </button>
           <button @click="intentionallyDisconnect" class="disconnect-btn">
@@ -101,14 +111,18 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, computed, watch } from 'vue';
-import { storeToRefs } from 'pinia';
-import { useStreamingStore } from '../stores/streamingStore';
-import ParticipantView from '../components/streaming/ParticipantView.vue';
-import { createLocalVideoTrack, type LocalVideoTrack, type TrackPublication } from 'livekit-client';
-import { useParticipantTracks } from '../composables/useParticipantTracks';
+import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useStreamingStore } from '../stores/streamingStore'
+import ParticipantView from '../components/streaming/ParticipantView.vue'
+import {
+  createLocalVideoTrack,
+  type LocalVideoTrack,
+  type TrackPublication,
+} from 'livekit-client'
+import { useParticipantTracks } from '../composables/useParticipantTracks'
 
-const streamingStore = useStreamingStore();
+const streamingStore = useStreamingStore()
 
 const {
   room,
@@ -123,8 +137,8 @@ const {
   isIntentionalDisconnect,
   isCameraTogglePending,
   cameraOverlayPosition,
-  cameraOverlaySize
-} = storeToRefs(streamingStore);
+  cameraOverlaySize,
+} = storeToRefs(streamingStore)
 
 const {
   intentionallyDisconnect,
@@ -135,96 +149,101 @@ const {
   connectWithoutPublishing,
   startPublishing,
   stopPublishing,
-} = streamingStore;
+} = streamingStore
 
 // --- Refs del Componente ---
-const previewVideoRef = ref<HTMLVideoElement | null>(null);
-const overlayVideoRef = ref<HTMLVideoElement | null>(null);
-const localVideoTrack = ref<LocalVideoTrack | null>(null);
-const permissionError = ref('');
-const isCheckingPermissions = ref(true);
+const previewVideoRef = ref<HTMLVideoElement | null>(null)
+const overlayVideoRef = ref<HTMLVideoElement | null>(null)
+const localVideoTrack = ref<LocalVideoTrack | null>(null)
+const permissionError = ref('')
+const isCheckingPermissions = ref(true)
 
 // --- Lógica de Publicaciones y UI ---
 const {
   cameraTrackPub: localCameraPublication,
   screenShareTrackPub: localScreenSharePublication,
-} = useParticipantTracks(localParticipant);
+} = useParticipantTracks(localParticipant)
 
 const mainPublication = computed<TrackPublication | null>(() => {
   if (isScreenSharing.value && localScreenSharePublication.value) {
-    return isCameraFullScreen.value ? localCameraPublication.value : localScreenSharePublication.value;
+    return isCameraFullScreen.value
+      ? localCameraPublication.value
+      : localScreenSharePublication.value
   }
-  return localCameraPublication.value;
-});
+  return localCameraPublication.value
+})
 
 const cameraOverlayStyle = computed(() => ({
   top: `${cameraOverlayPosition.value.y}%`,
   left: `${cameraOverlayPosition.value.x}%`,
   width: `${cameraOverlaySize.value.width}%`,
-}));
+}))
 
 // --- Lógica de Acciones de la UI ---
 const publishCameraAction = async () => {
-  if (isCameraTogglePending.value) return;
-  await toggleCamera(!isCameraEnabled.value);
-};
+  if (isCameraTogglePending.value) return
+  await toggleCamera(!isCameraEnabled.value)
+}
 
 const handleConnectWithoutPublishing = async () => {
-  if (!localVideoTrack.value) return alert('La cámara no está lista.');
-  await connectWithoutPublishing();
-};
+  if (!localVideoTrack.value) return alert('La cámara no está lista.')
+  await connectWithoutPublishing()
+}
 
 // --- Lógica de Video Local Persistente ---
 const setupLocalVideo = async () => {
-  if (localVideoTrack.value) return;
-  isCheckingPermissions.value = true;
-  permissionError.value = '';
+  if (localVideoTrack.value) return
+  isCheckingPermissions.value = true
+  permissionError.value = ''
   try {
     const track = await createLocalVideoTrack({
       resolution: { width: 1280, height: 720 },
-    });
-    localVideoTrack.value = track;
+    })
+    localVideoTrack.value = track
     if (previewVideoRef.value) {
-      track.attach(previewVideoRef.value);
+      track.attach(previewVideoRef.value)
     }
   } catch (error) {
-    permissionError.value = 'Permiso de cámara denegado. Revisa la configuración del navegador.';
+    permissionError.value =
+      'Permiso de cámara denegado. Revisa la configuración del navegador.'
   } finally {
-    isCheckingPermissions.value = false;
+    isCheckingPermissions.value = false
   }
-};
+}
 
 const cleanupLocalVideo = () => {
   if (localVideoTrack.value) {
-    localVideoTrack.value.stop();
-    localVideoTrack.value = null;
+    localVideoTrack.value.stop()
+    localVideoTrack.value = null
   }
-};
+}
 
 // --- Watcher para el Overlay ---
 watch(
   overlayVideoRef,
   (videoEl) => {
     if (videoEl && isScreenSharing.value && localVideoTrack.value) {
-      localVideoTrack.value.attach(videoEl);
+      localVideoTrack.value.attach(videoEl)
     }
   },
-  { flush: 'post' }
-);
+  { flush: 'post' },
+)
 
 // --- Ciclo de Vida del Componente ---
 onMounted(() => {
-  setupLocalVideo();
-});
+  setupLocalVideo()
+})
 
 onUnmounted(() => {
-  cleanupLocalVideo();
+  cleanupLocalVideo()
 
   if (room.value && !isIntentionalDisconnect.value) {
-    console.warn("AdminStreamView se desmontó inesperadamente. DESCONEXIÓN EVITADA.");
-    return;
+    console.warn(
+      'AdminStreamView se desmontó inesperadamente. DESCONEXIÓN EVITADA.',
+    )
+    return
   }
-});
+})
 </script>
 
 <style scoped>
@@ -238,7 +257,8 @@ onUnmounted(() => {
   z-index: 10;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
 }
-.overlay-video { /* Estilo para el nuevo <video> del overlay */
+.overlay-video {
+  /* Estilo para el nuevo <video> del overlay */
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -246,14 +266,17 @@ onUnmounted(() => {
 }
 .preview-video {
   position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
   z-index: 1;
   transform: scaleX(-1);
 }
 /* ...el resto de tu CSS */
-.start-publish-btn, .pause-stream-btn {
+.start-publish-btn,
+.pause-stream-btn {
   background-color: #1d4ed8;
   padding: 0.6rem 1.2rem;
   font-weight: bold;
@@ -267,7 +290,12 @@ onUnmounted(() => {
   left: 0;
   width: 100vw; /* Ocupa todo el ancho */
   height: 100vh; /* Ocupa todo el alto */
-  background-color: rgba(17, 24, 39, 0.95); /* Un fondo oscuro semitransparente */
+  background-color: rgba(
+    17,
+    24,
+    39,
+    0.95
+  ); /* Un fondo oscuro semitransparente */
   z-index: 2000; /* Un z-index alto para ponerlo al frente de todo */
   display: flex;
   align-items: center;
@@ -287,7 +315,7 @@ onUnmounted(() => {
   border-radius: 8px;
   padding: 1rem;
   gap: 1rem;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .video-container {
@@ -313,8 +341,10 @@ onUnmounted(() => {
 
 .preview-video {
   position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
   z-index: 1;
   transform: scaleX(-1);
@@ -367,13 +397,15 @@ onUnmounted(() => {
   border-top: 1px solid #374151;
 }
 
-.device-controls, .stream-actions {
+.device-controls,
+.stream-actions {
   display: flex;
   gap: 0.75rem;
   align-items: center;
 }
 
-.start-publish-btn, .pause-stream-btn {
+.start-publish-btn,
+.pause-stream-btn {
   background-color: #1d4ed8;
   padding: 0.6rem 1.2rem;
   font-weight: bold;
