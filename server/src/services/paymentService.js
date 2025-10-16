@@ -6,7 +6,6 @@ import { config } from "../config/config.js";
 import * as paymentRepository from "../repositories/paymentRepository.js";
 import { createPayPalOrder, capturePayPalOrder as capturePayPalOrderApi, verifyPayPalWebhook } from '../utils/paypalApi.js';
 
-// El cliente se configura una sola vez y se reutiliza
 const mpClient = new MercadoPagoConfig({ accessToken: config.mercadoPago.ACCESS_TOKEN });
 
 class PaymentService {
@@ -23,7 +22,6 @@ class PaymentService {
         if (provider === "mercadopago") {
             const preference = new Preference(mpClient);
 
-            // 1. Detectamos si estamos en modo de prueba (Sandbox)
             const isSandbox = String(config.mercadoPago.ACCESS_TOKEN || '').startsWith('TEST-');
 
             const preferencePayload = {
@@ -32,12 +30,9 @@ class PaymentService {
                     title: itemName,
                     quantity: 1,
                     unit_price: totalAmount,
-                    // OJO: Si tus precios están en USD, cambia esto a 'USD'
                     currency_id: 'USD'
                 }],
                 
-                // 2. Solo añadimos el 'payer' si NO estamos en modo de prueba
-                // Esto soluciona el error "Una de las partes es de prueba"
                 ...(!isSandbox && {
                     payer: {
                         email: user.email,
@@ -52,7 +47,6 @@ class PaymentService {
                     pending: `${config.CORS_ORIGIN}/profile?payment=pending`
                 },
                 
-                // 3. Aseguramos que la notification_url sea la URL pública correcta de tu backend
                 notification_url: `${config.server.BASE_URL}/api/payments/webhooks/mercadopago`,
                 
                 external_reference: user.id,
@@ -64,11 +58,9 @@ class PaymentService {
             };
 
             try {
-                console.log("Creando preferencia de MP con el siguiente payload:", JSON.stringify(preferencePayload, null, 2));
                 const result = await preference.create({ body: preferencePayload });
                 return { init_point: result.init_point, preferenceId: result.id };
             } catch (error) {
-                // Logging mejorado para ver el error exacto de la API de Mercado Pago
                 console.error("Error al crear la preferencia de Mercado Pago:", error);
                 if (error?.cause) {
                     console.error("Detalle del error de la API de MP:", JSON.stringify(error.cause, null, 2));
@@ -174,8 +166,6 @@ class PaymentService {
         if (webhookEvent.event_type === 'CHECKOUT.ORDER.APPROVED') {
             const orderID = webhookEvent.resource.id;
             console.log(`Webhook de PayPal verificado para la orden: ${orderID}. La captura se maneja en el frontend.`);
-            // En este flujo, la captura se inicia desde el cliente,
-            // por lo que el webhook sirve como una confirmación secundaria o para flujos de recuperación.
         } else {
             console.log(`Recibido evento de webhook de PayPal no manejado: ${webhookEvent.event_type}`);
         }
