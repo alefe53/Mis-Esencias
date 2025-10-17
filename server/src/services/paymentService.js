@@ -156,20 +156,37 @@ class PaymentService {
         }
     }
 
-    async processPaypalWebhook({ headers, webhookEvent }) {
-        const isValid = await verifyPayPalWebhook({ headers, webhookEvent });
-        if (!isValid) {
-            console.error("Firma de Webhook de PayPal inválida. Se descarta el evento.");
-            throw new Error("Firma de Webhook de PayPal inválida.");
-        }
+async processPaypalWebhook({ headers, webhookEvent }) {
 
-        if (webhookEvent.event_type === 'CHECKOUT.ORDER.APPROVED') {
-            const orderID = webhookEvent.resource.id;
-            console.log(`Webhook de PayPal verificado para la orden: ${orderID}. La captura se maneja en el frontend.`);
-        } else {
-            console.log(`Recibido evento de webhook de PayPal no manejado: ${webhookEvent.event_type}`);
-        }
-    }
+        const isValid = await verifyPayPalWebhook({ headers, webhookEvent });
+        if (!isValid) {
+            console.error("Firma de Webhook de PayPal inválida. Se descarta el evento.");
+            throw new Error("Firma de Webhook de PayPal inválida.");
+        }
+
+        if (webhookEvent.event_type === 'PAYMENT.CAPTURE.COMPLETED') {
+            console.log("Webhook de PayPal: Captura completada recibida.");
+            const capture = webhookEvent.resource;
+            const orderID = capture.links.find(link => link.rel === 'up').href.split('/').pop();
+
+            const isAlreadyProcessed = await paymentRepository.findPaymentByProviderId(orderID);
+            if (isAlreadyProcessed) {
+                console.warn(`Webhook: Pago de PayPal ya procesado: ${orderID}. Omitiendo.`);
+                return;
+            }
+            
+            console.log(`Webhook de respaldo para ${orderID}. El flujo principal (frontend) debería haberlo manejado.`);
+            // Aquí podrías añadir la lógica para llamar a capturePayPalOrderApi si 'isAlreadyProcessed' es nulo
+            // (es decir, si el frontend falló).
+
+        } else if (webhookEvent.event_type === 'CHECKOUT.ORDER.APPROVED') {
+            
+            console.log(`Webhook: Orden ${webhookEvent.resource.id} aprobada, esperando captura del frontend.`);
+
+        } else {
+            console.log(`Recibido evento de webhook de PayPal no manejado: ${webhookEvent.event_type}`);
+        }
+    }
 }
 
 export const paymentService = new PaymentService();

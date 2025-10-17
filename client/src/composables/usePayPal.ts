@@ -1,3 +1,4 @@
+// RUTA: src/composables/usePayPal.ts
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSubscriptionStore } from '../stores/subscriptionStore'
