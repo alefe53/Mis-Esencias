@@ -20,6 +20,7 @@ export function usePayPal(props: {
       setTimeout(initializePayPalButton, 200)
       return
     }
+    console.log('[PayPal Button] Inicializando...');
 
     window.paypal
       .Buttons({
@@ -30,29 +31,40 @@ export function usePayPal(props: {
           label: 'paypal',
         },
         createOrder: () => {
+          console.log('[PayPal Button] Llamando a createOrder en el backend...');
           return subscriptionStore
             .createPayPalOrder(props.selectedTierId, props.durationMonths)
             .then((orderID) => {
               if (orderID) {
+                console.log(`[PayPal Button] Orden creada con ID: ${orderID}`);
                 return orderID
               }
+              console.error('[PayPal Button] Error: El backend no devolvió un orderID válido.');
               throw new Error('El store no devolvió un orderID válido.')
             })
             .catch((err) => {
+              console.error('[PayPal Button] Error en createOrder (catch):', err);
               paymentError.value = 'No se pudo iniciar el pago con PayPal.'
               console.error('Error al crear la orden de PayPal:', err)
               throw err
             })
         },
-        onApprove: (_data: any, actions: any) => {
+        onApprove: (data: any, actions: any) => {
+          console.log('[PayPal Button] onApprove DISPARADO. Data:', data);
           isProcessing.value = true
+          console.log('[PayPal Button] Intentando actions.order.capture()...');
           return actions.order.capture().then(async (details: any) => {
+            console.log('[PayPal Button] Capture EXITOSO. Details:', details);
+              console.log('[PayPal Button] Llamando al backend /capture-paypal-order...');
             const { success } = await subscriptionStore.capturePayPalPayment(
               details.id,
             )
+            console.log(`[PayPal Button] Respuesta del backend /capture: success=${success}`);
             isProcessing.value = false
             if (success) {
               router.push('/profile')
+            } else {
+                 console.error('[PayPal Button] El backend /capture indicó un fallo.');
             }
           })
         },
