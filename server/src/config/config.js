@@ -36,7 +36,7 @@ export const config = {
         CLIENT_ID: process.env.PAYPAL_CLIENT_ID,
         CLIENT_SECRET: process.env.PAYPAL_CLIENT_SECRET,
         WEBHOOK_ID: process.env.PAYPAL_WEBHOOK_ID,
-        MODE: process.env.NODE_ENV === 'production' ? 'live' : 'sandbox',
+		MODE: process.env.PAYPAL_MODE || (process.env.NODE_ENV === 'production' ? 'live' : 'sandbox'),
     }
 };
 
