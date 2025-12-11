@@ -36,6 +36,29 @@
       <div class="player-wrapper">
         <div class="audio-player-container">
           <div class="side-panel-container" v-if="!isAuthView">
+            <div class="volume-wrapper" ref="volumeContainerRef">
+              <button 
+                class="side-button volume-btn" 
+                @click="toggleVolumeControl"
+                :class="{ 'active': isVolumeVisible }"
+              >
+                <Volume2 :size="18" />
+              </button>
+              
+              <transition name="fade-up">
+                <div v-if="isVolumeVisible" class="volume-slider-popup">
+                  <input 
+                    type="range" 
+                    min="0" 
+                    max="1" 
+                    step="0.01" 
+                    :value="currentVolume" 
+                    @input="handleVolumeChange"
+                    class="volume-range"
+                  />
+                </div>
+              </transition>
+            </div>
             <button
               @click="toggleMoodList"
               class="side-button"
@@ -272,7 +295,7 @@ import Playlist from './Playlist.vue'
 import MusicCatalog from './MusicCatalog.vue'
 import { useUiStore } from '../../stores/uiStore'
 import { useMusicCatalogStore } from '../../stores/musicCatalogStore'
-import { Minus, Plus } from 'lucide-vue-next'
+import { Minus, Plus, Volume2 } from 'lucide-vue-next'
 
 const playerStore = usePlayerStore()
 const uiStore = useUiStore()
@@ -310,6 +333,28 @@ const isCatalogVisible = ref(false)
 const moodListRef = ref<HTMLElement | undefined>()
 const descriptionPanelRef = ref<HTMLElement | undefined>()
 
+const isVolumeVisible = ref(false)
+const currentVolume = ref(1) // 1 es 100%
+const volumeContainerRef = ref<HTMLElement | undefined>()
+
+const toggleVolumeControl = () => {
+  isVolumeVisible.value = !isVolumeVisible.value
+}
+
+const handleVolumeChange = (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const vol = parseFloat(target.value)
+  currentVolume.value = vol
+  if (audioRef.value) {
+    audioRef.value.volume = vol
+  }
+}
+
+useClickOutside(volumeContainerRef, () => {
+  if (isVolumeVisible.value) {
+    isVolumeVisible.value = false
+  }
+})
 useClickOutside(playerWrapperRef, () => {
   if (isCatalogVisible.value) isCatalogVisible.value = false
   if (isPlaylistVisible.value) playerStore.togglePlaylistVisibility()
@@ -520,6 +565,90 @@ const handlePrimaryPlay = async () => {
   align-items: center;
   gap: 12px;
   width: 100%;
+}
+.volume-wrapper {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px; /* Separación con el botón de Mood */
+}
+
+/* El botón circular de volumen */
+.volume-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 35px; /* Mismo tamaño que usas en playlist-toggle-btn */
+  height: 35px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.volume-btn.active {
+  background-color: #4b5563;
+  color: white;
+  border-color: #6b7280;
+}
+
+/* El popup que contiene el slider */
+.volume-slider-popup {
+  position: absolute;
+  bottom: 100%; /* Aparece encima del botón */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30px;
+  height: 120px;
+  background-color: rgba(30, 30, 30, 0.95);
+  border: 1px solid #555;
+  border-radius: 15px;
+  padding: 10px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 10px;
+  backdrop-filter: blur(5px);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+  z-index: 1002;
+}
+
+/* Input range vertical personalizado */
+.volume-range {
+  width: 100px; /* Ancho que luego rotaremos */
+  height: 4px;
+  background: #444;
+  border-radius: 2px;
+  outline: none;
+  /* Rotar para hacerlo vertical */
+  transform: rotate(-90deg);
+  cursor: pointer;
+}
+
+/* Estilo del "pulgar" (la bolita) del slider para Chrome/Safari/Edge */
+.volume-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+  transition: transform 0.1s;
+}
+
+.volume-range::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+/* Estilo del "pulgar" para Firefox */
+.volume-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
 }
 .player-control-btn {
   all: unset;
