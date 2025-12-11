@@ -121,14 +121,12 @@ class PaymentService {
     }
 
     async processMercadoPagoWebhook({ paymentInfo }) {
-        console.log("Recibido webhook de Mercado Pago, tipo:", paymentInfo.type);
 
         if (paymentInfo.type === 'payment') {
             const paymentId = String(paymentInfo.data.id);
             
             const isAlreadyProcessed = await paymentRepository.findPaymentByProviderId(paymentId);
             if (isAlreadyProcessed) {
-                console.log(`Pago ${paymentId} ya procesado, omitiendo webhook.`);
                 return;
             }
 
@@ -148,10 +146,8 @@ class PaymentService {
                         p_metadata: payment.metadata,
                     });
                 } else {
-                    console.log(`Webhook recibido para pago ${paymentId} con estado no aprobado: ${payment.status}`);
                 }
             } catch (error) {
-                 console.error(`Error al obtener detalles del pago ${paymentId} desde Mercado Pago:`, error.message);
             }
         }
     }
@@ -165,8 +161,7 @@ async processPaypalWebhook({ headers, webhookEvent }) {
         }
 
         if (webhookEvent.event_type === 'PAYMENT.CAPTURE.COMPLETED') {
-            console.log("Webhook de PayPal: Captura completada recibida.");
-            const capture = webhookEvent.resource;
+           const capture = webhookEvent.resource;
             const orderID = capture.links.find(link => link.rel === 'up').href.split('/').pop();
 
             const isAlreadyProcessed = await paymentRepository.findPaymentByProviderId(orderID);
@@ -175,10 +170,7 @@ async processPaypalWebhook({ headers, webhookEvent }) {
                 return;
             }
             
-            console.log(`Webhook de respaldo para ${orderID}. El flujo principal (frontend) debería haberlo manejado.`);
-            // Aquí podrías añadir la lógica para llamar a capturePayPalOrderApi si 'isAlreadyProcessed' es nulo
-            // (es decir, si el frontend falló).
-
+          
         } else if (webhookEvent.event_type === 'CHECKOUT.ORDER.APPROVED') {
             
             console.log(`Webhook: Orden ${webhookEvent.resource.id} aprobada, esperando captura del frontend.`);
