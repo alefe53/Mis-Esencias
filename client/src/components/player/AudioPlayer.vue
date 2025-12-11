@@ -35,8 +35,7 @@
       </transition>
       <div class="player-wrapper">
         <div class="audio-player-container">
-          <div class="side-panel-container" v-if="!isAuthView">
-            <div class="volume-wrapper" ref="volumeContainerRef">
+          <div class="volume-wrapper" ref="volumeContainerRef">
               <button 
                 class="side-button volume-btn" 
                 @click="toggleVolumeControl"
@@ -59,6 +58,8 @@
                 </div>
               </transition>
             </div>
+          <div class="side-panel-container" v-if="!isAuthView">
+            
             <button
               @click="toggleMoodList"
               class="side-button"
@@ -570,7 +571,8 @@ const handlePrimaryPlay = async () => {
   position: relative;
   display: flex;
   justify-content: center;
-  margin-bottom: 8px; /* Separación con el botón de Mood */
+  margin-top: -25px; 
+  margin-bottom: 10px; 
 }
 
 /* El botón circular de volumen */
