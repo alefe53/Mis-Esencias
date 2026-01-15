@@ -11,7 +11,7 @@
         <strong>programación</strong> para dar vida a este espacio. Acá no solo
         comparto mi música —historias sonoras—, sino que también construimos una
         <strong>comunidad</strong> para charlar, comentar y conectar. ¡Aguante
-        Argentina! ¡Bobo!
+        Argentina!
       </p>
     </section>
 
