@@ -114,11 +114,6 @@ const routes = [
         component: () => import('../views/AdminCreatePostView.vue'),
       },
       {
-        path: 'stream',
-        name: 'admin-stream',
-        component: AdminStreamView,
-      },
-      {
         path: 'stream-v2',
         name: 'admin-stream-v2',
         component: AdminStreamViewV2,
