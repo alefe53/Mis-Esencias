@@ -12,7 +12,7 @@
         Crear Publicación
       </router-link>
       <router-link to="/admin/stream-v2" class="nav-button"  style="background-color: #059669">
-        Transmitir en Vivo (V2)
+        Transmitir en Vivo
       </router-link>
       <router-link to="/admin/crear-release" class="nav-button" style="background-color: #10B981">
          📀 Cargar Release
