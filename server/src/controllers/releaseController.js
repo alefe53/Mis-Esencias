@@ -1,3 +1,4 @@
+// src/controllers/releaseController.js
 import { releaseService } from "../services/releaseService.js";
 
 /**

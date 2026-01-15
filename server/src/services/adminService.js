@@ -1,3 +1,5 @@
+// src/services/adminServices.js
+
 import { config } from "../config/config.js";
 import * as adminRepository from "../repositories/adminRepository.js";
 import { chatRepository } from "../repositories/chatRepository.js";

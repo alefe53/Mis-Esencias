@@ -8,11 +8,10 @@
     <section class="intro-section fade-in-item" ref="introSection">
       <p class="philosophy">
         ¡Hola! Soy ADF. Fusioné mis pasiones por la <strong>música</strong> y la
-        <strong>programación</strong> para dar vida a este espacio. Aquí no solo
-        comparto mi música —una búsqueda de narrativas sonoras con un groove
-        marcado—, sino que también construimos una
+        <strong>programación</strong> para dar vida a este espacio. Acá no solo
+        comparto mi música —historias sonoras—, sino que también construimos una
         <strong>comunidad</strong> para charlar, comentar y conectar. ¡Aguante
-        Argentina! ¡Viva América Latina!
+        Argentina! ¡Bobo!
       </p>
     </section>
 
