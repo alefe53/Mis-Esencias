@@ -123,6 +123,11 @@ const routes = [
         name: 'admin-stream-v2',
         component: AdminStreamViewV2,
       },
+      {
+          path: 'crear-release',
+          name: 'admin-create-release',
+          component: () => import('../views/AdminCreateReleaseView.vue'),
+      },
     ],
   },
   {
