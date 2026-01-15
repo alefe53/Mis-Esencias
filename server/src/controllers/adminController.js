@@ -1,5 +1,6 @@
 //src/controllers/adminController.js
 import * as adminService from "../services/adminService.js";
+import { releaseService } from "../services/releaseService.js";
 
 export const handleGetAllUsers = async (req, res, next) => {
     try {
@@ -86,6 +87,16 @@ export const handleUpdateComment = async (req, res, next) => {
         const { content } = req.body;
         const result = await adminService.updateComment(authToken, commentId, content);
         res.status(200).json({ success: true, data: result });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const handleDeleteRelease = async (req, res, next) => {
+    try {
+        const { releaseId } = req.params;
+        await releaseService.deleteReleaseById(releaseId);
+        res.status(204).send();
     } catch (error) {
         next(error);
     }

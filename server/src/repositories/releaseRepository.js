@@ -1,3 +1,4 @@
+// src/repositories/releaseRepository.js
 import { supabase } from "../config/supabase.js";
 
 /**
@@ -51,8 +52,47 @@ const getMySoloReleases = async () => {
 	return data;
 };
 
+/**
+ * Llama a la nueva función completa de creación (versión mejorada).
+ * @param {object} releaseData - El objeto JSONB completo.
+ */
+const createComprehensiveRelease = async (releaseData) => {
+    // Usamos RPC para llamar a la función segura que creamos en SQL
+    const { data, error } = await supabase.rpc("admin_create_comprehensive_release", {
+        p_release_data: releaseData,
+    });
+
+    if (error) {
+        console.error("Error en repositorio (createComprehensiveRelease):", error);
+        throw new Error(error.message || "Error creando el lanzamiento.");
+    }
+
+    return data;
+};
+
+/**
+ * Borra un release y todo su contenido en cascada.
+ * @param {number} releaseId 
+ */
+const deleteRelease = async (releaseId) => {
+    const { error } = await supabase.rpc("admin_delete_release", {
+        p_release_id: releaseId
+    });
+    
+    if (error) {
+        console.error("Error en repositorio (deleteRelease):", error);
+        throw new Error(error.message || "Error borrando el lanzamiento.");
+    }
+    
+    return true;
+};
+
+
+
 export const releaseRepository = {
 	createFullRelease,
+	createComprehensiveRelease,
+	deleteRelease,
 	getFullDetailsById,
 	getMySoloReleases,
 };

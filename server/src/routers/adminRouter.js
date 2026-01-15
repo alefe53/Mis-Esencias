@@ -32,4 +32,10 @@ adminRouter.post(
     adminController.handlePinGlobalMessage,
 );
 
+
+adminRouter.delete(
+    "/releases/:releaseId", 
+    adminController.handleDeleteRelease
+);
+
 export default adminRouter;
