@@ -12,7 +12,6 @@ import AdminMenuView from '../views/AdminMenuView.vue'
 import AdminChatDashboard from '../views/AdminDashboardView.vue'
 import AdminUserListView from '../views/AdminUserListView.vue'
 import SocialFeedView from '../views/SocialFeedView.vue'
-import AdminStreamView from '../views/AdminStreamView.vue'
 import SubscriptionView from '../views/SubscriptionView.vue'
 import AdminStreamViewV2 from '../views/AdminStreamViewV2.vue'
 
