@@ -172,7 +172,6 @@ const tierHasFeature = (
   padding: 0 2rem 4rem 2rem;
   color: #e0e0e0;
   text-align: center;
-  filter: brightness(1.25) contrast(0.95);
 }
 
 .header-container {
