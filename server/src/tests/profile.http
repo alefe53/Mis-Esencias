@@ -1,0 +1,102 @@
+# ==========================================================
+#   VARIABLES PARA LAS PRUEBAS DEL PERFIL
+# ==========================================================
+@hostname = 127.0.0.1
+@port = 3001
+@host = http://{{hostname}}:{{port}}/api
+@content_type = application/json
+
+# ⚠️ IMPORTANTE:
+# Pega aquí el token JWT válido que obtienes después de que un usuario inicie sesión.
+@jwt_token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJpZCI6ImFhYWFhYWEtYmJiYi1jY2NjLWRkZGQtZWVlZWVlZWVlZWVlIn0.some_fake_signature_replace_this
+
+
+###
+# ==========================================================
+#   1. ACTUALIZAR PERFIL COMPLETO (CASO EXITOSO)
+# ==========================================================
+# Descripción: Envía todos los campos para actualizar un perfil.
+# Esperado: Código 200 OK con el perfil actualizado.
+PUT {{host}}/profile
+Content-Type: {{content_type}}
+Authorization: Bearer {{jwt_token}}
+
+{
+  "firstName": "Alejandro",
+  "lastName": "Fenos",
+  "birthDate": "1989-11-28"
+}
+
+
+###
+# ==========================================================
+#   2. ACTUALIZACIÓN PARCIAL (SOLO NOMBRE)
+# ==========================================================
+# Descripción: Envía solo un campo para actualizar.
+# Esperado: Código 200 OK, solo el nombre debe cambiar.
+PUT {{host}}/profile
+Content-Type: {{content_type}}
+Authorization: Bearer {{jwt_token}}
+
+{
+  "firstName": "Ale"
+}
+
+
+###
+# ==========================================================
+#   3. ACTUALIZACIÓN PARCIAL (FECHA DE NACIMIENTO)
+# ==========================================================
+# Descripción: Envía solo la fecha de nacimiento.
+# Esperado: Código 200 OK, solo la fecha debe cambiar.
+PUT {{host}}/profile
+Content-Type: {{content_type}}
+Authorization: Bearer {{jwt_token}}
+
+{
+  "birthDate": "1990-01-01"
+}
+
+
+###
+# ==========================================================
+#   4. INTENTO DE ACTUALIZACIÓN SIN DATOS
+# ==========================================================
+# Descripción: Envía un objeto vacío.
+# Esperado: Código 400 Bad Request con mensaje "No hay datos para actualizar.".
+PUT {{host}}/profile
+Content-Type: {{content_type}}
+Authorization: Bearer {{jwt_token}}
+
+{}
+
+
+###
+# ==========================================================
+#   5. ERROR DE AUTENTICACIÓN (SIN TOKEN)
+# ==========================================================
+# Descripción: No se envía el encabezado de autorización.
+# Esperado: Código 401 Unauthorized con mensaje de token no proporcionado.
+PUT {{host}}/profile
+Content-Type: {{content_type}}
+
+{
+  "firstName": "Usuario",
+  "lastName": "Fantasma"
+}
+
+
+###
+# ==========================================================
+#   6. ERROR DE AUTENTICACIÓN (TOKEN INVÁLIDO)
+# ==========================================================
+# Descripción: Se envía un token JWT falso o expirado.
+# Esperado: Código 401 Unauthorized con mensaje de token inválido.
+PUT {{host}}/profile
+Content-Type: {{content_type}}
+Authorization: Bearer token.invalido.123
+
+{
+  "firstName": "Usuario",
+  "lastName": "Ilegitimo"
+}

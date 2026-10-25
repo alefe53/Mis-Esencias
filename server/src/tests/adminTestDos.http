@@ -1,0 +1,41 @@
+# =======================================================
+#       PRUEBAS PARA EL PANEL DE ADMINISTRADOR
+# =======================================================
+
+# --- Variables (Configura esto antes de empezar) ---
+@baseUrl = http://localhost:3001/api
+
+# Pega el token que obtengas del login aquí abajo
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjEzMmM1NjBiLWE2ZjctNDZkZS05MGZiLWNjYjkwY2FhZDc1MyIsImVtYWlsIjoiYWxlZmU1M0BnbWFpbC5jb20iLCJzdWJzY3JpcHRpb25fdGllcl9pZCI6MywiZmlyc3RfbmFtZSI6IkFsZSIsImxhc3RfbmFtZSI6IkZlIiwiaWF0IjoxNzUyODAwNzg4LCJleHAiOjE3NTI4MDQzODh9.ZkQq5K14IZJVIT0aORkRcwTGbaoFBt6X0vCgAhRCKLA
+
+# IDs para las pruebas de borrado
+@conversationIdToDelete = 1
+@messageIdToDelete = 1
+
+
+###
+# (AUTH) Login como Administrador para obtener el token
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "alefe53@gmail.com",
+  "password": "Wichi2025"
+}
+
+###
+# (ADMIN) Obtener la lista de todos los usuarios
+GET {{baseUrl}}/admin/users
+Authorization: Bearer {{adminToken}}
+
+
+###
+# (ADMIN) Borrar una conversación completa
+DELETE {{baseUrl}}/admin/chats/conversations/{{conversationIdToDelete}}
+Authorization: Bearer {{adminToken}}
+
+
+###
+# (ADMIN) Borrar un mensaje específico
+DELETE {{baseUrl}}/admin/chats/messages/{{messageIdToDelete}}
+Authorization: Bearer {{adminToken}}

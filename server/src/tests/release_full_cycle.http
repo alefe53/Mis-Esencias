@@ -1,0 +1,85 @@
+### CORRECCIÓN: Quitamos el "/api" del final porque tus rutas abajo ya lo tienen
+@host = https://mis-esencias-backend.onrender.com
+@admin_email = alefe53@gmail.com
+@admin_password = Wichi2025
+
+### =================================================================
+### PASO 1: LOGIN DE ADMIN (Necesario para poder borrar después)
+### =================================================================
+# @name loginAdmin
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{admin_email}}",
+  "password": "{{admin_password}}"
+}
+
+### Guardamos el token en una variable para usarla despues
+@authToken = {{loginAdmin.response.body.token}}
+
+
+### =================================================================
+### PASO 2: CREAR RELEASE (Llama a la nueva función Comprehensive)
+### =================================================================
+# @name createRelease
+POST {{host}}/api/releases
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "type": "solo",
+  "release_title": "TEST HTTP FLOW - INTEGRIDAD",
+  "release_description": "Release creado desde archivo .http para probar flujo completo.",
+  "cover_art_url": "test/http_flow_cover.jpg",
+  "release_year": 2025,
+  "artist_name": "HTTP Client Tester",
+  "artist_tags": ["test", "backend"],
+  "gallery_images": [
+      {"url": "test/gallery1.jpg", "description": "Gallery Test", "alt_text": "Alt Test"}
+  ],
+  "tracks": [
+    {
+      "title": "Track de Prueba 1",
+      "track_number": 1,
+      "duration_seconds": 180,
+      "tier_id": 1,
+      "mood_ids": [1],
+      "contributors": [
+        { "name": "Baterista Virtual", "role": "Drums", "tags": ["ai"] }
+      ],
+      "links": [
+        { "platform": "spotify", "url": "https://spotify.com/test" }
+      ]
+    }
+  ]
+}
+
+### Capturamos el ID del release recién creado
+@createdReleaseId = {{createRelease.response.body.release_id}}
+
+
+### =================================================================
+### PASO 3: VERIFICAR QUE EXISTE (Lectura)
+### =================================================================
+# Debería devolver 200 OK y mostrar los datos del release
+GET {{host}}/api/releases/{{createdReleaseId}}
+Content-Type: application/json
+
+
+### =================================================================
+### PASO 4: BORRAR RELEASE (Usando endpoint de Admin)
+### =================================================================
+# Usamos el Token de Admin del Paso 1 y el ID del Paso 2.
+# Debería devolver 204 No Content.
+DELETE {{host}}/api/admin/releases/{{createdReleaseId}}
+Authorization: Bearer {{authToken}}
+
+
+### =================================================================
+### PASO 5: VERIFICAR BORRADO (Confirmación final)
+### =================================================================
+# Debería devolver 404 Not Found (o 400 segun tu manejo de errores).
+# Si devuelve error, SIGNIFICA QUE EL TEST PASÓ (porque ya no existe).
+GET {{host}}/api/releases/{{createdReleaseId}}
+Content-Type: application/json

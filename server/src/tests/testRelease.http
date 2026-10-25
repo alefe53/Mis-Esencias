@@ -1,0 +1,100 @@
+### =======================================================
+### Prueba para crear un nuevo LANZAMIENTO COMPLETO (SOLO)
+### =======================================================
+# Este test crea un nuevo lanzamiento. Le añadimos un nombre (@createSoloRelease)
+# y un pequeño script para capturar el ID del release creado en una variable.
+# @name createSoloRelease
+POST http://127.0.0.1:3001/api/releases
+Content-Type: application/json
+
+{
+  "type": "solo",
+  "artist_name": "ADF",
+  "artist_tags": ["PRUEBA rock", "PRUEBA experimental", "PRUEBA solista"],
+  "release_title": "PRUEBA Nuevo Horizonte",
+  "release_description": "PRUEBA Un EP conceptual sobre nuevos comienzos.",
+  "cover_art_url": "/images/releases_test/new_horizon.jpg",
+  "release_year": 2025,
+  "tracks": [
+    {
+      "title": "PRUEBA Amanecer Digital",
+      "description": "PRUEBA El primer rayo de luz en un mundo nuevo.",
+      "track_number": 1,
+      "contributors": [
+        {
+          "name": "ADF",
+          "role": "PRUEBA Composición, Guitarras, Sintetizadores"
+        },
+        {
+          "name": "PRUEBA Un Baterista Invitado",
+          "role": "PRUEBA Batería"
+        }
+      ],
+      "links": [
+        { "platform": "spotify", "url": "http://googleusercontent.com/spotify.com/test_1" },
+        { "platform": "youtube", "url": "http://googleusercontent.com/youtube.com/test_1" }
+      ]
+    }
+  ]
+}
+
+> {%
+  // Script para capturar el ID del release de la respuesta
+  client.global.set("releaseId", response.body.release_id);
+%}
+
+### =================================================================
+### Prueba para OBTENER los detalles del lanzamiento recién creado
+### =================================================================
+# Este test usa la variable {{releaseId}} capturada en el paso anterior
+# para llamar al nuevo endpoint GET y verificar que funciona.
+
+GET http://127.0.0.1:3001/api/releases/2
+Content-Type: application/json
+
+
+
+### =================================================================
+### Prueba para OBTENER los detalles del lanzamiento recién creado
+### =================================================================
+# Este test usa la variable {{releaseId}} capturada en el paso anterior
+# para llamar al nuevo endpoint GET y verificar que funciona.
+
+GET http://127.0.0.1:3001/api/releases/my-music
+Content-Type: application/json
+
+
+
+
+### ===================================================
+### Prueba para crear un lanzamiento de una BANDA
+### ===================================================
+# Este test no necesita modificaciones, sirve para probar otro caso de creación.
+
+POST http://127.0.0.1:3001/api/releases
+Content-Type: application/json
+
+{
+    "type": "band",
+    "band_name": "Los Exploradores Cósmicos",
+    "band_description": "Una odisea de rock psicodélico y espacial.",
+    "band_image_url": "/images/releases_test/cosmic_explorers.jpg",
+    "band_tags": ["rock psicodelico", "space rock"],
+    "main_artist_name": "ADF",
+    "members": [
+        {"name": "ADF", "role": "Guitarra Líder"},
+        {"name": "Astro Kid", "role": "Bajo y Voz"},
+        {"name": "Nova", "role": "Batería y Percusión"}
+    ],
+    "release_title": "Ecos de un Agujero Negro",
+    "release_description": "Sonidos capturados desde el borde del universo.",
+    "cover_art_url": "/images/releases_test/black_hole_echoes.jpg",
+    "release_year": 2026,
+    "tracks": [
+        {
+            "title": "Horizonte de Sucesos",
+            "track_number": 1
+        }
+    ],
+    "featured_video_url":"dQw4w9WgXcQ"
+}

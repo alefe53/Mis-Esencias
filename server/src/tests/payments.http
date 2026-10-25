@@ -1,0 +1,25 @@
+### Variables
+@host = http://localhost:3001
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiZjA3OTk5OS1kZjY0LTQ5Y2EtODg5MS04NTMyZjk0NzM3NTUiLCJpZCI6ImJmMDc5OTk5LWRmNjQtNDljYS04ODkxLTg1MzJmOTQ3Mzc1NSIsImVtYWlsIjoia2lraUBnbWFpbC5jb20iLCJzdWJzY3JpcHRpb25fdGllcl9pZCI6MSwiZmlyc3RfbmFtZSI6Iktpa2kiLCJsYXN0X25hbWUiOiJLb2tvIiwiYXZhdGFyX3VybCI6InBlcmZpbGRlZmF1bHQuanBnIiwiaWF0IjoxNzU1MjE2NDA5LCJleHAiOjE3NTUyMjAwMDl9.CFGsTl_mf7SWJtRDrWoOet2BsWLURvYnOnXMS5i1MQI
+
+### 1. Crear una orden de pago con Mercado Pago
+POST {{host}}/api/payments/create-order
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "tierId": 2,
+    "provider": "mercadopago",
+    "durationMonths": 1
+}
+
+### 2. Crear una orden de pago con PayPal
+POST {{host}}/api/payments/create-order
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "tierId": 3,
+    "provider": "paypal",
+    "durationMonths": 6
+}

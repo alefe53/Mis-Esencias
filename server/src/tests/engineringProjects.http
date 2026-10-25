@@ -1,0 +1,14 @@
+# Variables del entorno
+@baseUrl = http://127.0.0.1:3001/api
+
+###
+# 1. Obtener TODOS los proyectos de ingeniería
+# Debería devolver un array con todos los trabajos.
+GET {{baseUrl}}/engineering
+Accept: application/json
+
+###
+# 2. Obtener los DETALLES de UN proyecto de ingeniería
+# Cambia el '1' por cualquier ID de proyecto que exista en tu tabla engineering_projects.
+GET {{baseUrl}}/engineering/1
+Accept: application/json
