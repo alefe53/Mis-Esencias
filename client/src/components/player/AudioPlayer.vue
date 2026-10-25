@@ -579,7 +579,7 @@ const handlePrimaryPlay = async () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 35px; /
+  width: 35px; 
   height: 35px;
   padding: 0;
   border-radius: 50%;

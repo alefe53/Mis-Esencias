@@ -62,6 +62,8 @@
             <strong>ADF:</strong> Particularmente como consultor de datos, desarrollador y
             administrador de bases de datos en proyectos para compañías líderes. Analista
             en Sistemas y Técnico Superior de Audio. Bilingüe de Inglés. 
+            Hice esta web app con tecnologías modernas como Node.js, Es6, Vue, Vite, Supabase, entre otras. 
+            Programé con bcrypt de tal forma que todas las passwords están cifradas y encriptadas asi que ni yo puedo verlas. 
             Mi camino hasta el momento ha sido con divertida curiosidad en múltiples ramas priorizando la
             tecnología y la música. Como músico he participado en numerosas
             bandas para festivales de la talla de artistas internacionales, en
@@ -175,6 +177,8 @@
               <strong>ADF:</strong> Particularmente como consultor de datos, desarrollador y
               administrador de bases de datos en proyectos para compañías líderes. Analista
               en Sistemas y Técnico Superior de Audio. Bilingüe de Inglés. 
+              Hice esta web app con tecnologías modernas como Node.js, Es6, Vue, Vite, Supabase, entre otras. 
+              Programé con bcrypt de tal forma que todas las passwords están cifradas y encriptadas asi que ni yo puedo verlas. 
               Mi camino hasta el momento ha sido con divertida curiosidad en múltiples ramas priorizando la
               tecnología y la música. Como músico he participado en numerosas
               bandas para festivales de la talla de artistas internacionales, en
@@ -182,7 +186,7 @@
               y hasta en la televisión. Grabando músicos, haciendo sonido en teatros y bares y hasta en cortos
               audiovisuales con equipo propio. Me vas a encontrar siempre chusmeando nuevas tecnologías y componiendo nuevas armonías. 
               Disfruto y domino ambas ramas; para quienes estén interesados de mis servicios.
-            </p>
+            </p>    
             <p>
               <strong>SL:</strong> Profesora de teatro, actriz, diplomada superior en juego y escenararios lúdicos, dramaturgia, expresión corporal. AT, diseñadora y
               docente tanto del interior como de Capital Federal. Ufóloga, maga y tarotista.  
