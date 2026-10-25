@@ -502,6 +502,12 @@ const handleGalleryClick = () => {
   display: none;
 }
 
+.separator-block .initial-letter {
+  font-size: 3rem; 
+  align-self: center; 
+  margin: 0 0.5rem;   
+}
+
 
 @media (max-width: 768px) {
   .desktop-content {
